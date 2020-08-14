@@ -10,11 +10,11 @@ import org.bytedeco.javacpp.opencv_highgui;
 import org.bytedeco.javacpp.opencv_imgcodecs;
 import org.junit.Test;
 
-import com.yuxue.easypr.core.CharsIdentify;
+/*import com.yuxue.easypr.core.CharsIdentify;
 import com.yuxue.easypr.core.CharsRecognise;
 import com.yuxue.easypr.core.CoreFunc;
 import com.yuxue.easypr.core.PlateDetect;
-import com.yuxue.easypr.core.PlateLocate;
+import com.yuxue.easypr.core.PlateLocate;*/
 import com.yuxue.enumtype.Direction;
 import com.yuxue.enumtype.PlateColor;
 
@@ -33,7 +33,7 @@ public class PlateRecoTest {
     /**
      * 图片车牌识别
      * 注意，图片res目录需要放到跟src同级的目录下
-     */
+     *//*
     @Test
     public void testPlateRecognise() {
         String imgPath = "res/image/test_image/plate_recognize.jpg";
@@ -71,11 +71,11 @@ public class PlateRecoTest {
     }
 
 
-    /**
+    *//**
      * 车牌检测 = 车牌定位 + 车牌判断
      * 针对定位操作返回的Mat集合，进行判断
      * 识别出集合里面哪些块是车牌
-     */
+     *//*
     @Test
     public void testPlateDetect() {
         String imgPath = "res/image/test_image/test.jpg";
@@ -97,11 +97,11 @@ public class PlateRecoTest {
     }
 
 
-    /**
+    *//**
      * 车牌定位
      * 处理原始图像，将可能为车牌的块识别出来
      * 返回结果里面，可能包含很多块，部分是车牌，部分不是车牌
-     */
+     *//*
     @Test
     public void testPlateLocate() {
         String imgPath = "res/image/test_image/test.jpg";
@@ -126,9 +126,9 @@ public class PlateRecoTest {
     }
 
 
-    /**
+    *//**
      * 文字识别
-     */
+     *//*
     @Test
     public void testCharsRecognise() {
         String imgPath = "res/image/test_image/chars_recognise_huAGH092.jpg";
@@ -141,9 +141,9 @@ public class PlateRecoTest {
     }
 
 
-    /**
+    *//**
      * 车牌颜色检测
-     */
+     *//*
     @Test
     public void testColorDetect() {
         String imgPath = "res/image/test_image/core_func_yellow.jpg";
@@ -153,9 +153,9 @@ public class PlateRecoTest {
     }
 
 
-    /**
+    *//**
      * 投影直方图
-     */
+     *//*
     @Test
     public void testProjectedHistogram() {
         String imgPath = "res/image/test_image/chars_identify_E.jpg";
@@ -164,9 +164,9 @@ public class PlateRecoTest {
     }
 
 
-    /**
+    *//**
      * 字符识别
-     */
+     *//*
     @Test
     public void testCharsIdentify() {
         String imgPath = "res/image/test_image/chars_identify_E.jpg";
@@ -180,9 +180,9 @@ public class PlateRecoTest {
 
 
 
-    /**
+    *//**
      * 测试检测绿牌颜色
-     */
+     *//*
     @Test
     public void testGreenColorReco() {
         String imgPath = "res/image/test_image/debug_resize_2.jpg";
@@ -221,7 +221,7 @@ public class PlateRecoTest {
         }
 
     }
-
+*/
 
 
 

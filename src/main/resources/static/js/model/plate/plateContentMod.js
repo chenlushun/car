@@ -75,6 +75,9 @@ define(['api', 'utils'], function(api, utils){
             if (ret.code === 200) {
                 $("#span_plate").text(ret.obj.plate);
                 $("#span_color").text(ret.obj.plateColor);
+				
+				$("#reco_plate").text(ret.obj.recoPlate);
+                $("#reco_color").text(ret.obj.recoColor);
 
                 $("#processStepDiv").find(".process-div").remove();
                 $("#processStepDiv").find(".process-img").remove();
@@ -84,11 +87,6 @@ define(['api', 'utils'], function(api, utils){
                     var $img = $('<img class="process-img">');
                     $img.attr("src", encodeURI(api.file.readFile + "?filePath="+ item.filePath));
                     $div.append($img);
-
-                    if(item.debugType.indexOf("result") == 0){
-                        $div.append($('<br/><span>' + item.recoPlate  + '</span>'));
-                        $div.append($('<span>&nbsp;' + item.plateColor  + '</span>'));
-                    }
 
                     $("#"+ item.debugType).append($div);
                 });

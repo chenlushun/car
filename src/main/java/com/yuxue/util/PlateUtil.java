@@ -1,12 +1,13 @@
 package com.yuxue.util;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
-import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,6 +23,7 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.ml.ANN_MLP;
 import org.opencv.ml.SVM;
+import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -35,60 +37,47 @@ import com.yuxue.train.SVMTrain;
  * 车牌处理工具类
  * 车牌切图按字符分割
  * 字符识别
- * 未完成
  * @author yuxue
  * @date 2020-05-28 15:11
  */
+@Component
 public class PlateUtil {
 
-    // 车牌定位处理步骤，该map用于表示步骤图片的顺序
-    private static Map<String, Integer> debugMap = Maps.newLinkedHashMap();
+    private static String DEFAULT_BASE_TEST_PATH = "D:/PlateDetect/temp/";
+
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
-        debugMap.put("platePredict", 0); 
-        debugMap.put("colorMatch", 0); 
-        debugMap.put("plateThreshold", 0); 
-        debugMap.put("plateContours", 0); 
-        debugMap.put("plateRect", 0); 
-        debugMap.put("plateCrop", 0); 
-        debugMap.put("char_clearLiuDing", 0); // 去除柳钉
-        debugMap.put("specMat", 0); 
-        debugMap.put("chineseMat", 0);
-        debugMap.put("char_auxRoi", 0);
-
-        // 设置index， 用于debug生成文件时候按名称排序
-        Integer index = 200;
-        for (Entry<String, Integer> entry : debugMap.entrySet()) {
-            entry.setValue(index);
-            index ++;
-        }
         
         // 这个位置加载模型文件会报错，暂时没时间定位啥问题报错
         /*loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
-        loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");*/
+        loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
+        loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");*/
+    }
+    
+    PlateUtil(){
+        loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
+        loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
+        loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");
     }
 
     private static SVM svm = SVM.create();
 
     private static ANN_MLP ann=ANN_MLP.create();
+    private static ANN_MLP ann_cn=ANN_MLP.create();
 
     public static void loadSvmModel(String path) {
         svm.clear();
         svm=SVM.load(path);
     }
 
-    // 加载ann配置文件  图像转文字的训练库文件
     public static void loadAnnModel(String path) {
         ann.clear();
         ann = ANN_MLP.load(path);
     }
 
-
-    public static void main(String[] args) {
-        /*System.err.println(PalteUtil.isPlate("粤AI234K"));
-        System.err.println(PalteUtil.isPlate("鄂CD3098"));*/
-
+    public static void loadAnnCnModel(String path) {
+        ann_cn.clear();
+        ann_cn = ANN_MLP.load(path);
     }
 
 
@@ -110,6 +99,55 @@ public class PlateUtil {
 
 
     /**
+     * 根据图片，获取可能是车牌的图块集合
+     * @param src 输入原图
+     * @param dst 可能是车牌的图块集合
+     * @param debug 是否保留图片的处理过程
+     * @param tempPath 图片处理过程的缓存目录
+     */
+    public static void getPlateMat(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
+        Mat src = Imgcodecs.imread(imagePath);
+        getPlateMat(src, dst, debug, tempPath);
+    }
+
+    /**
+     * 根据图片，获取可能是车牌的图块集合
+     * @param src 输入原图
+     * @param dst 可能是车牌的图块集合
+     * @param debug 是否保留图片的处理过程
+     * @param tempPath 图片处理过程的缓存目录
+     */
+    public static void getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
+        // 高斯模糊
+        Mat gsMat = ImageUtil.gaussianBlur(src, debug, tempPath);
+
+        // 消除指定范围之外的颜色
+        PlateUtil.getByColor(gsMat, tempPath, debug);
+
+        // 灰度图
+        Mat gray = ImageUtil.gray(gsMat, debug, tempPath);
+
+        // Sobel 运算，得到图像的一阶水平方向导数
+        Mat sobel = ImageUtil.sobel(gray, debug, tempPath);
+
+        // Mat scharr = ImageUtil.scharr(gray, debug, tempPath);    // 得到图像的一阶水平方向导数
+        // Mat threshold = ImageUtil.threshold(scharr, debug, tempPath);
+
+        // 图像进行二值化
+        Mat threshold = ImageUtil.threshold(sobel, debug, tempPath);
+        // 使用闭操作  同时处理一些干扰元素
+        Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
+        // 获取图中所有的轮廓
+        List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
+        // 根据轮廓， 筛选出可能是车牌的图块
+        Vector<Mat> inMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
+
+        // 找出可能是车牌的图块，存到dst中， 返回结果
+        hasPlate(inMat, dst, debug, tempPath);
+    }
+
+
+    /**
      * 输入车牌切图集合，判断是否包含车牌
      * @param inMat
      * @param dst 包含车牌的图块
@@ -123,12 +161,12 @@ public class PlateUtil {
                 if (flag == 0) {
                     dst.add(src);
                     if(debug) {
-                        System.err.println("目标符合");
-                        Imgcodecs.imwrite(tempPath + debugMap.get("platePredict") + "_platePredict" + i + ".png", src);
+                        // System.err.println("目标符合");
+                        Imgcodecs.imwrite(tempPath + Constant.debugMap.get("platePredict") + "_platePredict_" + i + ".png", src);
                     }
                     i++;
                 } else {
-                    System.out.println("目标不符合");
+                    // System.out.println("目标不符合");
                 }
             } else {
                 System.err.println("非法图块");
@@ -218,7 +256,7 @@ public class PlateUtil {
 
         float percent = (float) Core.countNonZero(gray) / (gray.rows() * gray.cols());
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("colorMatch") + "_colorMatch.jpg", gray);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("colorMatch") + "_colorMatch.jpg", gray);
         }
         return percent;
     }
@@ -233,94 +271,242 @@ public class PlateUtil {
      * @param tempPath
      */
     public static final int DEFAULT_ANGLE = 30; // 角度判断所用常量
-    public static void charsSegment(Mat inMat, PlateColor color, Vector<Mat> charMat, Boolean debug, String tempPath) {
+    public static String charsSegment(Mat inMat, PlateColor color, Boolean debug, String tempPath) {
+        // 切换到灰度图 
         Mat gray = new Mat();
         Imgproc.cvtColor(inMat, gray, Imgproc.COLOR_BGR2GRAY);
 
+        // 图像进行二值化
         Mat threshold = new Mat();
         switch (color) {
         case BLUE:
             Imgproc.threshold(gray, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
             break;
-
         case YELLOW:
             Imgproc.threshold(gray, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY_INV);
             break;
-
         case GREEN:
             Imgproc.threshold(gray, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY_INV);
             break;
-
         default:
-            return;
+            return null;
+        }
+        if (debug) {    // 输出二值图
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("plateThreshold") + "_plateThreshold.jpg", threshold);
         }
 
-        // 图片处理，降噪等
-        if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("plateThreshold") + "_plateThreshold.jpg", threshold);
-        }
-
-        // 获取轮廓
-        Mat contour = new Mat();
-        threshold.copyTo(contour);
-
-        List<MatOfPoint> contours = Lists.newArrayList();
         // 提取外部轮廓
-        Imgproc.findContours(contour, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
-
-        if (debug) {
+        List<MatOfPoint> contours = Lists.newArrayList();
+        Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+        if (debug) {    // 输出轮廓图
             Mat result = new Mat();
             inMat.copyTo(result);
             Imgproc.drawContours(result, contours, -1, new Scalar(0, 0, 255, 255));
-            Imgcodecs.imwrite(tempPath + debugMap.get("plateContours") + "_plateContours.jpg", result);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("plateContours") + "_plateContours.jpg", result);
         }
-
 
         Vector<Rect> rt = new Vector<Rect>();
         for (int i = 0; i < contours.size(); i++) {
-            Rect mr = Imgproc.boundingRect(contours.get(i));
-            /*if(debug) {
-                Mat mat = new Mat(threshold, mr);
-                Imgcodecs.imwrite(tempPath + debugMap.get("plateRect") + "_plateRect_" + i + ".jpg", mat);
-            }*/
-            if (checkCharSizes(mr)) {
+            Rect mr = Imgproc.boundingRect(contours.get(i));    //  boundingRect()得到包覆此轮廓的最小正矩形
+
+            if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
                 rt.add(mr);
             }
         }
-        if(null == rt || rt.size() <= 0) {
-            return;
+        if(null == rt || rt.size() <= 0) {  // 未识别到字符
+            return null;
         }
+
+        // 排序 
         Vector<Rect> sorted = new Vector<Rect>();
         sortRect(rt, sorted);
 
+        // 定位省份字母位置
+        Integer posi = getSpecificRect(sorted, color);
+
+        // 定位中文字符等等
+        Rect chineseRect = getChineseRect(sorted.get(posi));
+
+        Mat chineseMat = new Mat(threshold, chineseRect);
+        chineseMat = preprocessChar(chineseMat);
+        if (debug) {  
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("chineseMat") + "_chineseMat.jpg", chineseMat);
+        }
+
         String plate = "";
-        Vector<Mat> dst = new Vector<Mat>();
-        
+
+        // 预测中文字符
+        plate = plate + predictChinese(chineseMat);
+
+        // 预测中文之外的字符
         for (int i = 0; i < sorted.size(); i++) {
+            if(i < posi) {
+                continue;
+            }
+            int charCount = 7;
+            if(color.equals(PlateColor.GREEN)) {
+                charCount = 8;
+            }
+            if(i >= charCount) {
+                continue;
+            }
             Mat img_crop = new Mat(threshold, sorted.get(i));
             img_crop = preprocessChar(img_crop);
-            dst.add(img_crop);
-            if(debug) {
-                Imgcodecs.imwrite(tempPath + debugMap.get("plateCrop") + "_plateCrop_" + i + ".jpg", img_crop);
-            }
-            
-            Mat f = features(img_crop, Constant.predictSize);
-            
-            // 字符预测
-            Mat output = new Mat(1, 140, CvType.CV_32F);
-            int index = (int) ann.predict(f, output, 0);
-            
-            if (index < Constant.numCharacter) {
-                plate += String.valueOf(Constant.strCharacters[index]);
-            } else {
-                String s = Constant.strChinese[index - Constant.numCharacter];
-                plate += Constant.KEY_CHINESE_MAP.get(s);
+            plate = plate + predict(img_crop);
+            if (debug) {  
+                Imgcodecs.imwrite(tempPath + Constant.debugMap.get("specMat") + "_specMat_" + i + ".jpg", img_crop);
             }
         }
-        System.err.println("===>" + plate);
-        
-        return;
+        System.err.println("=========>" + plate);
+        return plate;
     }
+
+
+    public static String predict(Mat img) {
+        Mat f = PlateUtil.features(img, Constant.predictSize);
+
+        int index = 0;
+        double maxVal = -2;
+        Mat output = new Mat(1, Constant.strCharacters.length, CvType.CV_32F);
+        ann.predict(f, output);  // 预测结果
+        for (int j = 0; j < Constant.strCharacters.length; j++) {
+            double val = output.get(0, j)[0];
+            if (val > maxVal) {
+                maxVal = val;
+                index = j;
+            }
+        }
+
+        // 膨胀
+        f = PlateUtil.features(PlateUtil.dilate(img), Constant.predictSize);
+        ann.predict(f, output);  // 预测结果
+        for (int j = 0; j < Constant.strCharacters.length; j++) {
+            double val = output.get(0, j)[0];
+            if (val > maxVal) {
+                maxVal = val;
+                index = j;
+            }
+        }
+
+        String result = String.valueOf(Constant.strCharacters[index]);
+        return result;
+    }
+
+    public static String predictChinese(Mat img) {
+        Mat f = PlateUtil.features(img, Constant.predictSize);
+        int index = 0;
+        double maxVal = -2;
+
+        Mat output = new Mat(1, Constant.strChinese.length, CvType.CV_32F);
+        ann_cn.predict(f, output);  // 预测结果
+        for (int j = 0; j < Constant.strChinese.length; j++) {
+            double val = output.get(0, j)[0];
+            if (val > maxVal) {
+                maxVal = val;
+                index = j;
+            }
+        }
+        // 腐蚀  -- 识别中文字符效果会好一点，识别数字及字母效果会更差
+        f = PlateUtil.features(PlateUtil.erode(img), Constant.predictSize);
+        ann_cn.predict(f, output);  // 预测结果
+        for (int j = 0; j < Constant.strChinese.length; j++) {
+            double val = output.get(0, j)[0];
+            if (val > maxVal) {
+                maxVal = val;
+                index = j;
+            }
+        }
+        String result = Constant.strChinese[index];
+        return Constant.KEY_CHINESE_MAP.get(result);
+    }
+
+
+    /**
+     * 找出指示城市的字符的Rect，例如 苏A7003X，就是A的位置
+     * 之所以选择城市的字符位置，是因为该位置不管什么字母，占用的宽度跟高度的差不多，而且字符笔画是连续的，能大大提高位置的准确性
+     * @param vecRect
+     * @return
+     */
+    public static Integer getSpecificRect(Vector<Rect> vecRect, PlateColor color) {
+        List<Integer> xpositions = Lists.newArrayList();
+
+        int maxHeight = 0;
+        int maxWidth = 0;
+        for (int i = 0; i < vecRect.size(); i++) {
+            xpositions.add(vecRect.get(i).x);
+            if (vecRect.get(i).height > maxHeight) {
+                maxHeight = vecRect.get(i).height;
+            }
+            if (vecRect.get(i).width > maxWidth) {
+                maxWidth = vecRect.get(i).width;
+            }
+        }
+        int specIndex = 0;
+        for (int i = 0; i < vecRect.size(); i++) {
+            Rect mr = vecRect.get(i);
+            int midx = mr.x + mr.width / 2;
+
+            if(PlateColor.GREEN.equals(color)) {
+                if ((mr.width > maxWidth * 0.8 || mr.height > maxHeight * 0.8)
+                        && (midx < Constant.DEFAULT_WIDTH * 2 / 8 && midx > Constant.DEFAULT_WIDTH / 8)) {
+                    specIndex = i;
+                }
+            } else {
+                // 如果一个字符有一定的大小，并且在整个车牌的1/7到2/7之间，则是我们要找的特殊车牌
+                if ((mr.width > maxWidth * 0.8 || mr.height > maxHeight * 0.8)
+                        && (midx < Constant.DEFAULT_WIDTH * 2 / 7 && midx > Constant.DEFAULT_WIDTH / 7)) {
+                    specIndex = i;
+                } 
+            }
+        }
+        return specIndex;
+    }
+
+
+    /**
+     * 根据特殊车牌来构造猜测中文字符的位置和大小
+     * 
+     * @param rectSpe
+     * @return
+     */
+    public static Rect getChineseRect(Rect rectSpe) {
+        int height = rectSpe.height;
+        float newwidth = rectSpe.width * 1.15f;
+        int x = rectSpe.x;
+        int y = rectSpe.y;
+
+        int newx = x - (int) (newwidth * 1.15);
+        newx = Math.max(newx, 0);
+        Rect a = new Rect(newx, y, (int) newwidth, height);
+        return a;
+    }
+
+    /**
+     * 这个函数做两个事情
+     * <ul>
+     * <li>把特殊字符Rect左边的全部Rect去掉，后面再重建中文字符的位置;
+     * <li>从特殊字符Rect开始，依次选择6个Rect，多余的舍去。
+     * <ul>
+     * @return
+     */
+    private int RebuildRect(final Vector<Rect> vecRect, Vector<Rect> outRect, int specIndex, PlateColor color) {
+        // 最大只能有7个Rect,减去中文的就只有6个Rect
+        int count = 6;
+        if(PlateColor.GREEN.equals(color)) {
+            count = 7; // 绿牌要多一个
+        }
+        for (int i = 0; i < vecRect.size(); i++) {
+            // 将特殊字符左边的Rect去掉，这个可能会去掉中文Rect，不过没关系，我们后面会重建。
+            if (i < specIndex)
+                continue;
+
+            outRect.add(vecRect.get(i));
+            if (--count == 0)
+                break;
+        }
+        return 0;
+    }
+
 
     /**
      * 字符预处理: 统一每个字符的大小
@@ -344,7 +530,6 @@ public class PlateUtil {
 
         return resized;
     }
-
 
 
     /**
@@ -383,7 +568,6 @@ public class PlateUtil {
     }
 
 
-    
     public static float[] projectedHistogram(final Mat img, Direction direction) {
         int sz = 0;
         switch (direction) {
@@ -398,7 +582,6 @@ public class PlateUtil {
         default:
             break;
         }
-
         // 统计这一行或一列中，非零元素的个数，并保存到nonZeroMat中
         float[] nonZeroMat = new float[sz];
         Core.extractChannel(img, img, 0);
@@ -407,7 +590,6 @@ public class PlateUtil {
             int count = Core.countNonZero(data);
             nonZeroMat[j] = count;
         }
-        // Normalize histogram
         float max = 0;
         for (int j = 0; j < nonZeroMat.length; ++j) {
             max = Math.max(max, nonZeroMat[j]);
@@ -422,15 +604,12 @@ public class PlateUtil {
 
 
     public static Mat features(Mat in, int sizeData) {
-
         float[] vhist = projectedHistogram(in, Direction.VERTICAL);
         float[] hhist = projectedHistogram(in, Direction.HORIZONTAL);
-
         Mat lowData = new Mat();
         if (sizeData > 0) {
             Imgproc.resize(in, lowData, new Size(sizeData, sizeData));
         }
-
         int numCols = vhist.length + hhist.length + lowData.cols() * lowData.rows();
         Mat out = new Mat(1, numCols, CvType.CV_32F);
 
@@ -441,7 +620,6 @@ public class PlateUtil {
         for (int i = 0; i < hhist.length; ++i, ++j) {
             out.put(0, j, hhist[i]);
         }
-
         for (int x = 0; x < lowData.cols(); x++) {
             for (int y = 0; y < lowData.rows(); y++, ++j) {
                 double[] val = lowData.get(x, y);
@@ -452,10 +630,10 @@ public class PlateUtil {
     }
 
 
-    
 
     /**
      * 进行膨胀操作
+     * 也可以理解为字体加粗操作
      * @param inMat
      * @return
      */
@@ -542,5 +720,53 @@ public class PlateUtil {
     }
 
 
+    /**
+     * 颜色范围提取，以及二值化
+     * @param grey
+     * @param tempPath
+     * @param debug
+     * @return
+     */
+    public static Mat getByColor(Mat inMat, String tempPath, Boolean debug) {
+        Mat dst = new Mat();
+        Scalar lowerb = new Scalar(new double[] { 100, 43, 46 });
+        Scalar upperb = new Scalar(new double[] { 124, 200, 200 });
+        Mat hsv = new Mat();    // 转换为hsv图像
+        Imgproc.cvtColor(inMat, hsv, Imgproc.COLOR_BGR2HSV);
+        Core.inRange(hsv, lowerb, upperb, dst);
+        if(debug) {
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("colorRange") + "_colorRange.png", dst);
+        }
+        return dst;
+    }
+
+
+    public static void main(String[] args) {
+        Instant start = Instant.now();
+        String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
+        String filename = tempPath + "/100_yuantu.jpg";
+        filename = tempPath + "/100_yuantu1.jpg";
+        // filename = tempPath + "/109_crop_0.png";
+
+        // main方法执行，会调用PlateUtil的static方法，但是加载xml文件放在static，会报异常
+        // 通过spring管理对象，会先执行static，然后执行构造方法
+        PlateUtil.loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
+        PlateUtil.loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
+        PlateUtil.loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");
+
+        Boolean debug = true;
+        Vector<Mat> dst = new Vector<Mat>();
+        getPlateMat(filename, dst, debug, tempPath);
+
+        System.err.println("识别到的车牌数量：" + dst.size());
+        dst.stream().forEach(inMat -> {
+            PlateColor color = PlateUtil.getPlateColor(inMat, debug, debug, tempPath);
+            System.err.println(color.desc);
+            PlateUtil.charsSegment(inMat, color, debug, tempPath);
+        });
+
+        Instant end = Instant.now();
+        System.err.println("总耗时：" + Duration.between(start, end).toMillis());
+    }
 
 }

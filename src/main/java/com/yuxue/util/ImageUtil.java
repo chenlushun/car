@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 
@@ -25,8 +24,6 @@ import org.opencv.imgproc.Imgproc;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.yuxue.constant.Constant;
-import com.yuxue.enumtype.PlateColor;
-
 
 /**
  * 车牌图片处理工具类
@@ -36,98 +33,14 @@ import com.yuxue.enumtype.PlateColor;
  */
 public class ImageUtil {
 
-    private static String DEFAULT_BASE_TEST_PATH = "D:/PlateDetect/temp/";
-
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
-    // 车牌定位处理步骤，该map用于表示步骤图片的顺序
-    private static Map<String, Integer> debugMap = Maps.newLinkedHashMap();
-    static {
-        debugMap.put("yuantu", 0); // 原图
-        debugMap.put("gaussianBlur", 0); // 高斯模糊
-        debugMap.put("gray", 0);  // 图像灰度化
-        debugMap.put("sobel", 0); // Sobel 运算，得到图像的一阶水平方向导数
-        debugMap.put("threshold", 0); //图像二值化
-        debugMap.put("morphology", 0); // 图像闭操作
-        debugMap.put("clearInnerHole", 0); // 降噪
-        debugMap.put("clearSmallConnArea", 0); // 降噪
-        debugMap.put("clearAngleConn", 0); // 降噪
-        debugMap.put("clearHole", 0); // 降噪
-        debugMap.put("contours", 0); // 提取外部轮廓
-        debugMap.put("screenblock", 0); // 外部轮廓筛选
-        debugMap.put("crop", 0); // 切图
-        debugMap.put("resize", 0); // 切图resize
-
-        // 设置index， 用于debug生成文件时候按名称排序
-        Integer index = 100;
-        for (Entry<String, Integer> entry : debugMap.entrySet()) {
-            entry.setValue(index);
-            index ++;
-        }
-    }
-
     public static void main(String[] args) {
-        Instant start = Instant.now();
-        String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
-        String filename = tempPath + "/100_yuantu.jpg";
-        filename = tempPath + "/100_yuantu1.jpg";
-        // filename = tempPath + "/109_crop_0.png";
-
-        // 读取原图
-        Mat src = Imgcodecs.imread(filename);
-
-        Boolean debug = true;
-
-        // 高斯模糊
-        Mat gsMat = ImageUtil.gaussianBlur(src, debug, tempPath);
-
-        // 灰度图
-        Mat gray = ImageUtil.gray(gsMat, debug, tempPath);
-
-        Mat sobel = ImageUtil.sobel(gray, debug, tempPath);
-
-        Mat threshold = ImageUtil.threshold(sobel, debug, tempPath);
-
-        // Mat scharr = ImageUtil.scharr(gray, debug, tempPath);
-        // Mat threshold = ImageUtil.threshold(scharr, debug, tempPath);
-
-        Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
-
-        List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
-
-        Vector<Mat> rects = ImageUtil.screenBlock(src, contours, debug, tempPath);
-
-        PlateUtil.loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
-        PlateUtil.loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
-
-        Vector<Mat> dst = new Vector<Mat>();
-        PlateUtil.hasPlate(rects, dst, debug, tempPath);
-
-        System.err.println("识别到的车牌数量：" + dst.size());
-        dst.stream().forEach(inMat -> {
-            PlateColor color = PlateUtil.getPlateColor(inMat, true, debug, tempPath);
-            System.err.println(color.desc);
-
-            Vector<Mat> charMat = new Vector<Mat>();
-            PlateUtil.charsSegment(inMat, color, charMat, debug, tempPath);
-
-
-        });
-
-        /*String filename = tempPath + "/hsvMat_1590994270425.jpg";
-        Mat src = Imgcodecs.imread(filename);
-        Vector<Mat> charMat = new Vector<Mat>();
-        PlateUtil.charsSegment(src, PlateColor.BLUE, charMat, true, tempPath);*/
-
-        Instant end = Instant.now();
-        System.err.println("总耗时：" + Duration.between(start, end).toMillis());
-
         // ImageUtil.rgb2Hsv(src, debug, tempPath);
         // ImageUtil.getHSVValue(src, debug, tempPath);
     }
-
 
 
     /**
@@ -141,7 +54,7 @@ public class ImageUtil {
         Mat dst = new Mat();
         Imgproc.GaussianBlur(inMat, dst, new Size(DEFAULT_GAUSSIANBLUR_SIZE, DEFAULT_GAUSSIANBLUR_SIZE), 0, 0, Core.BORDER_DEFAULT);
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("gaussianBlur") + "_gaussianBlur.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("gaussianBlur") + "_gaussianBlur.jpg", dst);
         }
         return dst;
     }
@@ -158,7 +71,7 @@ public class ImageUtil {
         Mat dst = new Mat();
         Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GRAY);
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("gray") + "_gray.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("gray") + "_gray.jpg", dst);
         }
         inMat.release();
         return dst;
@@ -198,7 +111,7 @@ public class ImageUtil {
         abs_grad_y.release();
 
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("sobel") + "_sobel.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("sobel") + "_sobel.jpg", dst);
         }
         return dst;
     }
@@ -235,7 +148,7 @@ public class ImageUtil {
         abs_grad_x.release();
         abs_grad_y.release();
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("sobel") + "_sobel.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("sobel") + "_sobel.jpg", dst);
         }
         return dst;
     }
@@ -253,7 +166,7 @@ public class ImageUtil {
         Mat dst = new Mat();
         Imgproc.threshold(inMat, dst, 100, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("threshold") + "_threshold.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("threshold") + "_threshold.jpg", dst);
         }
         inMat.release();
         return dst;
@@ -277,7 +190,7 @@ public class ImageUtil {
         Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, size);
         Imgproc.morphologyEx(inMat, dst, Imgproc.MORPH_CLOSE, element);
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("morphology") + "_morphology0.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("morphology") + "_morphology0.jpg", dst);
         }
 
         // 填补内部孔洞，为了去除小连通区域的时候，降低影响
@@ -320,7 +233,7 @@ public class ImageUtil {
             // 将轮廓描绘到原图
             Imgproc.drawContours(result, contours, -1, new Scalar(0, 0, 255, 255));
             // 输出带轮廓的原图
-            Imgcodecs.imwrite(tempPath + debugMap.get("contours") + "_contours.jpg", result);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("contours") + "_contours.jpg", result);
         }
         return contours;
     }
@@ -367,14 +280,15 @@ public class ImageUtil {
                 Mat img_crop = new Mat();
                 Imgproc.getRectSubPix(src, rect_size, mr.center, img_crop);
                 if (debug) {
-                    Imgcodecs.imwrite(tempPath + debugMap.get("crop") + "_crop_" + j + ".png", img_crop);
+                    Imgcodecs.imwrite(tempPath + Constant.debugMap.get("crop") + "_crop_" + j + ".png", img_crop);
                 }
                 
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
-                Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC);
+                Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // resize
+                // Imgproc.getPerspectiveTransform(img_crop, resized); // 投影变换
                 if (debug) {
-                    Imgcodecs.imwrite(tempPath + debugMap.get("resize") + "_resize_" + j + ".png", resized);
+                    Imgcodecs.imwrite(tempPath + Constant.debugMap.get("resize") + "_resize_" + j + ".png", resized);
                     j++;
                 }
                 dst.add(resized);
@@ -386,7 +300,7 @@ public class ImageUtil {
             // 将轮廓描绘到原图
             Imgproc.drawContours(result, mv, -1, new Scalar(0, 0, 255, 255));
             // 输出带轮廓的原图
-            Imgcodecs.imwrite(tempPath + debugMap.get("screenblock") + "_screenblock.jpg", result);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("screenblock") + "_screenblock.jpg", result);
         }
         return  dst;
     }
@@ -650,9 +564,9 @@ public class ImageUtil {
         }
         label.release();
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("clearInnerHole") + "_clearInnerHole.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearInnerHole") + "_clearInnerHole.jpg", dst);
             Instant end = Instant.now();
-            System.out.println("clearInnerHole执行耗时：" + Duration.between(start, end).toMillis());
+            // System.out.println("clearInnerHole执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
@@ -734,9 +648,9 @@ public class ImageUtil {
             }
         }
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("clearHole") + "_clearHole.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearHole") + "_clearHole.jpg", dst);
             Instant end = Instant.now();
-            System.out.println("clearHole执行耗时：" + Duration.between(start, end).toMillis());
+            // System.out.println("clearHole执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
@@ -817,9 +731,9 @@ public class ImageUtil {
             }
         }
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("clearSmallConnArea") + "_clearSmallConnArea.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearSmallConnArea") + "_clearSmallConnArea.jpg", dst);
             Instant end = Instant.now();
-            System.out.println("clearSmallConnArea执行耗时：" + Duration.between(start, end).toMillis());
+            // System.out.println("clearSmallConnArea执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
@@ -887,7 +801,7 @@ public class ImageUtil {
         }
 
         if (debug) {
-            Imgcodecs.imwrite(tempPath + debugMap.get("clearAngleConn") + "_clearAngleConn.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearAngleConn") + "_clearAngleConn.jpg", dst);
             Instant end = Instant.now();
             System.out.println("clearAngleConn执行耗时：" + Duration.between(start, end).toMillis());
         }
