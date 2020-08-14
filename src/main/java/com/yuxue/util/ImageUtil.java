@@ -26,7 +26,7 @@ import com.google.common.collect.Maps;
 import com.yuxue.constant.Constant;
 
 /**
- * 车牌图片处理工具类
+ * 图片处理工具类
  * 将原图，经过算法处理，得到车牌的图块
  * @author yuxue
  * @date 2020-05-18 12:07
@@ -36,12 +36,6 @@ public class ImageUtil {
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
-
-    public static void main(String[] args) {
-        // ImageUtil.rgb2Hsv(src, debug, tempPath);
-        // ImageUtil.getHSVValue(src, debug, tempPath);
-    }
-
 
     /**
      * 高斯模糊
@@ -190,7 +184,7 @@ public class ImageUtil {
         Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, size);
         Imgproc.morphologyEx(inMat, dst, Imgproc.MORPH_CLOSE, element);
         if (debug) {
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("morphology") + "_morphology0.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("morphology") + "_morphology.jpg", dst);
         }
 
         // 填补内部孔洞，为了去除小连通区域的时候，降低影响
