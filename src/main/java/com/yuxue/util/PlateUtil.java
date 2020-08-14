@@ -55,9 +55,9 @@ public class PlateUtil {
     }
     
     PlateUtil(){
-        loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
-        loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
-        loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");
+        loadSvmModel(Constant.DEFAULT_SVM_PATH);
+        loadAnnModel(Constant.DEFAULT_ANN_PATH);
+        loadAnnCnModel(Constant.DEFAULT_ANN_CN_PATH);
     }
 
     private static SVM svm = SVM.create();
