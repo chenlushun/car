@@ -204,7 +204,7 @@ public class ImageUtil {
 
 
     /**
-     * Find 轮廓 of possibles plates 求轮廓。求出图中所有的轮廓。
+     * 提取外部轮廓
      * 这个算法会把全图的轮廓都计算出来，因此要进行筛选。
      * @param src 原图
      * @param inMat morphology Mat
@@ -215,7 +215,6 @@ public class ImageUtil {
     public static List<MatOfPoint> contours(Mat src, Mat inMat, Boolean debug, String tempPath) {
         List<MatOfPoint> contours = Lists.newArrayList();
         Mat hierarchy = new Mat();
-        // 提取外部轮廓
         // CV_RETR_EXTERNAL只检测最外围轮廓，
         // CV_RETR_LIST   检测所有的轮廓
         // CV_CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
