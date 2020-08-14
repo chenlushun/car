@@ -750,9 +750,9 @@ public class PlateUtil {
 
         // main方法执行，会调用PlateUtil的static方法，但是加载xml文件放在static，会报异常
         // 通过spring管理对象，会先执行static，然后执行构造方法
-        PlateUtil.loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
-        PlateUtil.loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
-        PlateUtil.loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");
+        PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm2.xml");
+        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
+        PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
