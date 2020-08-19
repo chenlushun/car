@@ -47,13 +47,13 @@ public class PlateUtil {
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        
+
         // 这个位置加载模型文件会报错，暂时没时间定位啥问题报错
         /*loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
         loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
         loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");*/
     }
-    
+
     PlateUtil(){
         loadSvmModel(Constant.DEFAULT_SVM_PATH);
         loadAnnModel(Constant.DEFAULT_ANN_PATH);
@@ -121,8 +121,8 @@ public class PlateUtil {
         // 高斯模糊
         Mat gsMat = ImageUtil.gaussianBlur(src, debug, tempPath);
 
-        // 消除指定范围之外的颜色
-        PlateUtil.getByColor(gsMat, tempPath, debug);
+        // 颜色范围提取
+        // Mat crMat = ImageUtil.getByColor(gsMat, debug, tempPath);
 
         // 灰度图
         Mat gray = ImageUtil.gray(gsMat, debug, tempPath);
@@ -135,10 +135,16 @@ public class PlateUtil {
 
         // 图像进行二值化
         Mat threshold = ImageUtil.threshold(sobel, debug, tempPath);
+
         // 使用闭操作  同时处理一些干扰元素
         Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
+        Mat clear1 = ImageUtil.clearInnerHole(morphology, 8, 16, debug, tempPath);
+        Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
+        
+         Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
+
         // 获取图中所有的轮廓
-        List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
+        List<MatOfPoint> contours = ImageUtil.contours(src, clear3, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
         Vector<Mat> inMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
 
@@ -720,45 +726,24 @@ public class PlateUtil {
     }
 
 
-    /**
-     * 颜色范围提取，以及二值化
-     * @param grey
-     * @param tempPath
-     * @param debug
-     * @return
-     */
-    public static Mat getByColor(Mat inMat, String tempPath, Boolean debug) {
-        Mat dst = new Mat();
-        Scalar lowerb = new Scalar(new double[] { 100, 43, 46 });
-        Scalar upperb = new Scalar(new double[] { 124, 200, 200 });
-        Mat hsv = new Mat();    // 转换为hsv图像
-        Imgproc.cvtColor(inMat, hsv, Imgproc.COLOR_BGR2HSV);
-        Core.inRange(hsv, lowerb, upperb, dst);
-        if(debug) {
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("colorRange") + "_colorRange.png", dst);
-        }
-        return dst;
-    }
-
-
     public static void main(String[] args) {
-        Instant start = Instant.now();
-        String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
-        String filename = tempPath + "/100_yuantu.jpg";
-        filename = tempPath + "/100_yuantu1.jpg";
-        // filename = tempPath + "/109_crop_0.png";
-
         // main方法执行，会调用PlateUtil的static方法，但是加载xml文件放在static，会报异常
         // 通过spring管理对象，会先执行static，然后执行构造方法
         PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm2.xml");
-        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
+        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann2.xml");
         PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
+
+
+        Instant start = Instant.now();
+        String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
+        String filename = tempPath + "/100_yuantu1.jpg";
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
         getPlateMat(filename, dst, debug, tempPath);
 
         System.err.println("识别到的车牌数量：" + dst.size());
+
         dst.stream().forEach(inMat -> {
             PlateColor color = PlateUtil.getPlateColor(inMat, debug, debug, tempPath);
             System.err.println(color.desc);

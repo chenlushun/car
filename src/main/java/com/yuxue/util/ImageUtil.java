@@ -34,31 +34,57 @@ import com.yuxue.constant.Constant;
 public class ImageUtil {
 
     static {
+        // 加载本地安装的opencv库
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
+
     /**
-     * 高斯模糊
-     * @param inMat
-     * @param debug
+     * 高斯滤波，用于 抑制噪声，平滑图像， 防止把噪点也检测为边缘
+     * 高斯滤波器相比于均值滤波器对图像个模糊程度较小
+     * https://blog.csdn.net/qinchao315/article/details/81269328
+     * https://blog.csdn.net/qq_35294564/article/details/81142524
+     * @param inMat 原图
+     * @param debug 是否输出结果图片
+     * @param tempPath 结果图片输出路径
      * @return
      */
-    public static final int DEFAULT_GAUSSIANBLUR_SIZE = 5;
+    public static final int BLUR_KERNEL = 7;  // 滤波内核大小必须是 正奇数
     public static Mat gaussianBlur(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat();
-        Imgproc.GaussianBlur(inMat, dst, new Size(DEFAULT_GAUSSIANBLUR_SIZE, DEFAULT_GAUSSIANBLUR_SIZE), 0, 0, Core.BORDER_DEFAULT);
+        Size ksize = new Size(BLUR_KERNEL, BLUR_KERNEL);
+        Imgproc.GaussianBlur(inMat, dst, ksize, 0, 0, Core.BORDER_DEFAULT);
         if (debug) {
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("gaussianBlur") + "_gaussianBlur.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("blur") + "_blur.jpg", dst);
         }
         return dst;
     }
 
 
     /**
-     * 将图像进行灰度化
+     * 均值滤波
      * @param inMat
-     * @param debug
-     * @param tempPath
+     * @param debug 是否输出结果图片
+     * @param tempPath 结果图片输出路径
+     * @return
+     */
+    public static Mat blur(Mat inMat, Boolean debug, String tempPath) {
+        Mat dst = new Mat();
+        Point anchor = new Point(-1,-1);
+        Size ksize = new Size(BLUR_KERNEL, BLUR_KERNEL);
+        Imgproc.blur(inMat, dst, ksize, anchor, Core.BORDER_DEFAULT);
+        if (debug) {
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("blur") + "_blur.jpg", dst);
+        }
+        return dst;
+    }
+
+
+    /**
+     * 图像灰度化
+     * @param inMat 高斯滤波后的图
+     * @param debug 是否输出结果图片
+     * @param tempPath 结果图片输出路径
      * @return
      */
     public static Mat gray(Mat inMat, Boolean debug, String tempPath) {
@@ -67,13 +93,15 @@ public class ImageUtil {
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("gray") + "_gray.jpg", dst);
         }
-        inMat.release();
         return dst;
     }
 
 
     /**
      * 对图像进行Sobel 运算，得到图像的一阶水平方向导数
+     * 边缘检测算子，是一阶的梯度算法
+     * 所谓梯度运算就是对图像中的像素点进行就导数运算，从而得到相邻两个像素点的差异值
+     * 对噪声具有平滑作用，提供较为精确的边缘方向信息，边缘定位精度不够高。当对精度要求不是很高时，是一种较为常用的边缘检测方法
      * @param inMat 灰度图
      * @param debug
      * @param tempPath
@@ -83,6 +111,9 @@ public class ImageUtil {
     public static final int SOBEL_DELTA = 0;
     public static final int SOBEL_X_WEIGHT = 1;
     public static final int SOBEL_Y_WEIGHT = 0;
+    public static final int SOBEL_KERNEL = 3;// 内核大小必须为奇数且不大于31
+    public static final double alpha = 1.5; // 乘数因子
+    public static final double beta = 10.0; // 偏移量
     public static Mat sobel(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat();
         Mat grad_x = new Mat();
@@ -91,11 +122,12 @@ public class ImageUtil {
         Mat abs_grad_y = new Mat();
 
         // Sobel滤波 计算水平方向灰度梯度的绝对值
-        Imgproc.Sobel(inMat, grad_x, CvType.CV_16S, 1, 0, 3, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT); 
-        Core.convertScaleAbs(grad_x, abs_grad_x);   // 增强对比度
+        Imgproc.Sobel(inMat, grad_x, CvType.CV_16S, 1, 0, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT); 
+        Core.convertScaleAbs(grad_x, abs_grad_x, alpha, beta);   // 增强对比度
 
-        Imgproc.Sobel(inMat, grad_y, CvType.CV_16S, 0, 1, 3, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT);
-        Core.convertScaleAbs(grad_y, abs_grad_y);
+        // Sobel滤波 计算垂直方向灰度梯度的绝对值
+        Imgproc.Sobel(inMat, grad_y, CvType.CV_16S, 0, 1, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT);
+        Core.convertScaleAbs(grad_y, abs_grad_y, alpha, beta);
         grad_x.release();
         grad_y.release();
 
@@ -113,13 +145,14 @@ public class ImageUtil {
 
     /**
      * 对图像进行scharr 运算，得到图像的一阶水平方向导数
+     * 增强对比度，边缘检测
+     * 所谓梯度运算就是对图像中的像素点进行就导数运算，从而得到相邻两个像素点的差异值
      * @param inMat
      * @param debug
      * @param tempPath
      * @return
      */
     public static Mat scharr(Mat inMat, Boolean debug, String tempPath) {
-
         Mat dst = new Mat();
 
         Mat grad_x = new Mat();
@@ -128,7 +161,6 @@ public class ImageUtil {
         Mat abs_grad_y = new Mat();
 
         //注意求梯度的时候我们使用的是Scharr算法，sofia算法容易收到图像细节的干扰
-        //所谓梯度运算就是对图像中的像素点进行就导数运算，从而得到相邻两个像素点的差异值 by:Tantuo
         Imgproc.Scharr(inMat, grad_x, CvType.CV_32F, 1, 0);
         Imgproc.Scharr(inMat, grad_y, CvType.CV_32F, 0, 1);
         //openCV中有32位浮点数的CvType用于保存可能是负值的像素数据值
@@ -142,7 +174,7 @@ public class ImageUtil {
         abs_grad_x.release();
         abs_grad_y.release();
         if (debug) {
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("sobel") + "_sobel.jpg", dst);
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("scharr") + "_scharr.jpg", dst);
         }
         return dst;
     }
@@ -174,10 +206,8 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    // public static final int DEFAULT_MORPH_SIZE_WIDTH = 15;
-    // public static final int DEFAULT_MORPH_SIZE_HEIGHT = 3;
-    public static final int DEFAULT_MORPH_SIZE_WIDTH = 9;
-    public static final int DEFAULT_MORPH_SIZE_HEIGHT = 3;
+    public static final int DEFAULT_MORPH_SIZE_WIDTH = 10;
+    public static final int DEFAULT_MORPH_SIZE_HEIGHT = 1; // 大于1
     public static Mat morphology(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
         Size size = new Size(DEFAULT_MORPH_SIZE_WIDTH, DEFAULT_MORPH_SIZE_HEIGHT);
@@ -186,20 +216,7 @@ public class ImageUtil {
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("morphology") + "_morphology.jpg", dst);
         }
-
-        // 填补内部孔洞，为了去除小连通区域的时候，降低影响
-        Mat a = clearInnerHole(dst, 8, 16, debug, tempPath);
-
-        // 去除小连通区域
-        Mat b = clearSmallConnArea(a, 1, 10, debug, tempPath);
-
-        // 按斜边去除
-        // Mat e = clearAngleConn(b, 5, debug, tempPath);
-
-        // 填补边缘孔洞
-        // Mat d = clearHole(a, 4, 2, debug, tempPath);
-
-        return b;
+        return dst;
     }
 
 
@@ -215,15 +232,13 @@ public class ImageUtil {
     public static List<MatOfPoint> contours(Mat src, Mat inMat, Boolean debug, String tempPath) {
         List<MatOfPoint> contours = Lists.newArrayList();
         Mat hierarchy = new Mat();
-        // CV_RETR_EXTERNAL只检测最外围轮廓，
-        // CV_RETR_LIST   检测所有的轮廓
-        // CV_CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
+        // RETR_EXTERNAL只检测最外围轮廓， // RETR_LIST   检测所有的轮廓
+        // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
         Imgproc.findContours(inMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
-
         if (debug) {
             Mat result = new Mat();
             src.copyTo(result); //  复制一张图，不在原图上进行操作，防止后续需要使用原图
-            // 将轮廓描绘到原图
+            // 将轮廓用红色描绘到原图
             Imgproc.drawContours(result, contours, -1, new Scalar(0, 0, 255, 255));
             // 输出带轮廓的原图
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("contours") + "_contours.jpg", result);
@@ -240,11 +255,12 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static final int DEFAULT_ANGLE = 30; // 角度判断所用常量
+    public static final int DEFAULT_ANGLE = 90; // 角度判断所用常量
     public static final int TYPE = CvType.CV_8UC3;
     public static Vector<Mat> screenBlock(Mat src, List<MatOfPoint> contours, Boolean debug, String tempPath){
         Vector<Mat> dst = new Vector<Mat>();
         List<MatOfPoint> mv = Lists.newArrayList(); // 用于在原图上描绘筛选后的结果
+
         for (int i = 0, j = 0; i < contours.size(); i++) {
             MatOfPoint m1 = contours.get(i);
             MatOfPoint2f m2 = new MatOfPoint2f();
@@ -268,14 +284,14 @@ public class ImageUtil {
                 Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转
                 Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  考虑是否需要进行投影变换？
                  */
-                
+
                 // 切图
                 Mat img_crop = new Mat();
                 Imgproc.getRectSubPix(src, rect_size, mr.center, img_crop);
                 if (debug) {
                     Imgcodecs.imwrite(tempPath + Constant.debugMap.get("crop") + "_crop_" + j + ".png", img_crop);
                 }
-                
+
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
                 Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // resize
@@ -289,7 +305,7 @@ public class ImageUtil {
         }
         if (debug) {
             Mat result = new Mat();
-            src.copyTo(result); //  复制一张图，不在原图上进行操作，防止后续需要使用原图
+            src.copyTo(result);
             // 将轮廓描绘到原图
             Imgproc.drawContours(result, mv, -1, new Scalar(0, 0, 255, 255));
             // 输出带轮廓的原图
@@ -306,28 +322,18 @@ public class ImageUtil {
      * @param mr
      * @return
      */
-    final static float DEFAULT_ERROR = 0.7f;    // 宽高比允许70%误差
-    final static float DEFAULT_ASPECT = 3.142857f;
-    public static final int DEFAULT_VERIFY_MIN = 1;
-    public static final int DEFAULT_VERIFY_MAX = 30;
     private static boolean checkPlateSize(RotatedRect mr) {
-
         // 切图面积取值范围
-        int min = 44 * 14 * DEFAULT_VERIFY_MIN;
-        int max = 44 * 14 * DEFAULT_VERIFY_MAX;
-
-        // 切图横纵比取值范围；关键在于纵横比例
-        float rmin = DEFAULT_ASPECT - DEFAULT_ASPECT * DEFAULT_ERROR;
-        float rmax = DEFAULT_ASPECT + DEFAULT_ASPECT * DEFAULT_ERROR;
-
-        // 切图计算面积
+        int min = 44 * 14 * 1;
+        int max = 44 * 14 * 30;
+        // 计算切图面积
         int area = (int) (mr.size.height * mr.size.width);
-        // 切图宽高比
+        // 计算切图宽高比
         double r = mr.size.width / mr.size.height;
-        /*if (r < 1) {  // 注释掉，不处理width 小于height的图片
+        if (r < 1) {  // 特殊情况下，获取到的width  height 值是相反的
             r = mr.size.height / mr.size.width;
-        }*/
-        return min <= area && area <= max && rmin <= r && r <= rmax;
+        }
+        return min <= area && area <= max && 2 <= r && r <= 10;
     }
 
 
@@ -723,6 +729,10 @@ public class ImageUtil {
                 }
             }
         }
+
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(4, 4));
+        Imgproc.erode(inMat, dst, element);
+
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearSmallConnArea") + "_clearSmallConnArea.jpg", dst);
             Instant end = Instant.now();
@@ -796,11 +806,29 @@ public class ImageUtil {
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearAngleConn") + "_clearAngleConn.jpg", dst);
             Instant end = Instant.now();
-            System.out.println("clearAngleConn执行耗时：" + Duration.between(start, end).toMillis());
+            // System.out.println("clearAngleConn执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
 
-
+    /**
+     * 颜色范围提取，以及二值化
+     * @param grey
+     * @param tempPath
+     * @param debug
+     * @return
+     */
+    public static Mat getByColor(Mat inMat, Boolean debug, String tempPath) {
+        Mat dst = new Mat();
+        Scalar lowerb = new Scalar(new double[] { 100, 43, 46 });
+        Scalar upperb = new Scalar(new double[] { 124, 200, 200 });
+        Mat hsv = new Mat();    // 转换为hsv图像
+        Imgproc.cvtColor(inMat, hsv, Imgproc.COLOR_BGR2HSV);
+        Core.inRange(hsv, lowerb, upperb, dst);
+        if(debug) {
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("colorRange") + "_colorRange.png", dst);
+        }
+        return dst;
+    }
 
 }
