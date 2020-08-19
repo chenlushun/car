@@ -1,6 +1,5 @@
 package com.yuxue.util;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -495,7 +494,6 @@ public class ImageUtil {
      * @return
      */
     public static Mat clearInnerHole(Mat inMat, int rowLimit, int colsLimit, Boolean debug, String tempPath) {
-        Instant start = Instant.now();
         int uncheck = 0, normal = 2, replace = 3, white = 255, black = 0;
 
         Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
@@ -564,8 +562,6 @@ public class ImageUtil {
         label.release();
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearInnerHole") + "_clearInnerHole.jpg", dst);
-            Instant end = Instant.now();
-            // System.out.println("clearInnerHole执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
@@ -581,7 +577,6 @@ public class ImageUtil {
      * @param tempPath
      */
     public static Mat clearHole(Mat inMat, int rowLimit, int colsLimit, Boolean debug, String tempPath) {
-        Instant start = Instant.now();
         int uncheck = 0, normal = 2, replace = 3, white = 255, black = 0;
         Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
         inMat.copyTo(dst);
@@ -648,8 +643,6 @@ public class ImageUtil {
         }
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearHole") + "_clearHole.jpg", dst);
-            Instant end = Instant.now();
-            // System.out.println("clearHole执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
@@ -665,7 +658,6 @@ public class ImageUtil {
      * @return
      */
     public static Mat clearSmallConnArea(Mat inMat, int rowLimit, int colsLimit, Boolean debug, String tempPath) {
-        Instant start = Instant.now();
         int uncheck = 0, normal = 2, replace = 3, white = 255, black = 0;
 
         Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
@@ -735,8 +727,6 @@ public class ImageUtil {
 
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearSmallConnArea") + "_clearSmallConnArea.jpg", dst);
-            Instant end = Instant.now();
-            // System.out.println("clearSmallConnArea执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }
@@ -753,7 +743,6 @@ public class ImageUtil {
      * @return
      */
     public static Mat clearAngleConn(Mat inMat, int limit, Boolean debug, String tempPath) {
-        Instant start = Instant.now();
         int uncheck = 0, normal = 2, replace = 3, white = 255, black = 0;
 
         Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
@@ -805,8 +794,6 @@ public class ImageUtil {
 
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("clearAngleConn") + "_clearAngleConn.jpg", dst);
-            Instant end = Instant.now();
-            // System.out.println("clearAngleConn执行耗时：" + Duration.between(start, end).toMillis());
         }
         return dst;
     }

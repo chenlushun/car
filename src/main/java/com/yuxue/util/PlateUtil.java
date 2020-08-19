@@ -494,7 +494,7 @@ public class PlateUtil {
      * <ul>
      * @return
      */
-    private int RebuildRect(final Vector<Rect> vecRect, Vector<Rect> outRect, int specIndex, PlateColor color) {
+    private int rebuildRect(final Vector<Rect> vecRect, Vector<Rect> outRect, int specIndex, PlateColor color) {
         // 最大只能有7个Rect,减去中文的就只有6个Rect
         int count = 6;
         if(PlateColor.GREEN.equals(color)) {
