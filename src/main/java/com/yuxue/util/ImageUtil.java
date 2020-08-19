@@ -49,10 +49,10 @@ public class ImageUtil {
      * @param tempPath 结果图片输出路径
      * @return
      */
-    public static final int BLUR_KERNEL = 7;  // 滤波内核大小必须是 正奇数
+    public static final int GS_BLUR_KERNEL = 3;  // 滤波内核大小必须是 正奇数
     public static Mat gaussianBlur(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat();
-        Size ksize = new Size(BLUR_KERNEL, BLUR_KERNEL);
+        Size ksize = new Size(GS_BLUR_KERNEL, GS_BLUR_KERNEL);
         Imgproc.GaussianBlur(inMat, dst, ksize, 0, 0, Core.BORDER_DEFAULT);
         if (debug) {
             Imgcodecs.imwrite(tempPath + Constant.debugMap.get("blur") + "_blur.jpg", dst);
@@ -68,6 +68,7 @@ public class ImageUtil {
      * @param tempPath 结果图片输出路径
      * @return
      */
+    public static final int BLUR_KERNEL = 5;  // 滤波内核大小必须是 正奇数
     public static Mat blur(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat();
         Point anchor = new Point(-1,-1);
@@ -122,11 +123,11 @@ public class ImageUtil {
         Mat abs_grad_y = new Mat();
 
         // Sobel滤波 计算水平方向灰度梯度的绝对值
-        Imgproc.Sobel(inMat, grad_x, CvType.CV_16S, 1, 0, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT); 
+        Imgproc.Sobel(inMat, grad_x, CvType.CV_8U, 1, 0, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT); 
         Core.convertScaleAbs(grad_x, abs_grad_x, alpha, beta);   // 增强对比度
 
         // Sobel滤波 计算垂直方向灰度梯度的绝对值
-        Imgproc.Sobel(inMat, grad_y, CvType.CV_16S, 0, 1, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT);
+        Imgproc.Sobel(inMat, grad_y, CvType.CV_8U, 0, 1, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT);
         Core.convertScaleAbs(grad_y, abs_grad_y, alpha, beta);
         grad_x.release();
         grad_y.release();

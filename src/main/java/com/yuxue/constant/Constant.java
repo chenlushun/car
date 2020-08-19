@@ -126,9 +126,9 @@ public class Constant {
         }
 
         // 车牌定位处理步骤，该map用于表示步骤图片的顺序
+        debugMap.put("gray", 0);  // 图像灰度化
         debugMap.put("blur", 0); // 高斯模糊 降噪
         debugMap.put("colorRange", 0); // hsv颜色范围过滤
-        debugMap.put("gray", 0);  // 图像灰度化
         debugMap.put("sobel", 0); // Sobel 运算，得到图像的一阶水平方向导数
         // debugMap.put("scharr", 0); // scharr 运算，得到图像的一阶水平方向导数
         debugMap.put("threshold", 0); //图像二值化

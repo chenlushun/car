@@ -47,7 +47,6 @@ public class PlateUtil {
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
         // 这个位置加载模型文件会报错，暂时没时间定位啥问题报错
         /*loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
         loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
@@ -118,17 +117,17 @@ public class PlateUtil {
      * @param tempPath 图片处理过程的缓存目录
      */
     public static void getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
+        // 灰度图
+        Mat gray = ImageUtil.gray(src, debug, tempPath);
+
         // 高斯模糊
-        Mat gsMat = ImageUtil.gaussianBlur(src, debug, tempPath);
+        Mat gsMat = ImageUtil.gaussianBlur(gray, debug, tempPath);
 
         // 颜色范围提取
         // Mat crMat = ImageUtil.getByColor(gsMat, debug, tempPath);
 
-        // 灰度图
-        Mat gray = ImageUtil.gray(gsMat, debug, tempPath);
-
         // Sobel 运算，得到图像的一阶水平方向导数
-        Mat sobel = ImageUtil.sobel(gray, debug, tempPath);
+        Mat sobel = ImageUtil.sobel(gsMat, debug, tempPath);
 
         // Mat scharr = ImageUtil.scharr(gray, debug, tempPath);    // 得到图像的一阶水平方向导数
         // Mat threshold = ImageUtil.threshold(scharr, debug, tempPath);
@@ -140,11 +139,11 @@ public class PlateUtil {
         Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
         Mat clear1 = ImageUtil.clearInnerHole(morphology, 8, 16, debug, tempPath);
         Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
-        
-         Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
+
+        // Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
 
         // 获取图中所有的轮廓
-        List<MatOfPoint> contours = ImageUtil.contours(src, clear3, debug, tempPath);
+        List<MatOfPoint> contours = ImageUtil.contours(src, clear2, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
         Vector<Mat> inMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
 
@@ -732,7 +731,6 @@ public class PlateUtil {
         PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm2.xml");
         PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann2.xml");
         PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
-
 
         Instant start = Instant.now();
         String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
