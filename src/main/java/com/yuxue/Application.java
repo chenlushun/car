@@ -28,7 +28,7 @@ public class Application {
 		        if(Integer.parseInt(str[0]) < 1) {
 		            log.error(msg);
 		        }
-		        if(Integer.parseInt(str[0]) == 1 && Integer.parseInt(str[1]) < 8) {
+		        if(Integer.parseInt(str[0]) <= 1 && Integer.parseInt(str[1]) < 8) {
                     log.error(msg);
                 }
             } catch (Exception e) {
@@ -39,6 +39,4 @@ public class Application {
 		    log.error(msg);
 		}
 	}
-	
-
 }

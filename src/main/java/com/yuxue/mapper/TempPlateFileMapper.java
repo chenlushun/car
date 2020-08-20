@@ -18,7 +18,7 @@ public interface TempPlateFileMapper {
 
     TempPlateFileEntity selectByPrimaryKey(Integer id);
 
-    List<TempPlateFileEntity> selectByCondition(Map map);
+    List<TempPlateFileEntity> selectByCondition(Map<String, Object> map);
 
     int updateByPrimaryKeySelective(TempPlateFileEntity record);
 

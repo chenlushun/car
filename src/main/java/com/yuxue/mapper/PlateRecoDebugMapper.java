@@ -18,7 +18,7 @@ public interface PlateRecoDebugMapper {
 
     PlateRecoDebugEntity selectByPrimaryKey(Integer id);
 
-    List<PlateRecoDebugEntity> selectByCondition(Map map);
+    List<PlateRecoDebugEntity> selectByCondition(Map<String, Object> map);
 
     int updateByPrimaryKeySelective(PlateRecoDebugEntity record);
 

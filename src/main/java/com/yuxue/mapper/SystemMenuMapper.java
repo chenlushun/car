@@ -17,7 +17,7 @@ public interface SystemMenuMapper {
 
     SystemMenuEntity selectByPrimaryKey(Integer id);
 
-    List<SystemMenuEntity> selectByCondition(Map map);
+    List<SystemMenuEntity> selectByCondition(Map<String, Object> map);
 
     int updateByPrimaryKeySelective(SystemMenuEntity record);
 

@@ -15,7 +15,7 @@ public interface PlateFileMapper {
 
     PlateFileEntity selectByPrimaryKey(Integer id);
 
-    List<PlateFileEntity> selectByCondition(Map map);
+    List<PlateFileEntity> selectByCondition(Map<String, Object> map);
 
     int updateByPrimaryKeySelective(PlateFileEntity record);
 
