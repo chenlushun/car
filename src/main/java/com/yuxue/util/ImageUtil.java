@@ -334,7 +334,35 @@ public class ImageUtil {
         }
         return min <= area && area <= max && 2 <= r && r <= 10;
     }
+    
+    
+    /**
+     * 进行膨胀操作
+     * 也可以理解为字体加粗操作
+     * @param inMat
+     * @return
+     */
+    public static Mat dilate(Mat inMat, int row, int col) {
+        Mat result = inMat.clone();
+        // 返回指定形状和尺寸的结构元素  矩形：MORPH_RECT;交叉形：MORPH_CROSS; 椭圆形：MORPH_ELLIPSE
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(row, col));
+        Imgproc.dilate(inMat, result, element);
+        return result;
+    }
 
+    /**
+     * 进行腐蚀操作
+     * @param inMat
+     * @return
+     */
+    public static Mat erode(Mat inMat, int row, int col) {
+        Mat result = inMat.clone();
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(row, col));
+        Imgproc.erode(inMat, result, element);
+        return result;
+    }
+
+    
 
     /**
      * rgb图像转换为hsv图像

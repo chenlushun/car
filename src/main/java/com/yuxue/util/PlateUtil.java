@@ -138,12 +138,16 @@ public class PlateUtil {
         // 使用闭操作  同时处理一些干扰元素
         Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
         Mat clear1 = ImageUtil.clearInnerHole(morphology, 8, 16, debug, tempPath);
-        Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
-
+        
+        // 边缘腐蚀，边缘膨胀，可以多执行两次
+        clear1 = ImageUtil.erode(clear1, 4, 4);
+        clear1 = ImageUtil.dilate(clear1, 4, 4);
+        
+        // Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
         // Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
 
         // 获取图中所有的轮廓
-        List<MatOfPoint> contours = ImageUtil.contours(src, clear2, debug, tempPath);
+        List<MatOfPoint> contours = ImageUtil.contours(src, clear1, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
         Vector<Mat> inMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
 
@@ -383,7 +387,7 @@ public class PlateUtil {
         }
 
         // 膨胀
-        f = PlateUtil.features(PlateUtil.dilate(img), Constant.predictSize);
+        f = PlateUtil.features(ImageUtil.dilate(img, 2, 2), Constant.predictSize);
         ann.predict(f, output);  // 预测结果
         for (int j = 0; j < Constant.strCharacters.length; j++) {
             double val = output.get(0, j)[0];
@@ -412,7 +416,7 @@ public class PlateUtil {
             }
         }
         // 腐蚀  -- 识别中文字符效果会好一点，识别数字及字母效果会更差
-        f = PlateUtil.features(PlateUtil.erode(img), Constant.predictSize);
+        f = PlateUtil.features(ImageUtil.erode(img, 2, 2), Constant.predictSize);
         ann_cn.predict(f, output);  // 预测结果
         for (int j = 0; j < Constant.strChinese.length; j++) {
             double val = output.get(0, j)[0];
@@ -637,32 +641,6 @@ public class PlateUtil {
 
 
     /**
-     * 进行膨胀操作
-     * 也可以理解为字体加粗操作
-     * @param inMat
-     * @return
-     */
-    public static Mat dilate(Mat inMat) {
-        Mat result = inMat.clone();
-        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2, 2));
-        Imgproc.dilate(inMat, result, element);
-        return result;
-    }
-
-    /**
-     * 进行腐蚀操作
-     * @param inMat
-     * @return
-     */
-    public static Mat erode(Mat inMat) {
-        Mat result = inMat.clone();
-        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2, 2));
-        Imgproc.erode(inMat, result, element);
-        return result;
-    }
-
-
-    /**
      * 随机数平移
      * @param inMat
      * @return
@@ -734,7 +712,7 @@ public class PlateUtil {
 
         Instant start = Instant.now();
         String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
-        String filename = tempPath + "/100_yuantu1.jpg";
+        String filename = tempPath + "/100_yuantu.jpg";
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
