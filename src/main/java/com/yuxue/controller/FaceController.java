@@ -14,20 +14,20 @@ import org.opencv.objdetect.CascadeClassifier;
  * and writes the results to "faceDetection.png".
  */
 public class FaceController {
-    
+
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
     public static void main(String[] args) {
-        
-     // Create a face detector from the cascade file in the resources directory.
+
+        // Create a face detector from the cascade file in the resources directory.
         // 创建识别器
         CascadeClassifier faceDetector = new CascadeClassifier("/src/main/resources/haarcascades/lbpcascade_frontalface.xml");
 
         String imgPath = "/src/main/resources/DetectFace/AverageMaleFace.jpg";
         Mat image = Imgcodecs.imread(imgPath);
-        
+
         Mat dst = new Mat();
         Imgproc.Canny(image, dst, 130, 250);
 

@@ -26,8 +26,8 @@ public class Constant {
     // 车牌识别，默认处理图片类型
     public static String DEFAULT_TYPE = "png,jpg,jpeg";
 
-    public static String DEFAULT_SVM_PATH = "res/model/svm2.xml";
-    public static String DEFAULT_ANN_PATH = "res/model/ann2.xml";
+    public static String DEFAULT_SVM_PATH = "res/model/svm.xml";
+    public static String DEFAULT_ANN_PATH = "res/model/ann.xml";
     public static String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
 
     public static final int DEFAULT_WIDTH = 136;    // cols
