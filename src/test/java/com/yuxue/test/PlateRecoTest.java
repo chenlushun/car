@@ -1,13 +1,13 @@
 package com.yuxue.test;
 
-import org.bytedeco.javacpp.opencv_imgproc;
 
 import java.io.File;
 import java.util.Vector;
 
-import org.bytedeco.javacpp.opencv_core.Mat;
+/*import org.bytedeco.javacpp.opencv_core.Mat;
+import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_highgui;
-import org.bytedeco.javacpp.opencv_imgcodecs;
+import org.bytedeco.javacpp.opencv_imgcodecs;*/
 import org.junit.Test;
 
 /*import com.yuxue.easypr.core.CharsIdentify;
