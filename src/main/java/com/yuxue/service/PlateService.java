@@ -5,11 +5,15 @@ public interface PlateService {
     
     public Object getProcessStep();
     
-    Object recognise(String filePath, boolean reRecognise);
+    public Object recognise(String filePath, boolean reRecognise);
 
-    Object refreshFileInfo();
+    public Object refreshFileInfo();
     
-    Object recogniseAll();
+    public Object recogniseAll();
+    
+    public Object getImgInfo(String imgPath, Integer rows, Integer cols);
+    
+    public Object getHsvValue(String imgPath, Integer rows, Integer cols);
     
     
     

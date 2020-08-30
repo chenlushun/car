@@ -87,6 +87,23 @@ public class PlateController {
     }
     
     
+    @ApiOperation(value = "获取图片信息", notes = "通过opencv计算，获取图片基础信息、hsv取值范围等")
+    @RequestMapping(value = "/getImgInfo", method = RequestMethod.POST)
+    public Object getImgInfo(String imgPath) {
+        return service.getImgInfo(imgPath);
+    }
+    
+    
+    @ApiOperation(value = "获取hsv值", notes = "根据前端传递的坐标，通过opencv计算，获取图片坐标位置的hsv值")
+    @RequestMapping(value = "/getHsvValue", method = RequestMethod.POST)
+    public Object getHsvValue(String imgPath, Integer rows, Integer cols) {
+        return service.getHsvValue(imgPath, rows, cols);
+    }
+    
+    
+    
+    
+    
     
     
 }

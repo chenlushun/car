@@ -206,5 +206,24 @@ public class PlateServiceImpl implements PlateService {
         return 1;
     }
 
+    @Override
+    public Object getImgInfo(String imgPath, Integer rows, Integer cols) {
+        
+        
+        return null;
+    }
+
+
+    @Override
+    public Object getHsvValue(String imgPath, Integer rows, Integer cols) {
+        
+        
+        
+        return null;
+    }
+    
+    
+    
+
 
 }

@@ -2,15 +2,15 @@ define(['api', 'utils'], function(api, utils){
 
     function init(){
         initTree();
-
         bindBtnEvent();
+        initSilder();
     }
 
     var treeId = "#treeId";
     var plateTreeNode = null;
     var dirTreeNode = null;
-    var hsvValue = {};
 
+    // canvas绘图对象
     var c = document.getElementById("canvas");
     var ctxt = c.getContext('2d');
 
@@ -28,19 +28,26 @@ define(['api', 'utils'], function(api, utils){
 
             $("#c_clos").val($(this).width());
             $("#c_rows").val($(this).height());
-            $("#p_clos").val(evt.clientX - _x); // 鼠标点击位置相对起点坐标
-            $("#p_rows").val(evt.clientY - _y); // 鼠标点击位置相对起点坐标
+            var x = evt.clientX - _x;
+            var y = evt.clientY - _y;
+            $("#p_clos").val(x); // 鼠标点击位置相对起点坐标
+            $("#p_rows").val(y); // 鼠标点击位置相对起点坐标
 
-            var data = ctxt.getImageData(evt.clientX - _x, evt.clientY - _y, 1, 1).data;
-            for(var i =0,len = data.length; i<len;i+=4){
+            x = $("#clos").val() / $(this).width() * x;
+            y = $("#rows").val() / $(this).height() * y;
+
+            var data = ctxt.getImageData(x, y, 1, 1).data;
+            /*for(var i =0,len = data.length; i<len;i+=4){
                 var red = data[i],//红色色深
                     green = data[i+1],//绿色色深
                     blue = data[i+2],//蓝色色深
                     alpha = data[i+3];//透明度
-                console.log(red, green, blue, alpha);
-                $("#rgbValue").val(red + ', ' + green + ', ' + blue + ', ' + alpha);
-            }
-            $("#rgbColor").style("backageground-color", "rgba("+ red + ', ' + green + ', ' + blue + ', ' + alpha + ")");
+            }*/
+            $("#rgbValue").val(data.slice(0,4).join(", "));
+            $("#rgbColor").css("background-color", "rgba("+ $("#rgbValue").val() + ")");
+            $("#hsvValue0").val(rgbToHsv(data.slice(0,3)).join(", "));
+            // 发起后端请求，获取指定坐标下的hsv值
+
         });
     }
 
@@ -49,79 +56,53 @@ define(['api', 'utils'], function(api, utils){
         $.fn.zTree.destroy(treeId);
         $.fn.zTree.init($(treeId), setting);
     }
-    
+
     function initSilder(data) {
-        var hmin = ZUI.silder({
-            elem: '.hmin',
-            color: 'green',
-            pos: data,
-            showNum: true,
-            count: 360,
-            disable: false,
-            callBackMove: function (num) {
-                 // console.log('move', num);
-            },
-            callBackMouseup: function (num) {
-                 // console.log('up', num);
-                 // console.log('this', this);
-                 // console.log('this', this.elem.attr("class"));
+        $('.hRange').jRange({
+            from: 0,
+            to: 360,
+            step: 1,
+            scale: [0,60,120,180,240,300,360],
+            format: '%s',
+            width: "90%",
+            showLabels: true,
+            isRange : true,
+            ondragend: function () {
+                console.log(this.getValue());
             }
         });
-        ZUI.silder({
-            elem: '.hmax',
-            color: 'green',
-            pos: '25%',
-            showNum: true,
-            count: 360,
-            disable: false,
-            callBackMouseup: function (num) {
-                // console.log('up', num);
+        $('.hRange').jRange('setValue','60,180');
+
+        $('.sRange').jRange({
+            from: 0,
+            to: 255,
+            step: 1,
+            scale: [0,50,100,150,200,250],
+            format: '%s',
+            width: "90%",
+            showLabels: true,
+            isRange : true,
+            theme: 'theme-blue',
+            ondragend: function () {
+                console.log(this.getValue());
             }
         });
-        ZUI.silder({
-            elem: '.smin',
-            color: 'red',
-            pos: '25%',
-            showNum: true,
-            count: 255,
-            disable: false,
-            callBackMouseup: function (num) {
-                // console.log('up', num);
+        $('.sRange').jRange('setValue','60,180');
+
+        $('.vRange').jRange({
+            from: 0,
+            to: 255,
+            step: 1,
+            scale: [0,50,100,150,200,250],
+            format: '%s',
+            width: "90%",
+            showLabels: true,
+            isRange : true,
+            ondragend: function () {
+                console.log(this.getValue());
             }
         });
-        ZUI.silder({
-            elem: '.smax',
-            color: 'red',
-            pos: '25%',
-            showNum: true,
-            count: 255,
-            disable: false,
-            callBackMouseup: function (num) {
-                // console.log('up', num);
-            }
-        });
-        ZUI.silder({
-            elem: '.vmin',
-            color: 'blue',
-            pos: '25%',
-            showNum: true,
-            count: 255,
-            disable: false,
-            callBackMouseup: function (num) {
-                // console.log('up', num);
-            }
-        });
-        ZUI.silder({
-            elem: '.vmax',
-            color: 'blue',
-            pos: '25%',
-            showNum: true,
-            count: 255,
-            disable: false,
-            callBackMouseup: function (num) {
-                // console.log('up', num);
-            }
-        });
+        $('.vRange').jRange('setValue','60,180');
     }
 
     // 树结构配置
@@ -267,23 +248,24 @@ define(['api', 'utils'], function(api, utils){
         var treeObj = $.fn.zTree.getZTreeObj(treeId);
 
         if(node.name.indexOf(".png") > 1 || node.name.indexOf(".jpg") > 1){
-            // $('#baseImage').attr("src", encodeURI(api.file.readFile + "?filePath=" + node.filePath));
             var img = new Image();
             img.src = encodeURI(api.file.readFile + "?filePath=" + node.filePath);
+
+            // 发起后端请求，获取hsv的取值范围; 初始化silder
+
+
+
 
             setTimeout(function () {
                 $("#clos").val(img.width);
                 $("#rows").val(img.height);
-                /*$("#c_clos").val($("#canvas").width());
-                $("#c_rows").val($("#canvas").height());*/
 
                 c.width = img.width;
                 c.height = img.height;
                 ctxt.drawImage(img,0, 0, img.width, img.height);
-
             }, 500);
 
-            initSilder('50%');
+            // initSilder('50%');
         }
 
         if(node.isParent){
@@ -292,6 +274,77 @@ define(['api', 'utils'], function(api, utils){
         } else {
             plateTreeNode = node;
         }
+    }
+
+    //参数arr的值分别为[r,g,b]
+    function rgbToHsv(arr) {
+        var h = 0, s = 0, v = 0;
+        var r = arr[0], g = arr[1], b = arr[2];
+        arr.sort(function (a, b) {
+            return a - b;
+        })
+        var max = arr[2]
+        var min = arr[0];
+        if (max === 0) {
+            s = 0;
+        } else {
+            s = 1 - (min / max);
+        }
+        if (max === min) {
+            h = 0;//事实上，max===min的时候，h无论为多少都无所谓
+        } else if (max === r && g >= b) {
+            h = 60 * ((g - b) / (max - min)) + 0;
+        } else if (max === r && g < b) {
+            h = 60 * ((g - b) / (max - min)) + 360
+        } else if (max === g) {
+            h = 60 * ((b - r) / (max - min)) + 120
+        } else if (max === b) {
+            h = 60 * ((r - g) / (max - min)) + 240
+        }
+        h = parseInt(h);
+        s = parseInt(s * 255);  // 转换到opencv的 0-255取值范围
+        v = parseInt(max);
+        return [h, s, v]
+    }
+
+
+    //参数arr的3个值分别对应[h, s, v]
+    function hsvToRgb(arr) {
+        var h = arr[0], s = arr[1], v = arr[2];
+        s = s / 100;
+        v = v / 100;
+        var r = 0, g = 0, b = 0;
+        var i = parseInt((h / 60) % 6);
+        var f = h / 60 - i;
+        var p = v * (1 - s);
+        var q = v * (1 - f * s);
+        var t = v * (1 - (1 - f) * s);
+        switch (i) {
+            case 0:
+                r = v; g = t; b = p;
+                break;
+            case 1:
+                r = q; g = v; b = p;
+                break;
+            case 2:
+                r = p; g = v; b = t;
+                break;
+            case 3:
+                r = p; g = q; b = v;
+                break;
+            case 4:
+                r = t; g = p; b = v;
+                break;
+            case 5:
+                r = v; g = p; b = q;
+                break;
+            default:
+                break;
+        }
+        r = parseInt(r * 255.0)
+        g = parseInt(g * 255.0)
+        b = parseInt(b * 255.0)
+        return [r, g, b];
     }
 
     return {

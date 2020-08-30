@@ -25,7 +25,7 @@
 
     <link rel="stylesheet" href="../../lib/ztree/css/zTreeStyle/zTreeStyle.css" type="text/css">
 
-    <link rel="stylesheet" href="../../lib/jquerySilder/silder.css">
+    <link rel="stylesheet" href="../../lib/jRange/jquery.range.css">
 
     <style>
         .wraper {
@@ -78,20 +78,20 @@
             max-height: 400px;
         }
         .jqSilder {
-            height: 30px;
+            height: 50px;
             padding: 5px 0px;
         }
         .jqSilder>label {
             width: 10%;
             float: left;
-            line-height: 30px;
+            line-height: 50px;
             text-align: center;
         }
         .jqSilder>div {
             width: 90%;
             float: right;
             clear: both;
-            margin-top: -20px;
+            margin-top: -30px;
         }
 
     </style>
@@ -124,23 +124,26 @@
             <div class="row">
                 <div class="col-lg-8">
                     <div class="panel panel-default">
-                        <div class="panel-heading"><h3 class="panel-title">HSV色彩切割(opencv)</h3></div>
+                        <div class="panel-heading"><h3 class="panel-title">HSV色彩切割</h3></div>
                         <div class="panel-body">
                             <div>
-                                <!--<img id="baseImage" class="cropper" alt="Picture" src="../../img/nopic.jpg"
-                                        style="height: 400px; max-width: 800px;"/>-->
                                 <canvas id="canvas" style="height: 400px; max-width: 800px;">对不你，你的浏览器不支持Canvas</canvas>
                             </div>
 
-                            <div class="jqSilder"><label>H-Min:</label><div class="hmin"></div></div>
-                            <div class="jqSilder"><label>H-MaX:</label><div class="hmax"></div></div>
-                            <div class="jqSilder"><label>S-Min:</label><div class="smin"></div></div>
-                            <div class="jqSilder"><label>S-Max:</label><div class="smax"></div></div>
-                            <div class="jqSilder"><label>V-Min:</label><div class="vmin"></div></div>
-                            <div class="jqSilder"><label>V-Max:</label><div class="vmax"></div></div>
+                            <div class="jqSilder"><label>H色相:</label><div class="hRange">
+                                <input type="hidden" class="slider-input"/>
+                            </div></div>
+                            <div class="jqSilder"><label>S饱和度:</label><div class="sRange">
+                                <input type="hidden" class="slider-input"/>
+                            </div></div>
+                            <div class="jqSilder"><label>V亮度:</label><div class="vRange">
+                                <input type="hidden" class="slider-input"/>
+                            </div></div>
 
-                            <div style="clear: both;">opencv里cvSplit使用的图像是32F则其取值是h为0-360、s取值为0-1、v取值为0-255。
-                                <br>如果是8UC则取值范围是h为0-180、s取值为0-255、v取值是0-255. 其中h色调对图像的分辨是很准的</div>
+                            <div style="clear: both;">
+                                PS软件里的h取值为0-360、s取值为0-1、v取值为0-1
+                                <br/>opencv里cvSplit使用的图像是32F则其取值是h为0-360、s取值为0-1、v取值为0-255。
+                                <br/>如果是8UC则取值范围是h为0-180、s取值为0-255、v取值是0-255. 其中h色调对图像的分辨是很准的</div>
                         </div>
                     </div>
 
@@ -214,11 +217,27 @@
                                 </div>
                                 <div class="col-lg-6 m-t-10">
                                     <div class="input-group">
-                                        <span class="input-group-addon">HSV</span>
-                                        <input class="form-control" id="hsvValue" type="text" placeholder="HSV">
+                                        <span class="input-group-addon">颜色:</span>
+                                        <input class="form-control" id="rgbColor" type="text" readonly="readonly">
                                     </div>
                                 </div>
                             </div>
+                            <br/>
+                            <div class="row">
+                                <div class="col-lg-6 m-t-10">
+                                    <div class="input-group">
+                                        <span class="input-group-addon">HSV</span>
+                                        <input class="form-control" id="hsvValue0" type="text" placeholder="前端RGB转HSV值">
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 m-t-10">
+                                    <div class="input-group">
+                                        <span class="input-group-addon">HSV</span>
+                                        <input class="form-control" id="hsvValue1" type="text" placeholder="后端获取的HSV值">
+                                    </div>
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -246,9 +265,9 @@
 <script type="text/javascript" src="../../lib/spinner/spinner.min.js"></script>
 
 <script type="text/javascript" src="../../lib/ztree/js/jquery.ztree.all.min.js"></script>
-<script type="text/javascript" src="../../lib/jquerySilder/silder.js"></script>
+<script type="text/javascript" src="../../lib/jRange/jquery.range.js"></script>
 
-<script src="../../lib/require/require.js" data-main="../../js/controller/imageUtils/imageUitlsContentCtrl.js"></script>
+<script src="../../lib/require/require.js" data-main="../../js/controller/imageUtils/imageUtilsContentCtrl.js"></script>
 
 
 </body>
