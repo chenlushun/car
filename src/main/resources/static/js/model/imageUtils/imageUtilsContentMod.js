@@ -31,7 +31,7 @@ define(['api', 'utils'], function(api, utils){
             $("#p_clos").val(evt.clientX - _x); // 鼠标点击位置相对起点坐标
             $("#p_rows").val(evt.clientY - _y); // 鼠标点击位置相对起点坐标
 
-            var data = ctxt.getImageData(0, 0, $("#rows").val(), $("#clos").val()).data;
+            var data = ctxt.getImageData(evt.clientX - _x, evt.clientY - _y, 1, 1).data;
             for(var i =0,len = data.length; i<len;i+=4){
                 var red = data[i],//红色色深
                     green = data[i+1],//绿色色深
