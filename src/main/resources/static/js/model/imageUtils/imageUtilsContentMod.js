@@ -1,15 +1,9 @@
 define(['api', 'utils'], function(api, utils){
 
     function init(){
-        // 初始化树结构
         initTree();
 
-        // 加载其他html文件
-        loadHtml();
-
-        // 按钮绑定事件 -- 加载完成后可见按钮
         bindBtnEvent();
-
     }
 
     var treeId = "#treeId";
@@ -17,26 +11,13 @@ define(['api', 'utils'], function(api, utils){
     var dirTreeNode = null;
     var hsvValue = {};
 
-    // var ctxt = $("#canvas")[0].getContext('2d');
-    var c=document.getElementById("canvas");
+    var c = document.getElementById("canvas");
     var ctxt = c.getContext('2d');
 
-    function loadHtml(){
-        // $("#choseDirDiv").load('./choseDir.html', function () {
-        //     $("#newRootDirBtn").on("click", function () {
-        //         addRootDir();
-        //     });
-        // });
-    }
-
     function bindBtnEvent(){
-        $("#recognise").on("click", function () {
-            recognise(plateTreeNode.filePath, true);
-        });
         $("#canvas").on('click', function (evt) {
             var p = this;
-            var _x = 0;
-            var _y = 0;
+            var _x = 0, _y = 0;
             while(p.offsetParent){
                 _x += p.offsetLeft;
                 _y += p.offsetTop;
@@ -44,16 +25,20 @@ define(['api', 'utils'], function(api, utils){
             }
             _x += p.offsetLeft; // 图片起点坐标
             _y += p.offsetTop;  // 图片起点坐标
+
             $("#c_clos").val($(this).width());
             $("#c_rows").val($(this).height());
             $("#p_clos").val(evt.clientX - _x); // 鼠标点击位置相对起点坐标
             $("#p_rows").val(evt.clientY - _y); // 鼠标点击位置相对起点坐标
 
-            var data = ctxt.getImageData((evt.clientX - _x), (evt.clientY - _y), this.width, this.height).data;
-            console.log('red', data[0]);
-            console.log('green', data[1]);
-            console.log('blue', data[2]);
-            console.log('alpha', data[3]);
+            var data = ctxt.getImageData(0, 0, $("#rows").val(), $("#clos").val()).data;
+            for(var i =0,len = data.length; i<len;i+=4){
+                var red = data[i],//红色色深
+                    green = data[i+1],//绿色色深
+                    blue = data[i+2],//蓝色色深
+                    alpha = data[i+3];//透明度
+                console.log(red, green, blue, alpha);
+            }
         });
     }
 
