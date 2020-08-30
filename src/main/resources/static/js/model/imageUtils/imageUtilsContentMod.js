@@ -38,7 +38,9 @@ define(['api', 'utils'], function(api, utils){
                     blue = data[i+2],//蓝色色深
                     alpha = data[i+3];//透明度
                 console.log(red, green, blue, alpha);
+                $("#rgbValue").val(red + ', ' + green + ', ' + blue + ', ' + alpha);
             }
+            $("#rgbColor").style("backageground-color", "rgba("+ red + ', ' + green + ', ' + blue + ', ' + alpha + ")");
         });
     }
 
