@@ -30,7 +30,9 @@ require.config({
         "homeContentMod": "js/model/home/homeContentMod",
 
         // 车牌识别模块
-        "plateContentMod": "js/model/plate/plateContentMod"
+        "plateContentMod": "js/model/plate/plateContentMod",
+        // 车牌识别模块
+        "imageUtilsContentMod": "js/model/imageUtils/imageUtilsContentMod"
     }
 });
     
