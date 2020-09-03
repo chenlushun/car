@@ -89,8 +89,8 @@ public class PlateController {
     
     @ApiOperation(value = "获取图片信息", notes = "通过opencv计算，获取图片基础信息、hsv取值范围等")
     @RequestMapping(value = "/getImgInfo", method = RequestMethod.POST)
-    public Object getImgInfo(String imgPath) {
-        return service.getImgInfo(imgPath);
+    public Object getImgInfo(String imgPath, Integer rows, Integer cols) {
+        return service.getImgInfo(imgPath, rows, cols);
     }
     
     
