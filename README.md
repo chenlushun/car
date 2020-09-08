@@ -8,11 +8,7 @@
 - 当前项目在原有EasyPR项目基础上，增加了绿牌识别功能，只不过当前的训练库文件包含绿牌的样本太少，还需要重新增加绿牌样本的训练，后续会逐步上传
 - 当前已经添加基于svm算法的车牌检测训练、以及基于ann算法的车牌号码识别训练功能
 - 后续会逐步加入证件识别、人脸识别等功能
-
-应广大网友要求，已经创建QQ群：
-
-群号：1054836232
-
+- 群号：1054836232
 ![1.png](./doc/doc_image/yx-image-recognition群二维码.png)
 
 
@@ -38,6 +34,17 @@
 - B/S 架构，前端html + requireJS，后端java
 - 数据库使用 sqlite3.0
 - 接口文档使用swagger 2.0
+
+
+
+#### 相关文档
+- [./doc/01_开发环境搭建.md](./doc/01_开发环境搭建.md)
+- [./doc/02_SVM训练说明文档.md](./doc/02_SVM训练说明文档.md) -待补齐
+- [./doc/03_ANN训练说明文档.md](./doc/03_ANN训练说明文档.md) -待补齐
+- [./doc/04_车牌识别过程说明文档.md](./doc/04_车牌识别过程说明文档.md) -待补齐
+- [./doc/05_相关问题解答.md](./doc/05_相关问题解答.md)
+
+
 
 #### 操作界面
 ![1.png](./doc/doc_image/1.png)
@@ -119,14 +126,6 @@ debug_char_auxRoi：
 ![1.png](./doc/doc_image/debug_char_auxRoi_4.jpg)
 ![1.png](./doc/doc_image/debug_char_auxRoi_5.jpg)
 ![1.png](./doc/doc_image/debug_char_auxRoi_6.jpg)
-
-
-#### 安装教程
-- 开发环境搭建： [./doc/01_开发环境搭建.md](./doc/01_开发环境搭建.md)
-- 将项目拉取到本地，PlateDetect文件夹拷贝到d盘下，默认车牌识别操作均在d:/PlateDetect/目录下处理
-- 需要修改操作路径，修改com/yuxue/constant/Constant.java文件常量参数即可，可以使用绝对盘符路径，也可以使用项目相对路径
-- spring boot方式运行项目，浏览器上输入 http://localhost:16666/index 即可打开操作界面
-- 浏览器上输入 http://localhost:16666/swagger-ui.html 即可打开接口文档页面
 
 
 #### 使用说明
