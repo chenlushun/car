@@ -13,16 +13,12 @@
 ![1.png](./doc/doc_image/yx-image-recognition群二维码.png)
 
 
-
 #### 包含功能
-
 - ****$\color{yellow}{黄}$** **$\color{blue}{蓝}$** **$\color{green}{绿}$**** **黄蓝绿车牌检测及车牌号码识别**
 - 单张图片、多张图片并发、单图片多车牌检测及识别
 - **图片车牌检测训练**
 - **图片文字识别训练**
-- 包含两种依赖包的实现方式： 基于org.bytedeco.javacpp包的实现方式； 基于org.opencv官方包的实现方式
-- org.opencv官方包，提供了java语言api；java项目可以通过build path方式或者环境变量的方式引用；
-- org.bytedeco.javacpp包，JavaCPP是一个开源库，它提供了在 Java 中高效访问本地 C++的方法；在pom中引入坐标依赖即可
+
 
 #### 软件版本
 - jdk 1.8.61+
@@ -35,7 +31,6 @@
 - B/S 架构，前端html + requireJS，后端java
 - 数据库使用 sqlite3.0
 - 接口文档使用swagger 2.0
-
 
 
 #### 相关文档
