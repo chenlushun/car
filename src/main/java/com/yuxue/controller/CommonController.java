@@ -17,7 +17,8 @@ public class CommonController {
     @RetExclude
 	@RequestMapping(value = "", method = { RequestMethod.GET })
 	public String doc() {
-		return "redirect:swagger-ui.html";
+		// return "redirect:swagger-ui.html";
+        return "home/index";
 	}
 	
     @RetExclude
