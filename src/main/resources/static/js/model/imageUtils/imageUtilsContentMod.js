@@ -13,6 +13,9 @@ define(['api', 'utils'], function(api, utils){
     // canvas绘图对象
     var c = document.getElementById("canvas");
     var ctxt = c.getContext('2d');
+    var img = null;
+    var imgData = null;
+    var hsvRange = {};
 
     function bindBtnEvent(){
         $("#canvas").on('click', function (evt) {
@@ -36,19 +39,54 @@ define(['api', 'utils'], function(api, utils){
             x = $("#clos").val() / $(this).width() * x;
             y = $("#rows").val() / $(this).height() * y;
 
+            // 获取坐标点rgb颜色data
             var data = ctxt.getImageData(x, y, 1, 1).data;
-            /*for(var i =0,len = data.length; i<len;i+=4){
-                var red = data[i],//红色色深
-                    green = data[i+1],//绿色色深
-                    blue = data[i+2],//蓝色色深
-                    alpha = data[i+3];//透明度
-            }*/
-            $("#rgbValue").val(data.slice(0,4).join(", "));
-            $("#rgbColor").css("background-color", "rgba("+ $("#rgbValue").val() + ")");
-            $("#hsvValue0").val(rgbToHsv(data.slice(0,3)).join(", "));
-            // 发起后端请求，获取指定坐标下的hsv值
+            $("#rgbValue").val(data.slice(0,4).join(", ")); // 显示rgb值
+            $("#rgbColor").css("background-color", "rgba("+ $("#rgbValue").val() + ")"); // 显示rgb颜色
+            $("#hsvValue0").val(rgbToHsv(data.slice(0,3)).join(", ")); // 显示rgb转hsv后的值
+
+            // 发起后端请求，获取指定坐标下的hsv值；用于对比前后端算法的结果是否一致 --未完成
 
         });
+    }
+
+    // hsv 色彩范围过滤   // 色彩分割
+    function hsvColorFilter(){
+        var d = ctxt.createImageData(img.width, img.height);// 创建 width*height像素的 ImageData 对象
+        for(var i =0; i<imgData.length; i+=4){
+            var p = [];
+            p[0] = imgData[i]; //red红色色深
+            p[1] = imgData[i + 1]; //green绿色色深
+            p[2] = imgData[i + 2];  //blue蓝色色深
+            // p[3] = imgData[i + 3];  //alpha透明度
+            var hsv = rgbToHsv(p); //  转换成hsv的值，统一用一个算法，保证结果一致性
+            if(checkInRange(hsv)){// 颜色范围内，保留原有颜色
+                d.data[i] = imgData[i];
+                d.data[i+1] = imgData[i+1];
+                d.data[i+2] = imgData[i+2];
+                d.data[i+3] = imgData[i+3];
+            } else {    // 颜色范围外，替换成白色
+                d.data[i] = 255;
+                d.data[i+1] = 255;
+                d.data[i+2] = 255;
+                d.data[i+3] = 255;
+            }
+        }
+        ctxt.putImageData(d, 0, 0);  // 重新绘制图片
+    }
+
+    function checkInRange(hsv){
+        var bl = true;
+        if(hsvRange['minH'] > hsv[0] || hsv[0] > hsvRange['maxH'] ){
+            bl = false;
+        }
+        if(hsvRange['minS'] > hsv[1] || hsv[1] > hsvRange['maxS'] ){
+            bl = false;
+        }
+        if(hsvRange['minV'] > hsv[2] || hsv[2] > hsvRange['maxV'] ){
+            bl = false;
+        }
+        return bl;
     }
 
     function initTree() {
@@ -68,10 +106,11 @@ define(['api', 'utils'], function(api, utils){
             showLabels: true,
             isRange : true,
             ondragend: function () {
-                console.log(this.getValue());
+                hsvRange['minH'] = Number(this.getValue().split(',')[0]);
+                hsvRange['maxH'] = Number(this.getValue().split(',')[1]);
+                hsvColorFilter();
             }
         });
-        $('.hRange').jRange('setValue','60,180');
 
         $('.sRange').jRange({
             from: 0,
@@ -84,10 +123,12 @@ define(['api', 'utils'], function(api, utils){
             isRange : true,
             theme: 'theme-blue',
             ondragend: function () {
-                console.log(this.getValue());
+                hsvRange['minS'] = Number(this.getValue().split(',')[0]);
+                hsvRange['maxS'] = Number(this.getValue().split(',')[1]);
+                hsvColorFilter();
             }
         });
-        $('.sRange').jRange('setValue','60,180');
+
 
         $('.vRange').jRange({
             from: 0,
@@ -99,10 +140,11 @@ define(['api', 'utils'], function(api, utils){
             showLabels: true,
             isRange : true,
             ondragend: function () {
-                console.log(this.getValue());
+                hsvRange['minV'] = Number(this.getValue().split(',')[0]);
+                hsvRange['maxV'] = Number(this.getValue().split(',')[1]);
+                hsvColorFilter();
             }
         });
-        $('.vRange').jRange('setValue','60,180');
     }
 
     // 树结构配置
@@ -246,15 +288,16 @@ define(['api', 'utils'], function(api, utils){
     // 树节点点击事件
     function treeClick(event, treeId, node) {
         var treeObj = $.fn.zTree.getZTreeObj(treeId);
-
+        img = new Image();
         if(node.name.indexOf(".png") > 1 || node.name.indexOf(".jpg") > 1){
-            var img = new Image();
             img.src = encodeURI(api.file.readFile + "?filePath=" + node.filePath);
 
-            // 发起后端请求，获取hsv的取值范围; 初始化silder
-
-
-
+            hsvRange['minH'] = 360;
+            hsvRange['maxH'] = 0;
+            hsvRange['minS'] = 255;
+            hsvRange['maxS'] = 0;
+            hsvRange['minV'] = 255;
+            hsvRange['maxV'] = 0;
 
             setTimeout(function () {
                 $("#clos").val(img.width);
@@ -263,9 +306,18 @@ define(['api', 'utils'], function(api, utils){
                 c.width = img.width;
                 c.height = img.height;
                 ctxt.drawImage(img,0, 0, img.width, img.height);
+                imgData = ctxt.getImageData(0, 0, img.width, img.height).data;
+                for(var i =0; i<imgData.length; i+=4){
+                    var p = [];
+                    p[0] = imgData[i]; //red红色色深
+                    p[1] = imgData[i + 1]; //green绿色色深
+                    p[2] = imgData[i + 2];  //blue蓝色色深
+                    setRang(rgbToHsv(p));
+                }
+                $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
+                $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
+                $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
             }, 500);
-
-            // initSilder('50%');
         }
 
         if(node.isParent){
@@ -276,13 +328,34 @@ define(['api', 'utils'], function(api, utils){
         }
     }
 
+    function setRang(hsv){
+        if(hsv[0] < hsvRange['minH']){
+            hsvRange['minH'] = hsv[0];
+        }
+        if(hsv[0] > hsvRange['maxH']){
+            hsvRange['maxH'] = hsv[0];
+        }
+        if(hsv[1] < hsvRange['minS']){
+            hsvRange['minS'] = hsv[0];
+        }
+        if(hsv[1] > hsvRange['maxS']){
+            hsvRange['maxS'] = hsv[0];
+        }
+        if(hsv[2] < hsvRange['minV']){
+            hsvRange['minV'] = hsv[0];
+        }
+        if(hsv[2] > hsvRange['maxV']){
+            hsvRange['maxV'] = hsv[0];
+        }
+    }
+
     //参数arr的值分别为[r,g,b]
     function rgbToHsv(arr) {
         var h = 0, s = 0, v = 0;
         var r = arr[0], g = arr[1], b = arr[2];
         arr.sort(function (a, b) {
             return a - b;
-        })
+        });
         var max = arr[2]
         var min = arr[0];
         if (max === 0) {
