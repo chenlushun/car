@@ -16,6 +16,12 @@ define(['api', 'utils'], function(api, utils){
     var img = null;
     var imgData = null;
     var hsvRange = {};
+    hsvRange['minH'] = 0;
+    hsvRange['maxH'] = 360;
+    hsvRange['minS'] = 0;
+    hsvRange['maxS'] = 255;
+    hsvRange['minV'] = 0;
+    hsvRange['maxV'] = 255;
 
     function bindBtnEvent(){
         $("#canvas").on('click', function (evt) {
@@ -41,7 +47,7 @@ define(['api', 'utils'], function(api, utils){
 
             // 获取坐标点rgb颜色data
             var data = ctxt.getImageData(x, y, 1, 1).data;
-            $("#rgbValue").val(data.slice(0,4).join(", ")); // 显示rgb值
+            $("#rgbValue").val(data.slice(0,3).join(", ")); // 显示rgb值
             $("#rgbColor").css("background-color", "rgba("+ $("#rgbValue").val() + ")"); // 显示rgb颜色
             $("#hsvValue0").val(rgbToHsv(data.slice(0,3)).join(", ")); // 显示rgb转hsv后的值
 
@@ -292,13 +298,6 @@ define(['api', 'utils'], function(api, utils){
         if(node.name.indexOf(".png") > 1 || node.name.indexOf(".jpg") > 1){
             img.src = encodeURI(api.file.readFile + "?filePath=" + node.filePath);
 
-            hsvRange['minH'] = 360;
-            hsvRange['maxH'] = 0;
-            hsvRange['minS'] = 255;
-            hsvRange['maxS'] = 0;
-            hsvRange['minV'] = 255;
-            hsvRange['maxV'] = 0;
-
             setTimeout(function () {
                 $("#clos").val(img.width);
                 $("#rows").val(img.height);
@@ -307,13 +306,8 @@ define(['api', 'utils'], function(api, utils){
                 c.height = img.height;
                 ctxt.drawImage(img,0, 0, img.width, img.height);
                 imgData = ctxt.getImageData(0, 0, img.width, img.height).data;
-                for(var i =0; i<imgData.length; i+=4){
-                    var p = [];
-                    p[0] = imgData[i]; //red红色色深
-                    p[1] = imgData[i + 1]; //green绿色色深
-                    p[2] = imgData[i + 2];  //blue蓝色色深
-                    setRang(rgbToHsv(p));
-                }
+
+                hsvColorFilter();
                 $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
                 $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
                 $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
@@ -325,27 +319,6 @@ define(['api', 'utils'], function(api, utils){
             dirTreeNode = node;
         } else {
             plateTreeNode = node;
-        }
-    }
-
-    function setRang(hsv){
-        if(hsv[0] < hsvRange['minH']){
-            hsvRange['minH'] = hsv[0];
-        }
-        if(hsv[0] > hsvRange['maxH']){
-            hsvRange['maxH'] = hsv[0];
-        }
-        if(hsv[1] < hsvRange['minS']){
-            hsvRange['minS'] = hsv[0];
-        }
-        if(hsv[1] > hsvRange['maxS']){
-            hsvRange['maxS'] = hsv[0];
-        }
-        if(hsv[2] < hsvRange['minV']){
-            hsvRange['minV'] = hsv[0];
-        }
-        if(hsv[2] > hsvRange['maxV']){
-            hsvRange['maxV'] = hsv[0];
         }
     }
 
