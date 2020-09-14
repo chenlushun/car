@@ -142,7 +142,7 @@
 
                             <div style="clear: both;">
                                 PS软件里的h取值为0-360、s取值为0-1、v取值为0-1
-                                <br/>opencv里cvSplit使用的图像是32F则其取值是h为0-360、s取值为0-1、v取值为0-255。
+                                <br/>OpenCV里 cvSplit 使用的图像是 32F 则其取值是h为0-360、s取值为0-1、v取值为0-255。
                                 <br/>如果是8UC则取值范围是h为0-180、s取值为0-255、v取值是0-255. 其中h色调对图像的分辨是很准的</div>
                         </div>
                     </div>
@@ -240,6 +240,21 @@
                             
                         </div>
                     </div>
+
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading"><h3 class="panel-title">人工标注</h3></div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <button type="button" class="btn btn-success m-r-5" id="clip"><span>提取</span></button>
+                            </div>
+                            <div class="row">
+                                <!--<img id="imgDest" src="../../img/nopic.jpg" style="max-height: 250px;">-->
+                                <canvas id="imgDest" style="height: 150px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>

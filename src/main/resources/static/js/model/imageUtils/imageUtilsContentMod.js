@@ -1,18 +1,17 @@
 define(['api', 'utils'], function(api, utils){
 
-    function init(){
-        initTree();
-        bindBtnEvent();
-        initSilder();
-    }
-
+    // 树结构对象
     var treeId = "#treeId";
     var plateTreeNode = null;
     var dirTreeNode = null;
 
     // canvas绘图对象
-    var c = document.getElementById("canvas");
-    var ctxt = c.getContext('2d');
+    var canvas = document.getElementById("canvas");
+    var ctxt = canvas.getContext('2d');
+
+    var imgDest = document.getElementById("imgDest");
+    var ctxtDest = imgDest.getContext('2d');
+
     var img = null;
     var imgData = null;
     var hsvRange = {};
@@ -22,6 +21,32 @@ define(['api', 'utils'], function(api, utils){
     hsvRange['maxS'] = 255;
     hsvRange['minV'] = 0;
     hsvRange['maxV'] = 255;
+
+    // 多边形提取，顶点
+    var points = [/*{x:50, y:0}, {x:50, y:50}, {x:0, y:50}*/];
+    var clip = false;
+
+    function init(){
+        // initTree();
+        bindBtnEvent();
+        initSilder();
+
+        // 加载静态图片，方便开发
+        /*img = new Image();
+        img.src = "./test.jpg";
+        setTimeout(function () {
+            $("#clos").val(img.width);
+            $("#rows").val(img.height);
+            canvas.width = img.width;   // 原图clos  rows
+            canvas.height = img.height;
+            ctxt.drawImage(img,0, 0, img.width, img.height);
+            imgData = ctxt.getImageData(0, 0, img.width, img.height).data;
+            hsvColorFilter();
+            $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
+            $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
+            $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
+        }, 500);*/
+    }
 
     function bindBtnEvent(){
         $("#canvas").on('click', function (evt) {
@@ -42,8 +67,14 @@ define(['api', 'utils'], function(api, utils){
             $("#p_clos").val(x); // 鼠标点击位置相对起点坐标
             $("#p_rows").val(y); // 鼠标点击位置相对起点坐标
 
-            x = $("#clos").val() / $(this).width() * x;
-            y = $("#rows").val() / $(this).height() * y;
+            x = Math.round($("#clos").val() / $(this).width() * x); // 计算原图大小对应鼠标点击位置的坐标
+            y = Math.round($("#rows").val() / $(this).height() * y);
+
+            if(clip){   // 提取多边形
+                ctxt.lineWidth = 2;
+                ctxt.strokeStyle = "#ff0000";
+                setPoints(x, y);
+            }
 
             // 获取坐标点rgb颜色data
             var data = ctxt.getImageData(x, y, 1, 1).data;
@@ -54,6 +85,63 @@ define(['api', 'utils'], function(api, utils){
             // 发起后端请求，获取指定坐标下的hsv值；用于对比前后端算法的结果是否一致 --未完成
 
         });
+
+        $("#clip").on("click", function () {
+            clip = true;
+            // 清理掉原图的绘画痕迹 -- 未完成
+
+        });
+    }
+
+    function clipPolygon() {
+        imgDest.width = img.width;
+        imgDest.height = img.height;
+        ctxtDest.save();
+        ctxtDest.beginPath();
+        ctxtDest.moveTo(points[0].x, points[0].y);
+        $.each(points, function (index, item) {
+            if(index != 0){
+                ctxtDest.lineTo(points[index].x, points[index].y);
+            }
+        });
+        ctxtDest.closePath();
+        ctxtDest.clip();
+        ctxtDest.stroke();
+        ctxtDest.drawImage(img,0, 0, img.width, img.height);
+        ctxtDest.restore();
+        ctxtDest.draw();
+    }
+
+    function setPoints(x, y){
+        points.push({'x':x, 'y':y});
+        if(points.length == 1){
+            ctxt.beginPath();
+            ctxt.moveTo(x, y);
+        } else {
+            ctxt.lineTo(x, y);
+        }
+        if (points.length >= 4) {
+            ctxt.closePath();   // 闭合区间
+            clip = false;
+        }
+        ctxt.stroke(); //画线轮廓
+        if(!clip){
+            clipPolygon();
+        }
+    }
+
+    /**
+     * 通过css样式，展示剪切后的多边形
+     * 但是无法直接将剪切后的图保存下来
+     */
+    function clipPolygon1() {
+        var polygon = "-webkit-clip-path: polygon(";
+        $.each(points, function (index, item) {
+            polygon = polygon + item.x + "px " + item.y + "px,";
+        });
+        polygon = polygon.substr(0, polygon.length-1) + ")";
+        $("#imgDest").attr("src","./test.jpg");
+        $("#imgDest").attr("style", polygon);
     }
 
     // hsv 色彩范围过滤   // 色彩分割
