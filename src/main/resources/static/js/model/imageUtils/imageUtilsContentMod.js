@@ -27,7 +27,7 @@ define(['api', 'utils'], function(api, utils){
     var clip = false;
 
     function init(){
-        // initTree();
+        initTree();
         bindBtnEvent();
         initSilder();
 
