@@ -48,7 +48,7 @@ public class PlateUtil {
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         // 这个位置加载模型文件会报错，暂时没时间定位啥问题报错
-        /*loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm2.xml");
+        /*loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm.xml");
         loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
         loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");*/
     }
@@ -526,6 +526,9 @@ public class PlateUtil {
     private static Mat preprocessChar(Mat in) {
         int h = in.rows();
         int w = in.cols();
+        // 生成输出对角矩阵(2, 3)
+        // 1 0 0
+        // 0 1 0
         Mat transformMat = Mat.eye(2, 3, CvType.CV_32F);
         int m = Math.max(w, h);
         transformMat.put(0, 2, (m - w) / 2f);
@@ -533,10 +536,8 @@ public class PlateUtil {
 
         Mat warpImage = new Mat(m, m, in.type());
         Imgproc.warpAffine(in, warpImage, transformMat, warpImage.size(), Imgproc.INTER_LINEAR, Core.BORDER_CONSTANT, new Scalar(0));
-
         Mat resized = new Mat(CHAR_SIZE, CHAR_SIZE, CvType.CV_8UC3);
         Imgproc.resize(warpImage, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC);
-
         return resized;
     }
 
@@ -706,8 +707,8 @@ public class PlateUtil {
     public static void main(String[] args) {
         // main方法执行，会调用PlateUtil的static方法，但是加载xml文件放在static，会报异常
         // 通过spring管理对象，会先执行static，然后执行构造方法
-        PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm2.xml");
-        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann2.xml");
+        PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm.xml");
+        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
         PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
 
         Instant start = Instant.now();
