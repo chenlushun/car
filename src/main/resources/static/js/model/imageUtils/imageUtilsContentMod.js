@@ -27,12 +27,12 @@ define(['api', 'utils'], function(api, utils){
     var clip = false;
 
     function init(){
-        initTree();
+        // initTree();
         bindBtnEvent();
         initSilder();
 
         // 加载静态图片，方便开发
-        /*img = new Image();
+        img = new Image();
         img.src = "./test.jpg";
         setTimeout(function () {
             $("#clos").val(img.width);
@@ -45,7 +45,7 @@ define(['api', 'utils'], function(api, utils){
             $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
             $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
             $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
-        }, 500);*/
+        }, 500);
     }
 
     function bindBtnEvent(){
