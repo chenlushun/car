@@ -55,7 +55,7 @@ public class SVMTrain {
         train(); 
 
         // 识别，判断样本文件是否是车牌
-        pridect(); 
+        predict(); 
     }
 
     public static void train() {
@@ -129,20 +129,20 @@ public class SVMTrain {
     }
 
 
-    public static void pridect() {
+    public static void predict() {
         // 加载训练得到的 xml 模型文件
         SVM svm = SVM.load(MODEL_PATH); 
 
         // 136 × 36 像素   需要跟训练的源图像文件保持相同大小
-        doPridect(svm, DEFAULT_PATH + "test/A01_NMV802_0.jpg");
-        doPridect(svm, DEFAULT_PATH + "test/debug_resize_1.jpg");
-        doPridect(svm, DEFAULT_PATH + "test/debug_resize_2.jpg");
-        doPridect(svm, DEFAULT_PATH + "test/debug_resize_3.jpg");
-        doPridect(svm, DEFAULT_PATH + "test/S22_KG2187_3.jpg");
-        doPridect(svm, DEFAULT_PATH + "test/S22_KG2187_5.jpg");
+        doPredict(svm, DEFAULT_PATH + "test/A01_NMV802_0.jpg");
+        doPredict(svm, DEFAULT_PATH + "test/debug_resize_1.jpg");
+        doPredict(svm, DEFAULT_PATH + "test/debug_resize_2.jpg");
+        doPredict(svm, DEFAULT_PATH + "test/debug_resize_3.jpg");
+        doPredict(svm, DEFAULT_PATH + "test/S22_KG2187_3.jpg");
+        doPredict(svm, DEFAULT_PATH + "test/S22_KG2187_5.jpg");
     }
 
-    public static void doPridect(SVM svm, String imgPath) {
+    public static void doPredict(SVM svm, String imgPath) {
         Mat src = Imgcodecs.imread(imgPath);
         Mat dst = getFeature(src);
         // 如果训练时使用这个标识，那么符合的图像会返回9.0
