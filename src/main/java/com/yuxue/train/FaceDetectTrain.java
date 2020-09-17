@@ -2,9 +2,8 @@ package com.yuxue.train;
 
 import java.util.Vector;
 
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
-
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
@@ -19,8 +18,20 @@ import com.yuxue.util.FileUtil;
 import com.yuxue.util.ImageUtil;
 
 /**
- * 基于org.opencv包实现的训练
- * 人脸识别训练、检测
+ * 人脸识别训练、检测 (级联分类器)
+ * 
+ * Cascade级联分类器是一种快速简单的分类方法，opencv2和opencv3中提供了完整的cascade分类器的训练和检测方法
+ * opencv中用于级联分类的类是cv::CascadeClassifier
+ * https://blog.csdn.net/guduruyu/article/details/70146739
+ * 
+ * 训练自己的级联分类器 -- 调用opencv的封装
+ * https://blog.csdn.net/dbzzcz/article/details/105517946
+ * 
+ * opencv的jar包，并没有提供java的训练api，其c++训练源码参考:
+ *  \OpenCV\4.0.1\sources\apps\traincascade\*
+ *  \OpenCV\4.0.1\sources\apps\traincascade\boost.cpp
+ *  \OpenCV\4.0.1\sources\apps\traincascade\traincascade.cpp
+ *  \OpenCV\4.0.1\sources\apps\traincascade\cascadeclassifier.cpp
  * @author yuxue
  * @date 2020-09-15 12:32
  */
@@ -41,7 +52,6 @@ public class FaceDetectTrain {
         return System.currentTimeMillis();
     }
     
-    
 
     /**
      * opencv 官方给出的模型文件 训练模型文件保存位置
@@ -60,6 +70,7 @@ public class FaceDetectTrain {
         Mat grey = ImageUtil.gaussianBlur(inMat, debug, DEFAULT_PATH);
 
         CascadeClassifier faceDetector = new CascadeClassifier(modelPath);
+        System.out.println(faceDetector.empty());
 
         MatOfRect faceDetections = new MatOfRect();
         faceDetector.detectMultiScale(grey, faceDetections);
@@ -105,7 +116,8 @@ public class FaceDetectTrain {
             labels.add(1);
         }
         
-        // 开始训练
+        // 开始训练 // 使用opencv提供的训练器，命令方式启动
+        
         
         return ;
     }
@@ -166,12 +178,12 @@ public class FaceDetectTrain {
 
     public static void main(String[] args) {
         
-        /*Mat inMat = Imgcodecs.imread("D:/FaceDetect/test/AverageMaleFace.jpg");
+        Mat inMat = Imgcodecs.imread("D:/FaceDetect/train/huge/huge.png");
         //Mat inMat = Imgcodecs.imread("D:/FaceDetect/test/huge.png");
         // Mat inMat = Imgcodecs.imread("D:/FaceDetect/test/car.jpg");
-        FaceDetectTrain.detectFace(inMat, DEFAULT_PATH);*/
+        FaceDetectTrain.detectFace(inMat, MODEL_PATH);
 
-        String sourcePath = "D:\\FaceDetect\\samples\\asia_all\\";
+        /*String sourcePath = "D:\\FaceDetect\\samples\\asia_all\\";
         String targetPath = "D:\\FaceDetect\\samples\\positive\\";
         // prepareSamples(sourcePath, targetPath, 4000);
 
@@ -193,7 +205,7 @@ public class FaceDetectTrain {
         
         train();
         
-        predict();
+        predict();*/
 
         return;
     }
