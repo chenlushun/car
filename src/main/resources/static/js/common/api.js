@@ -113,6 +113,11 @@ define(['constant'], function (constant) {
             'getProcessStep':constant.URL.MAIN_URL + '/plate/getProcessStep',
             'recognise':constant.URL.MAIN_URL + '/plate/recognise',
         },
+        
+        // 人脸识别
+        "face": {
+            'recognise':constant.URL.MAIN_URL + '/face/recognise',
+        },
 
         "file": {
             'getFileTreeByDir':constant.URL.MAIN_URL + '/file/getFileTreeByDir',

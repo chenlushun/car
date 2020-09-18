@@ -48,7 +48,7 @@ public class FileController {
     @ApiOperation(value = "获取文件结构", notes = "")
     @ApiImplicitParam(name = "dir", value = "文件夹路径", required = true, paramType = "query", dataType = "String")
     @RequestMapping(value = "/getFileTreeByDir", method = RequestMethod.GET)
-    public Object getFileTreeByDir(String dir, String typeFilter) {
+    public Object getFileTreeByDir(String rootPath, String dir, String typeFilter) {
         try {
             if(null != dir) {
                 dir = URLDecoder.decode(dir, "utf-8");
@@ -56,7 +56,7 @@ public class FileController {
         } catch (UnsupportedEncodingException e) {
             throw new ResultReturnException("dir参数异常");
         }
-        return service.getFileTreeByDir(dir, typeFilter);
+        return service.getFileTreeByDir(rootPath, dir, typeFilter);
     }
     
     

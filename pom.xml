@@ -11,6 +11,7 @@
 		<maven-jar-plugin.version>3.1.1</maven-jar-plugin.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<javacpp.platform>windows-x86_64</javacpp.platform>
 	</properties>
 
 	<parent>
@@ -127,7 +128,9 @@
 			<version>4.3.1</version>
 		</dependency> -->
 
-
+        <!-- 使用javacpp的，基于jar包的方式调用opencv框架 ===== begin -->
+        
+        <!-- 引入javacpp1.4.4.jar包，javacpp的核心包 -->
         <!-- org.bytedeco.javacpp-presets.opencv的包已经传递依赖了当前包 -->
         <!-- <dependency>
             <groupId>org.bytedeco</groupId>
@@ -135,6 +138,7 @@
             <version>1.4.4</version>
         </dependency> -->
         
+        <!-- opencv-4.0.1-1.4.4.jar javacpp二次封装的opencv java api 核心包 -->
 		<!-- https://mvnrepository.com/artifact/org.bytedeco/opencv -->
 		<!-- 包含了opencv4.0.1 及javacpp1.4.4版本 -->
 		<!-- <dependency>
@@ -144,12 +148,23 @@
 		</dependency> -->
 		
 		<!-- 引入这个包，会把所有平台的依赖包都导入，大小有200+M，实际上用不到 -->
-		<!-- 只需要从lib目录引入对应的操作系统版本包(lib/opencv-4.0.1-1.4.4-windows-x86_64.jar)即可 -->
+		<!-- 只需要引入对应的操作系统版本包(lib/opencv-4.0.1-1.4.4-windows-x86_64.jar)即可 -->
 		<!-- <dependency>
 		    <groupId>org.bytedeco.javacpp-presets</groupId>
 		    <artifactId>opencv-platform</artifactId>
 		    <version>4.0.1-1.4.4</version>
 		</dependency> -->
+
+		<!-- 引入：opencv-4.0.1-1.4.4-windows-x86_64.jar； -->
+		<!-- 即：opencv c++应用程序包，相当于本地机器安装对应操作系统的opencv -->
+		<!-- 包内的opencv_java.dll文件，是opencv_java401.dll的32位的包，只能通过javacpp的接口中转调用 -->
+		<!-- <dependency>
+			<groupId>org.bytedeco.javacpp-presets</groupId>
+			<artifactId>opencv</artifactId>
+			<version>4.0.1-1.4.4</version>
+			<classifier>windows-x86_64</classifier>
+		</dependency> -->
+		<!-- 使用javacpp的，基于jar包的方式调用opencv框架 ===== end -->
 	</dependencies>
 
 

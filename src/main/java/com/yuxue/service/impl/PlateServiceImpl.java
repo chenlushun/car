@@ -3,7 +3,6 @@ package com.yuxue.service.impl;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 
@@ -40,6 +39,14 @@ public class PlateServiceImpl implements PlateService {
 
     @Autowired
     private TempPlateFileMapper tempPlateFileMapper;
+    
+    /**
+     * 获取时间戳，生成文件名称
+     * @return
+     */
+    public static synchronized Long getId() {
+        return System.currentTimeMillis();
+    }
 
 
     @Override
@@ -82,11 +89,10 @@ public class PlateServiceImpl implements PlateService {
         List<PlateFileEntity> list = plateFileMapper.getUnRecogniseList();
 
         // 开启多线程进行识别
-        Random r = new Random(99);
         list.parallelStream().forEach(n->{
             File f = new File(n.getFilePath());
             if(FileUtil.checkFile(f)) {
-                doRecognise(f, n, r.nextInt());
+                doRecognise(f, n);
             }
         });
 
@@ -123,7 +129,7 @@ public class PlateServiceImpl implements PlateService {
         }
 
         if(reRecognise) {
-            doRecognise(f, e, 0); // 重新识别
+            doRecognise(f, e); // 重新识别
             e = plateFileMapper.selectByPrimaryKey(e.getId()); // 重新识别之后，重新获取一下数据
         }
 
@@ -143,17 +149,17 @@ public class PlateServiceImpl implements PlateService {
      * @param result
      * @return
      */
-    public Object doRecognise(File f, PlateFileEntity e, Integer seed) {
+    public Object doRecognise(File f, PlateFileEntity e) {
 
-        Long ct = System.currentTimeMillis();
+        Long ct = getId();
 
         // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下
-        String targetPath = Constant.DEFAULT_TEMP_DIR.concat(ct.toString() + seed)
+        String targetPath = Constant.DEFAULT_TEMP_DIR.concat(ct.toString())
                 .concat(f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf(".")));
         FileUtil.copyAndRename(f.getAbsolutePath(), targetPath);
 
         // 创建临时目录， 存放过程图片
-        String tempPath =  Constant.DEFAULT_TEMP_DIR.concat(ct.toString() + seed).concat("/");
+        String tempPath =  Constant.DEFAULT_TEMP_DIR.concat(ct.toString()).concat("/");
         FileUtil.createDir(tempPath); // 创建文件夹
 
         Boolean debug = true;

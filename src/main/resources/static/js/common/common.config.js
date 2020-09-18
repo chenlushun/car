@@ -32,7 +32,10 @@ require.config({
         // 车牌识别模块
         "plateContentMod": "js/model/plate/plateContentMod",
         // 车牌识别模块
-        "imageUtilsContentMod": "js/model/imageUtils/imageUtilsContentMod"
+        "imageUtilsContentMod": "js/model/imageUtils/imageUtilsContentMod",
+
+        // 车牌识别模块
+        "faceContentMod": "js/model/face/faceContentMod",
     }
 });
     

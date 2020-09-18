@@ -18,10 +18,14 @@ public class Constant {
     // 车牌识别， 默认车牌图片保存路径
     // public static String DEFAULT_DIR = "./PlateDetect/"; // 使用项目的相对路径
     public static String DEFAULT_DIR = "D:/PlateDetect/"; // 使用盘符的绝对路径
+    
+    public static String DEFAULT_FACE_DIR = "D:/FaceDetect/"; // 使用盘符的绝对路径
 
     // 车牌识别， 默认车牌图片处理过程temp路径
     // public static String DEFAULT_TEMP_DIR = "./PlateDetect/temp/"; // 使用项目的相对路径
     public static String DEFAULT_TEMP_DIR = "D:/PlateDetect/temp/"; // 使用盘符的绝对路径
+    
+    public static String DEFAULT_FACE_TEMP_DIR = "D:/FaceDetect/temp/"; // 使用盘符的绝对路径
 
     // 车牌识别，默认处理图片类型
     public static String DEFAULT_TYPE = "png,jpg,jpeg";
@@ -29,6 +33,17 @@ public class Constant {
     public static String DEFAULT_SVM_PATH = "res/model/svm.xml";
     public static String DEFAULT_ANN_PATH = "res/model/ann.xml";
     public static String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
+    
+    /**
+     * opencv 官方给出的模型文件 训练模型文件保存位置
+     * <haarcascade_frontalface_default type_id="opencv-haar-classifier">
+     * <size>24 24</size>
+     * <stage_threshold>-2.9928278923034668</stage_threshold>
+     * <parent>23</parent>
+     * <next>-1</next>
+     * 总计200个样本
+     */
+    public static String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
 
     public static final int DEFAULT_WIDTH = 136;    // cols
     public static final int DEFAULT_HEIGHT = 36;    // rows

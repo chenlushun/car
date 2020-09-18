@@ -88,7 +88,7 @@
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <div class="btn-toolbar" role="toolbar">
-                        <h3 class="pull-left m-t-5 m-b-0" id="title">文件</h3>
+                        <h3 class="pull-left m-t-5 m-b-0" id="title">图片(D:/FaceDetect/)</h3>
                         <div class="pull-right">
                             <!--<button type="button" class="btn btn-success m-r-5" id="choseDirBtn"><span>选择</span></button>-->
                         </div>
@@ -118,8 +118,9 @@
                 <div class="panel-body" id = "bodyDiv" style="overflow-y: auto;">
                     <div class="row"  style="width: 100%;padding: 10px 10px;">
                         <div align="left">
-                            <h1 style="color: red;">未实现，敬请期待</h1>
-
+                            <!-- <h1 style="color: red;">未实现，敬请期待</h1> -->
+                            <img id="originalImg" src="../../img/nopic.jpg" style="width: 49%; max-height: 400px;">
+                            <img id="resultImg" src="../../img/nopic.jpg" style="width: 49%; max-height: 400px;">
                         </div>
                     </div>
                 </div>
@@ -147,6 +148,8 @@
 
 <script type="text/javascript" src="../../lib/ztree/js/jquery.ztree.all.min.js"></script>
 
+
+<script src="../../lib/require/require.js" data-main="../../js/controller/face/faceContentCtrl.js"></script>
 
 
 </body>

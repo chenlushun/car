@@ -18,9 +18,14 @@ import com.yuxue.util.FileUtil;
 public class FileServiceImpl implements FileService {
     
     @Override
-    public List<JSONObject> getFileTreeByDir(String dir, String typeFilter) {
+    public List<JSONObject> getFileTreeByDir(String rootPath, String dir, String typeFilter) {
+        
         if(StringUtils.isEmpty(dir)){
-            dir = Constant.DEFAULT_DIR;
+            if(StringUtils.isEmpty(rootPath)){
+                dir = Constant.DEFAULT_DIR;
+            } else {
+                dir = rootPath;
+            }
         }
         if(StringUtils.isEmpty(typeFilter)){
             typeFilter = Constant.DEFAULT_TYPE;

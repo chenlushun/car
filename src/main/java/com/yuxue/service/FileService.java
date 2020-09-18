@@ -8,7 +8,7 @@ import com.alibaba.fastjson.JSONObject;
 
 public interface FileService {
     
-    List<JSONObject> getFileTreeByDir(String dir, String typeFilter);
+    List<JSONObject> getFileTreeByDir(String rootPath, String dir, String typeFilter);
     
     File readFile(String filePath);
     

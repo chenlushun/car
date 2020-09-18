@@ -2,23 +2,23 @@ package com.yuxue.train;
 
 import java.util.Vector;
 
-import org.opencv.core.Mat;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
+import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
+import com.yuxue.constant.Constant;
 import com.yuxue.util.FileUtil;
 import com.yuxue.util.ImageUtil;
 
 /**
- * 人脸识别训练、检测 (级联分类器)
+ * 人脸识别训练、检测 (级联分类器)  未完成
  * 
  * Cascade级联分类器是一种快速简单的分类方法，opencv2和opencv3中提供了完整的cascade分类器的训练和检测方法
  * opencv中用于级联分类的类是cv::CascadeClassifier
@@ -43,6 +43,7 @@ public class FaceDetectTrain {
 
     // 默认的训练操作的根目录
     private static final String DEFAULT_PATH = "D:/FaceDetect/train/";
+    private static final String MODEL_PATH = DEFAULT_PATH + "haarcascade_frontalface_my.xml";
     
     /**
      * 生成文件名称
@@ -50,39 +51,6 @@ public class FaceDetectTrain {
      */
     public static synchronized Long getId() {
         return System.currentTimeMillis();
-    }
-    
-
-    /**
-     * opencv 官方给出的模型文件 训练模型文件保存位置
-     * <haarcascade_frontalface_default type_id="opencv-haar-classifier">
-     * <size>24 24</size>
-     * <stage_threshold>-2.9928278923034668</stage_threshold>
-     * <parent>23</parent>
-     * <next>-1</next>
-     * 总计200个样本
-     */
-    private static final String MODEL_PATH = DEFAULT_PATH + "haarcascade_frontalface_default.xml";
-
-
-    public static MatOfRect detectFace(Mat inMat, String modelPath) {
-        Boolean debug = false;
-        Mat grey = ImageUtil.gaussianBlur(inMat, debug, DEFAULT_PATH);
-
-        CascadeClassifier faceDetector = new CascadeClassifier(modelPath);
-        System.out.println(faceDetector.empty());
-
-        MatOfRect faceDetections = new MatOfRect();
-        faceDetector.detectMultiScale(grey, faceDetections);
-
-        System.out.println(String.format("识别出 %s 张人脸", faceDetections.toArray().length));
-
-        // 在识别到的人脸部位，描框
-        for (Rect rect : faceDetections.toArray()) {
-            Imgproc.rectangle(inMat, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0));
-            Imgcodecs.imwrite(DEFAULT_PATH+ "face.jpg", inMat);
-        }
-        return faceDetections;
     }
 
 
@@ -142,7 +110,7 @@ public class FaceDetectTrain {
     public static void prepareSamples(String sourcePath, String targetPath, Integer limit) {
         Vector<String> files = new Vector<String>();
         FileUtil.getFiles(sourcePath, files);
-        CascadeClassifier faceDetector = new CascadeClassifier(MODEL_PATH);
+        CascadeClassifier faceDetector = new CascadeClassifier(Constant.DEFAULT_FACE_MODEL_PATH);
         int i = 0;
         for (String img : files) {
             Mat inMat = Imgcodecs.imread(img);
@@ -177,11 +145,6 @@ public class FaceDetectTrain {
 
 
     public static void main(String[] args) {
-        
-        Mat inMat = Imgcodecs.imread("D:/FaceDetect/train/huge/huge.png");
-        //Mat inMat = Imgcodecs.imread("D:/FaceDetect/test/huge.png");
-        // Mat inMat = Imgcodecs.imread("D:/FaceDetect/test/car.jpg");
-        FaceDetectTrain.detectFace(inMat, MODEL_PATH);
 
         /*String sourcePath = "D:\\FaceDetect\\samples\\asia_all\\";
         String targetPath = "D:\\FaceDetect\\samples\\positive\\";
