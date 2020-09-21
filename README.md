@@ -2,9 +2,9 @@
 
 #### 写在前面的话
 - **这是一个基于spring boot + maven + opencv 实现的图像识别及训练的Demo项目**
+- **包含车牌识别、人脸识别等功能，贯穿样本处理、模型训练、图像处理、对象检测、对象识别等技术点**
 - java语言的深度学习项目，在整个开源社区来说都相对较少；
 - 拥有完整的训练过程、检测、识别过程的开源项目更是少之又少！！
-- 本人参考了EasyPR C++项目、以及fan-wenjie的EasyPR-Java项目；同时查阅了部分opencv官方4.0.1版本C++的源码，结合个人对java语言的理解，整理出当前项目
 - 这是一个**入门级教程项目**，本人目前也正在学习图片识别相关技术；大牛请绕路
 - **获取更多资源和帮助，QQ群号：1054836232**
 
@@ -64,7 +64,7 @@
 - 作者csdn微博地址：https://blog.csdn.net/weixin_42686388
 
 #### 参考文档
-
+- 本人参考了EasyPR C++项目、以及fan-wenjie的EasyPR-Java项目；同时查阅了部分opencv官方4.0.1版本C++的源码，结合个人对java语言的理解，整理出当前项目
 - liuruoze/EasyPR：https://gitee.com/easypr/EasyPR?_from=gitee_search
 - fan-wenjie/EasyPR-Java： https://github.com/fan-wenjie/EasyPR-Java
 - opencv官方： https://opencv.org/
