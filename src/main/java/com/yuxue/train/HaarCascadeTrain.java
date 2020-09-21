@@ -35,7 +35,7 @@ import com.yuxue.util.ImageUtil;
  * @author yuxue
  * @date 2020-09-15 12:32
  */
-public class FaceDetectTrain {
+public class HaarCascadeTrain {
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -66,6 +66,25 @@ public class FaceDetectTrain {
         Mat samples = new Mat(); // 使用push_back，行数列数不能赋初始值
         Vector<Integer> labels = new Vector<Integer>();
 
+        // 加载正负样本文件
+        loadSamples(samples, labels, negative, positive);
+        
+        // 开始训练 // 使用opencv提供的训练器，命令方式启动
+        
+        
+        return ;
+    }
+    
+    
+    
+    /**
+     * 加载样本文件
+     * @param samples
+     * @param labels
+     * @param negative
+     * @param positive
+     */
+    public static void loadSamples(Mat samples, Vector<Integer> labels, String negative, String positive) {
         // 加载负样本
         Vector<String> files = new Vector<String>();
         FileUtil.getFiles(negative, files);
@@ -74,7 +93,6 @@ public class FaceDetectTrain {
             samples.push_back(inMat);
             labels.add(0);
         }
-
         // 加载正样本
         files = new Vector<String>();
         FileUtil.getFiles(positive, files);
@@ -83,11 +101,6 @@ public class FaceDetectTrain {
             samples.push_back(inMat);
             labels.add(1);
         }
-        
-        // 开始训练 // 使用opencv提供的训练器，命令方式启动
-        
-        
-        return ;
     }
 
     

@@ -27,7 +27,7 @@ define(['api', 'utils'], function(api, utils){
     var clip = false;
 
     function init(){
-        // initTree();
+        initTree();
         bindBtnEvent();
         initSilder();
 
@@ -267,8 +267,8 @@ define(['api', 'utils'], function(api, utils){
             url: api.file.getFileTreeByDir,
             type: 'get',
             dataType: "json",
-            autoParam: ["filePath=dir"],
-            otherParam: {"typeFilter":"png,jpg,jpeg"},
+            autoParam: ["id=dir"],
+            otherParam: {"typeFilter":"png,jpg,jpeg", "rootPath": "D:/PlateDetect/"},
             dataFilter: ajaxDataFilter
         },
         data: {
