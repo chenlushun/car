@@ -32,10 +32,13 @@ import com.yuxue.util.ImageUtil;
  *  \OpenCV\4.0.1\sources\apps\traincascade\boost.cpp
  *  \OpenCV\4.0.1\sources\apps\traincascade\traincascade.cpp
  *  \OpenCV\4.0.1\sources\apps\traincascade\cascadeclassifier.cpp
+ *  
+ *  官方教程地址：
+ *  https://docs.opencv.org/master/dc/d88/tutorial_traincascade.html
  * @author yuxue
  * @date 2020-09-15 12:32
  */
-public class HaarCascadeTrain {
+public class CascadeTrain {
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
