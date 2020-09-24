@@ -20,19 +20,11 @@ import com.yuxue.util.ImageUtil;
 /**
  * 人脸识别训练、检测 (级联分类器)  未完成
  * 
- * Cascade级联分类器是一种快速简单的分类方法，opencv2和opencv3中提供了完整的cascade分类器的训练和检测方法
- * opencv中用于级联分类的类是cv::CascadeClassifier
- * https://blog.csdn.net/guduruyu/article/details/70146739
- * 
- * 训练自己的级联分类器 -- 调用opencv的封装
+ * 训练自己的级联分类器 -- 调用opencv的exe应用程序
  * https://blog.csdn.net/dbzzcz/article/details/105517946
+ * 获取opencv_traincascade.exe应用程序，官方下载3.4.1版本的安装包，解压出来即可找到
+ * 或者加入 1054836232 Q群,在群共享文件中获取应用程序安装包
  * 
- * opencv的jar包，并没有提供java的训练api，其c++训练源码参考:
- *  \OpenCV\4.0.1\sources\apps\traincascade\*
- *  \OpenCV\4.0.1\sources\apps\traincascade\boost.cpp
- *  \OpenCV\4.0.1\sources\apps\traincascade\traincascade.cpp
- *  \OpenCV\4.0.1\sources\apps\traincascade\cascadeclassifier.cpp
- *  
  *  官方教程地址：
  *  https://docs.opencv.org/master/dc/d88/tutorial_traincascade.html
  * @author yuxue
@@ -73,7 +65,27 @@ public class CascadeTrain {
         loadSamples(samples, labels, negative, positive);
         
         // 开始训练 // 使用opencv提供的训练器，命令方式启动
+        String _cascadeDirName = "";
+        String _posFilename = ""; 
+        String _negFilename = "";
+        int _numPos = 2000;
+        int _numNeg = 1000;
+        int _precalcValBufSize = 1024; 
+        int _precalcIdxBufSize = 1024;
+        int _numStages = 20;
+
+        boolean baseFormatSave = false;
+        double acceptanceRatioBreakValue = -1.0;
         
+        /*CvCascadeParams _cascadeParams = new CvCascadeParams();
+        CvFeatureParams _featureParams = new CvFeatureParams();
+        CvCascadeBoostParams _stageParams = new CvCascadeBoostParams();
+
+        CascadeClassifier faceDetector = new CascadeClassifier(DEFAULT_PATH + "haarcascade_frontalface_my.xml");
+        faceDetector.train(_cascadeDirName, _posFilename,
+                _negFilename, _numPos, _numNeg, 
+                _precalcValBufSize, _precalcIdxBufSize, 
+                _numStages, _cascadeParams, _featureParams, _stageParams, baseFormatSave, acceptanceRatioBreakValue);*/
         
         return ;
     }
@@ -185,7 +197,7 @@ public class CascadeTrain {
         train();
         
         predict();*/
-
+        
         return;
     }
 

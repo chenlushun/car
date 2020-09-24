@@ -11,9 +11,9 @@ public interface PlateService {
     
     public Object recogniseAll();
     
-    public Object getImgInfo(String imgPath, Integer rows, Integer cols);
+    public Object getImgInfo(String imgPath);
     
-    public Object getHsvValue(String imgPath, Integer rows, Integer cols);
+    public Object getHSVValue(String imgPath, Integer row, Integer col);
     
     
     

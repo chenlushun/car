@@ -112,6 +112,8 @@ define(['constant'], function (constant) {
         "plate": {
             'getProcessStep':constant.URL.MAIN_URL + '/plate/getProcessStep',
             'recognise':constant.URL.MAIN_URL + '/plate/recognise',
+            'getImgInfo':constant.URL.MAIN_URL + '/plate/getImgInfo',
+            'getHSVValue':constant.URL.MAIN_URL + '/plate/getHSVValue',
         },
         
         // 人脸识别

@@ -1,6 +1,6 @@
 /**
  * 基础函数
- * @author [chenjy]
+ * @author 
  * @date 2018-05-11
  */
 define(['common', 'utils', 'jquery_app', 'template', 'api', 'constant'], function(common, utils, jquery_app, template, api, constant) {

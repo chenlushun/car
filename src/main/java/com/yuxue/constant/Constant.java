@@ -15,24 +15,28 @@ public class Constant {
 
     public static final String UTF8 = "UTF-8";
 
-    // 车牌识别， 默认车牌图片保存路径
-    // public static String DEFAULT_DIR = "./PlateDetect/"; // 使用项目的相对路径
-    public static String DEFAULT_DIR = "D:/PlateDetect/"; // 使用盘符的绝对路径
+    // public static String BASE_DIR = "./";    // 使用项目的相对路径
+    public static String BASE_DIR = "D:/";      // 使用盘符的绝对路径
     
-    public static String DEFAULT_FACE_DIR = "D:/FaceDetect/"; // 使用盘符的绝对路径
-
-    // 车牌识别， 默认车牌图片处理过程temp路径
-    // public static String DEFAULT_TEMP_DIR = "./PlateDetect/temp/"; // 使用项目的相对路径
-    public static String DEFAULT_TEMP_DIR = "D:/PlateDetect/temp/"; // 使用盘符的绝对路径
     
-    public static String DEFAULT_FACE_TEMP_DIR = "D:/FaceDetect/temp/"; // 使用盘符的绝对路径
+    
+    // 车牌识别相关路径
+    public static String DEFAULT_DIR = BASE_DIR + "PlateDetect/";
+    // 车牌识别， 默认图片处理过程temp路径
+    public static String DEFAULT_TEMP_DIR = BASE_DIR + "PlateDetect/temp/";
+    
+    // 人脸识别相关路径
+    public static String DEFAULT_FACE_DIR = BASE_DIR + "FaceDetect/";
+    // 人脸识别  默认图片处理过程temp路径
+    public static String DEFAULT_FACE_TEMP_DIR = BASE_DIR + "FaceDetect/temp/";
 
-    // 车牌识别，默认处理图片类型
-    public static String DEFAULT_TYPE = "png,jpg,jpeg";
+    // 默认处理图片类型
+    public static String DEFAULT_TYPE = "png,jpg,jpeg,bmp";
 
     public static String DEFAULT_SVM_PATH = "res/model/svm.xml";
     public static String DEFAULT_ANN_PATH = "res/model/ann.xml";
     public static String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
+    public static String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
     
     /**
      * opencv 官方给出的模型文件 训练模型文件保存位置
@@ -43,22 +47,20 @@ public class Constant {
      * <next>-1</next>
      * 总计200个样本
      */
-    public static String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
 
     public static final int DEFAULT_WIDTH = 136;    // cols
     public static final int DEFAULT_HEIGHT = 36;    // rows
 
-    // 车牌识别，判断是否车牌的正则表达式
+    // 判断是否车牌的正则表达式
     public static String plateReg = "([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}(([0-9]{5}[DF])|([DF]([A-HJ-NP-Z0-9])[0-9]{4})))|([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}[A-HJ-NP-Z0-9]{4}[A-HJ-NP-Z0-9挂学警港澳]{1})";
 
     public static int predictSize = 10;
-
 
     public static int neurons = 40;
 
     // 中国车牌; 34个字符; 没有 字母I、字母O
     public final static char strCharacters[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', /* 没有I */ 'J', 'K', 'L', 'M', 'N', /* 没有O */'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
 
     // 没有I和0, 10个数字与24个英文字符之和
     public final static Integer numCharacter = strCharacters.length; 
@@ -102,9 +104,9 @@ public class Constant {
     /* 34+31=65 34个字符跟31个汉字 */
     public final static Integer numAll = strCharacters.length + strChinese.length; 
 
-
     public static Map<String, Integer> debugMap = Maps.newLinkedHashMap();
     public static Map<String, String> KEY_CHINESE_MAP = new HashMap<String, String>();
+    
     static {
         if (KEY_CHINESE_MAP.isEmpty()) {
             KEY_CHINESE_MAP.put("zh_cuan", "川");
@@ -168,6 +170,7 @@ public class Constant {
         debugMap.put("chineseMat", 0);
         debugMap.put("specMat", 0);
 
+        
         // 设置index， 用于debug生成文件时候按名称排序
         Integer index = 101;
         for (Entry<String, Integer> entry : debugMap.entrySet()) {

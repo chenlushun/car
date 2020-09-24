@@ -1,6 +1,6 @@
 /**
  * Velonic Admin theme 
- * @author [chenjy]
+ * @author yuxue
  * @date 2018-05-11
  */
 

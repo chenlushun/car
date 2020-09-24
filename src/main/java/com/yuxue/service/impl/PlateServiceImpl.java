@@ -6,12 +6,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -39,6 +44,11 @@ public class PlateServiceImpl implements PlateService {
 
     @Autowired
     private TempPlateFileMapper tempPlateFileMapper;
+    
+    
+    static {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
     
     /**
      * 获取时间戳，生成文件名称
@@ -213,23 +223,62 @@ public class PlateServiceImpl implements PlateService {
     }
 
     @Override
-    public Object getImgInfo(String imgPath, Integer rows, Integer cols) {
+    public Object getImgInfo(String imgPath) {
+        Map<String, Object> result = Maps.newHashMap();
         
-        
-        return null;
+        Long ct = getId();
+
+        File f = new File(imgPath);
+        if(f.exists()) {
+            // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下
+            String targetPath = Constant.DEFAULT_TEMP_DIR.concat(ct.toString())
+                    .concat(f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf(".")));
+            FileUtil.copyAndRename(f.getAbsolutePath(), targetPath);
+            result.put("targetPath", targetPath);   // 返回临时路径给前端
+            // 获取图片的基本信息
+            Mat inMat = Imgcodecs.imread(targetPath);
+            result.put("rows", inMat.rows());
+            result.put("cols", inMat.cols());
+        }
+        return result;
     }
 
-
+    
     @Override
-    public Object getHsvValue(String imgPath, Integer rows, Integer cols) {
-        
-        
-        
-        return null;
+    public Object getHSVValue(String imgPath, Integer row, Integer col) {
+        Map<String, Object> result = Maps.newHashMap();
+        Mat inMat = Imgcodecs.imread(imgPath);
+
+        double[] rgb = inMat.get(row, col);
+        result.put("RGB", JSONObject.toJSONString(rgb));
+
+        Mat dst = new Mat(inMat.rows(), inMat.cols(), CvType.CV_32FC3);
+        Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2HSV); // 转到HSV空间进行处理
+
+        double[] hsv = dst.get(row, col);
+        result.put("HSV", JSONObject.toJSONString(hsv));
+        return result;
     }
     
-    
-    
+
+    public static void main(String[] args) {
+        Mat inMat = Imgcodecs.imread("D:\\PlateDetect\\temp\\test\\qietu.png");
+        Mat dst = new Mat(inMat.rows(), inMat.cols(), CvType.CV_32FC3);
+        Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2HSV); // 转到HSV空间进行处理
+        double[] d = null;
+        for (int row = 0; row < inMat.rows(); row++) {
+            for (int col = 0; col < inMat.cols(); col++) {
+                d = dst.get(row, col);
+                String s = JSONObject.toJSONString(d);
+                if(!s.equals("[0.0,0.0,0.0]")) {    // png图片，透明部分颜色取值：[0.0,0.0,0.0]
+                    System.out.print(row);
+                    System.out.print("\t" + col);
+                    System.out.println("\t" + s);
+                }
+            }
+        }
+        return;
+    }
 
 
 }

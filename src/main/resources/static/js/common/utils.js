@@ -1,6 +1,6 @@
 /**
  * 工具函数
- * @author [chenjy]
+ * @author yuxue
  * @date 2018-05-11
  */
 define(['constant'], function (constant) {

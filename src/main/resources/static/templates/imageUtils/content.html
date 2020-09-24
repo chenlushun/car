@@ -130,23 +130,21 @@
                                 <canvas id="canvas" style="height: 400px; max-width: 800px;">对不你，你的浏览器不支持Canvas</canvas>
                             </div>
 
-                            <div class="jqSilder"><label>H色相:</label><div class="hRange">
-                                <input type="hidden" class="slider-input"/>
-                            </div></div>
-                            <div class="jqSilder"><label>S饱和度:</label><div class="sRange">
-                                <input type="hidden" class="slider-input"/>
-                            </div></div>
-                            <div class="jqSilder"><label>V亮度:</label><div class="vRange">
-                                <input type="hidden" class="slider-input"/>
-                            </div></div>
+                            <div class="jqSilder">
+                                <label>H色相:</label>
+                                <div class="hRange"><input type="hidden" class="slider-input"/></div>
+                            </div>
+                            <div class="jqSilder">
+                                <label>S饱和度:</label>
+                                <div class="sRange"><input type="hidden" class="slider-input"/></div>
+                            </div>
+                            <div class="jqSilder">
+                                <label>V亮度:</label>
+                                <div class="vRange"><input type="hidden" class="slider-input"/></div>
+                            </div>
 
-                            <div style="clear: both;">
-                                PS软件里的h取值为0-360、s取值为0-1、v取值为0-1
-                                <br/>OpenCV里 cvSplit 使用的图像是 32F 则其取值是h为0-360、s取值为0-1、v取值为0-255。
-                                <br/>如果是8UC则取值范围是h为0-180、s取值为0-255、v取值是0-255. 其中h色调对图像的分辨是很准的</div>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="col-lg-4">
