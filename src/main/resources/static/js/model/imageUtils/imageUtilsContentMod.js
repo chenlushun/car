@@ -21,7 +21,7 @@ define(['api', 'utils'], function(api, utils){
     hsvRange['maxS'] = 255;
     hsvRange['minV'] = 0;
     hsvRange['maxV'] = 255;
-    
+
     var tempImgPath = "";
 
     // 多边形提取，顶点
@@ -32,22 +32,6 @@ define(['api', 'utils'], function(api, utils){
         initTree();
         bindBtnEvent();
         initSilder();
-
-        // 加载静态图片，方便开发
-        img = new Image();
-        img.src = "./test.jpg";
-        setTimeout(function () {
-            $("#clos").val(img.width);
-            $("#rows").val(img.height);
-            canvas.width = img.width;   // 原图clos  rows
-            canvas.height = img.height;
-            ctxt.drawImage(img,0, 0, img.width, img.height);
-            imgData = ctxt.getImageData(0, 0, img.width, img.height).data;
-            hsvColorFilter();
-            $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
-            $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
-            $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
-        }, 500);
     }
 
     function bindBtnEvent(){
@@ -87,18 +71,19 @@ define(['api', 'utils'], function(api, utils){
             // 发起后端请求，获取指定坐标下的hsv值；用于对比前后端算法的结果是否一致
             function successFun(ret) {
                 if (ret.code === 200) {
-                	 $("#hsvValue1").val(ret.obj['HSV']);
+                    $("#hsvValue1").val(ret.obj['HSV']);
                 } else {
                     layer.msg(ret.msg, {icon: 2});
                 }
             }
             var option = {
-	            type: 'post',
-	            url: api.plate.getHSVValue,
-	            success: successFun,
-	            data: {"imgPath": tempImgPath, "row": x, "col": y}
-	        };
-	        utils.ajax(option);
+                type: 'post',
+                url: api.plate.getHSVValue,
+                success: successFun,
+                data: {"imgPath": tempImgPath, "row": x, "col": y}
+            };
+            console.log(tempImgPath);
+            utils.ajax(option);
         });
 
         $("#clip").on("click", function () {
@@ -398,38 +383,36 @@ define(['api', 'utils'], function(api, utils){
     function treeClick(event, treeId, node) {
         var treeObj = $.fn.zTree.getZTreeObj(treeId);
         img = new Image();
-        if(node.name.indexOf(".png") > 1 || node.name.indexOf(".jpg") > 1){
-            img.src = encodeURI(api.file.readFile + "?filePath=" + node.filePath);
-            
-            // 发起后端请求，获取opencv解读后的图片信息
-            function successFun() {
-            	if (ret.code === 200) {
-                	tempImgPath = ret.targetPath
-                } else {
-                    layer.msg(ret.msg, {icon: 2});
-                }
-            	
-                $("#clos").val(img.width);
-                $("#rows").val(img.height);
-
-                c.width = img.width;
-                c.height = img.height;
-                ctxt.drawImage(img,0, 0, img.width, img.height);
-                imgData = ctxt.getImageData(0, 0, img.width, img.height).data;
-                hsvColorFilter();
-                $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
-                $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
-                $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
+        img.src = encodeURI(api.file.readFile + "?filePath=" + node.filePath);
+        // 发起后端请求，获取opencv解读后的图片信息
+        function successFun(ret) {
+            if (ret.code === 200) {
+                tempImgPath = ret.obj.targetPath;
+            } else {
+                layer.msg(ret.msg, {icon: 2});
             }
-            
-            var option = {
-	            type: 'post',
-	            url: api.plate.getImgInfo,
-	            success: successFun,
-	            data: {"imgPath": imgPath}
-	        };
-	        utils.ajax(option);
         }
+
+        var option = {
+            type: 'post',
+            url: api.plate.getImgInfo,
+            success: successFun,
+            data: {"imgPath": node.filePath}
+        };
+        utils.ajax(option);
+
+        setTimeout(function () {
+            $("#clos").val(img.width);
+            $("#rows").val(img.height);
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctxt.drawImage(img,0, 0, img.width, img.height);
+            imgData = ctxt.getImageData(0, 0, img.width, img.height).data;
+            hsvColorFilter();
+            $('.hRange').jRange('setValue', hsvRange['minH'] + "," + hsvRange['maxH']);
+            $('.sRange').jRange('setValue', hsvRange['minS'] + "," + hsvRange['maxS']);
+            $('.vRange').jRange('setValue', hsvRange['minV'] + "," + hsvRange['maxV']);
+        }, 500);
 
         if(node.isParent){
             $("#parentDir").val(node.filePath);
@@ -438,7 +421,7 @@ define(['api', 'utils'], function(api, utils){
             plateTreeNode = node;
         }
     }
-    
+
 
     //参数arr的值分别为[r,g,b]
     function rgbToHsv(arr) {

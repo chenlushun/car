@@ -224,10 +224,10 @@ public class PlateServiceImpl implements PlateService {
 
     @Override
     public Object getImgInfo(String imgPath) {
-        Map<String, Object> result = Maps.newHashMap();
         
+        
+        Map<String, Object> result = Maps.newHashMap();
         Long ct = getId();
-
         File f = new File(imgPath);
         if(f.exists()) {
             // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下

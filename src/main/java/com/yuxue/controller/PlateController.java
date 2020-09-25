@@ -90,6 +90,13 @@ public class PlateController {
     @ApiOperation(value = "获取图片信息", notes = "通过opencv计算，获取图片基础信息等")
     @RequestMapping(value = "/getImgInfo", method = RequestMethod.POST)
     public Object getImgInfo(String imgPath) {
+        if(null != imgPath) {
+            try {
+                imgPath = URLDecoder.decode(imgPath, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new ResultReturnException("imgPath参数异常");
+            }
+        }
         return service.getImgInfo(imgPath);
     }
     
@@ -97,10 +104,15 @@ public class PlateController {
     @ApiOperation(value = "获取hsv值", notes = "根据前端传递的坐标，通过opencv计算，获取图片坐标位置的hsv值")
     @RequestMapping(value = "/getHSVValue", method = RequestMethod.POST)
     public Object getHSVValue(String imgPath, Integer row, Integer col) {
+        if(null != imgPath) {
+            try {
+                imgPath = URLDecoder.decode(imgPath, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new ResultReturnException("imgPath参数异常");
+            }
+        }
         return service.getHSVValue(imgPath, row, col);
     }
-    
-    
     
     
     
