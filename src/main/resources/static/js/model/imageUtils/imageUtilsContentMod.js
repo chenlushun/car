@@ -16,7 +16,7 @@ define(['api', 'utils'], function(api, utils){
     var imgData = null;
     var hsvRange = {};
     hsvRange['minH'] = 0;
-    hsvRange['maxH'] = 360;
+    hsvRange['maxH'] = 180;
     hsvRange['minS'] = 0;
     hsvRange['maxS'] = 255;
     hsvRange['minV'] = 0;
@@ -80,7 +80,7 @@ define(['api', 'utils'], function(api, utils){
                 type: 'post',
                 url: api.plate.getHSVValue,
                 success: successFun,
-                data: {"imgPath": tempImgPath, "row": x, "col": y}
+                data: {"imgPath": tempImgPath, "row": y, "col": x} // 需要注意xy坐标跟row col的对应关系
             };
             console.log(tempImgPath);
             utils.ajax(option);
@@ -192,9 +192,9 @@ define(['api', 'utils'], function(api, utils){
     function initSilder(data) {
         $('.hRange').jRange({
             from: 0,
-            to: 360,
+            to: 180,
             step: 1,
-            scale: [0,60,120,180,240,300,360],
+            scale: [0,60,120,180],
             format: '%s',
             width: "90%",
             showLabels: true,
@@ -448,9 +448,9 @@ define(['api', 'utils'], function(api, utils){
         } else if (max === b) {
             h = 60 * ((r - g) / (max - min)) + 240
         }
-        h = parseInt(h);
-        s = parseInt(s * 255);  // 转换到opencv的 0-255取值范围
-        v = parseInt(max);
+        h = Math.round(h/2);
+        s = Math.round(s * 255);  // 转换到opencv的 0-255取值范围
+        v = Math.round(max);
         return [h, s, v]
     }
 
@@ -461,7 +461,7 @@ define(['api', 'utils'], function(api, utils){
         s = s / 100;
         v = v / 100;
         var r = 0, g = 0, b = 0;
-        var i = parseInt((h / 60) % 6);
+        var i = Math.round((h / 60) % 6);
         var f = h / 60 - i;
         var p = v * (1 - s);
         var q = v * (1 - f * s);
@@ -488,9 +488,9 @@ define(['api', 'utils'], function(api, utils){
             default:
                 break;
         }
-        r = parseInt(r * 255.0)
-        g = parseInt(g * 255.0)
-        b = parseInt(b * 255.0)
+        r = Math.round(r * 255.0)
+        g = Math.round(g * 255.0)
+        b = Math.round(b * 255.0)
         return [r, g, b];
     }
 

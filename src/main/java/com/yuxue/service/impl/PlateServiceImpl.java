@@ -256,7 +256,7 @@ public class PlateServiceImpl implements PlateService {
         Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2HSV); // 转到HSV空间进行处理
 
         double[] hsv = dst.get(row, col);
-        result.put("HSV", JSONObject.toJSONString(hsv));
+        result.put("HSV", (int)hsv[0] + ", " + (int)hsv[1] + ", " + (int)hsv[2]);
         return result;
     }
     

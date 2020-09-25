@@ -105,11 +105,9 @@
         <div class="column col-md-2">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <div class="btn-toolbar" role="toolbar">
-                        <h3 class="pull-left m-t-5 m-b-0" id="title">图片</h3>
-                        <div class="pull-right">
-                            <!--<button type="button" class="btn btn-success m-r-5" id="choseDirBtn"><span>选择</span></button>-->
-                        </div>
+                    <h3 class="panel-title" id="title">图片</h3>
+                    <div class="pull-right">
+                        <!--<button type="button" class="btn btn-success m-r-5" id="choseDirBtn"><span>选择</span></button>-->
                     </div>
                 </div>
                 <div class="panel-body" id="treeDiv" style="overflow-y: auto;">
@@ -241,11 +239,13 @@
 
 
                     <div class="panel panel-default">
-                        <div class="panel-heading"><h3 class="panel-title">图块提取</h3></div>
-                        <div class="panel-body">
-                            <div class="row">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">图块提取</h3>
+                            <div class="pull-right" style="margin-top: -25px;">
                                 <button type="button" class="btn btn-success m-r-5" id="clip"><span>提取</span></button>
                             </div>
+                        </div>
+                        <div class="panel-body">
                             <div class="row">
                                 <!--<img id="imgDest" src="../../img/nopic.jpg" style="max-height: 250px;">-->
                                 <canvas id="imgDest" style="height: 150px;"></canvas>
