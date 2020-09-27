@@ -6,6 +6,5 @@ easypr java版项目的实现过程代码
 JavaCPP是一个开源库，它提供了在 Java 中高效访问本地 C++的方法；
 
 #### 如果要使用这种方案
-讲文件放到对应的package中即可
-在pom中引入坐标依赖
-opencv-4.0.1-1.4.4-windows-x86_64.jar  文件添加到build path
+详细请参考开发环境搭建文档： javacpp方式调用
+
