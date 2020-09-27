@@ -16,27 +16,27 @@ public class Constant {
     public static final String UTF8 = "UTF-8";
 
     // public static String BASE_DIR = "./";    // 使用项目的相对路径
-    public static String BASE_DIR = "D:/";      // 使用盘符的绝对路径
+    public static final String BASE_DIR = "D:/";      // 使用盘符的绝对路径
     
     
     
     // 车牌识别相关路径
-    public static String DEFAULT_DIR = BASE_DIR + "PlateDetect/";
+    public static final String DEFAULT_DIR = BASE_DIR + "PlateDetect/";
     // 车牌识别， 默认图片处理过程temp路径
-    public static String DEFAULT_TEMP_DIR = BASE_DIR + "PlateDetect/temp/";
+    public static final String DEFAULT_TEMP_DIR = BASE_DIR + "PlateDetect/temp/";
     
     // 人脸识别相关路径
-    public static String DEFAULT_FACE_DIR = BASE_DIR + "FaceDetect/";
+    public static final String DEFAULT_FACE_DIR = BASE_DIR + "FaceDetect/";
     // 人脸识别  默认图片处理过程temp路径
-    public static String DEFAULT_FACE_TEMP_DIR = BASE_DIR + "FaceDetect/temp/";
+    public static final String DEFAULT_FACE_TEMP_DIR = BASE_DIR + "FaceDetect/temp/";
 
     // 默认处理图片类型
-    public static String DEFAULT_TYPE = "png,jpg,jpeg,bmp";
+    public static final String DEFAULT_TYPE = "png,jpg,jpeg,bmp";
 
-    public static String DEFAULT_SVM_PATH = "res/model/svm.xml";
-    public static String DEFAULT_ANN_PATH = "res/model/ann.xml";
-    public static String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
-    public static String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
+    public static final String DEFAULT_SVM_PATH = "res/model/svm.xml";
+    public static final String DEFAULT_ANN_PATH = "res/model/ann.xml";
+    public static final String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
+    public static final String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
     
     /**
      * opencv 官方给出的模型文件 训练模型文件保存位置
@@ -52,22 +52,22 @@ public class Constant {
     public static final int DEFAULT_HEIGHT = 36;    // rows
 
     // 判断是否车牌的正则表达式
-    public static String plateReg = "([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}(([0-9]{5}[DF])|([DF]([A-HJ-NP-Z0-9])[0-9]{4})))|([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}[A-HJ-NP-Z0-9]{4}[A-HJ-NP-Z0-9挂学警港澳]{1})";
+    public static final String plateReg = "([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}(([0-9]{5}[DF])|([DF]([A-HJ-NP-Z0-9])[0-9]{4})))|([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}[A-HJ-NP-Z0-9]{4}[A-HJ-NP-Z0-9挂学警港澳]{1})";
 
-    public static int predictSize = 10;
+    public static final int predictSize = 10;
 
-    public static int neurons = 40;
+    public static final int neurons = 40;
 
     // 中国车牌; 34个字符; 没有 字母I、字母O
-    public final static char strCharacters[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+    public static final char strCharacters[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
 
     // 没有I和0, 10个数字与24个英文字符之和
-    public final static Integer numCharacter = strCharacters.length; 
+    public static final Integer numCharacter = strCharacters.length; 
 
     // 并不全面，有些省份没有训练数据所以没有字符
     // 有些后面加数字2的表示在训练时常看到字符的一种变形，也作为训练数据存储
-    public final static String strChinese[] = { 
+    public static final String strChinese[] = { 
             "zh_cuan",  /*川*/
             "zh_e",     /*鄂*/
             "zh_gan",   /*赣*/
@@ -102,7 +102,7 @@ public class Constant {
     };
 
     /* 34+31=65 34个字符跟31个汉字 */
-    public final static Integer numAll = strCharacters.length + strChinese.length; 
+    public static final Integer numAll = strCharacters.length + strChinese.length; 
 
     public static Map<String, Integer> debugMap = Maps.newLinkedHashMap();
     public static Map<String, String> KEY_CHINESE_MAP = new HashMap<String, String>();
@@ -143,6 +143,7 @@ public class Constant {
         }
 
         // 车牌定位处理步骤，该map用于表示步骤图片的顺序
+        debugMap.put("resizeMat", 0);  // 图像灰度化
         debugMap.put("gray", 0);  // 图像灰度化
         debugMap.put("blur", 0); // 高斯模糊 降噪
         debugMap.put("colorRange", 0); // hsv颜色范围过滤

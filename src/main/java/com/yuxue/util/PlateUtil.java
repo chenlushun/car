@@ -117,6 +117,9 @@ public class PlateUtil {
      * @param tempPath 图片处理过程的缓存目录
      */
     public static void getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
+        // 修改图片尺寸，防止图片像素尺寸过大，影响计算速度 
+        src = ImageUtil.resizeMat(src, 400, debug, tempPath);
+        
         // 灰度图
         Mat gray = ImageUtil.gray(src, debug, tempPath);
 
@@ -713,7 +716,7 @@ public class PlateUtil {
 
         Instant start = Instant.now();
         String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
-        String filename = tempPath + "/100_yuantu.jpg";
+        String filename = tempPath + "8.jpg";
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();

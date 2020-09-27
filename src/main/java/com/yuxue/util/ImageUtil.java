@@ -846,5 +846,31 @@ public class ImageUtil {
         }
         return dst;
     }
-
+    
+    
+    /**
+     * 锁定横纵比，调整图片大小
+     * @param inMat
+     * @param maxRows
+     * @return
+     */
+    public static Mat resizeMat(Mat inMat, Integer maxCols, Boolean debug, String tempPath) {
+        if(null == maxCols || maxCols <= 0) {
+            maxCols = 400;
+        }
+        if(maxCols >= inMat.cols()) {   // 图片尺寸小于指定大小，则不处理
+            return inMat;
+        }
+        float r = inMat.rows() * 1.0f / inMat.cols(); 
+        Integer rows = Math.round(maxCols * r);
+        Mat resized = new Mat(rows, maxCols, inMat.type());
+        Imgproc.resize(inMat, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC);
+        if(debug) {
+            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("resizeMat") + "_resizeMat.png", resized);
+        }
+        return resized;
+    }
+    
+    
+    
 }
