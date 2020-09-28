@@ -32,7 +32,6 @@ define(['api', 'utils'], function(api, utils){
         //         addRootDir();
         //     });
         // });
-
     }
 
     
@@ -53,6 +52,11 @@ define(['api', 'utils'], function(api, utils){
 
                 $("#processStepDiv").find(".process-div").remove();
                 $("#processStepDiv").find(".process-img").remove();
+                
+                if(ret.obj.debug.length <= 0){
+                	recognise(plateTreeNode.filePath, true);
+                	return;
+                }
                 
                 $.each(ret.obj.debug, function (index, item){
                 	if($("#"+ item.debugType).length <= 0){ // 上级对象不存在, 创建

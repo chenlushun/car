@@ -39,6 +39,9 @@ public class ImageUtil {
      */
     private static Integer id = 1000;
     public static synchronized Integer getId() {
+        if(id == Integer.MAX_VALUE) {
+            id = 1000;
+        }
         return id++;
     }
 
