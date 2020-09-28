@@ -80,7 +80,7 @@ public class CnANNTrain {
                 trainingLabels.add(i);
 
                 // 增加腐蚀样本
-                samples.push_back(PlateUtil.features(ImageUtil.erode(img, 2, 2), _predictsize));
+                samples.push_back(PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), _predictsize));
                 trainingLabels.add(i);
             }
         }
@@ -153,7 +153,7 @@ public class CnANNTrain {
                 }
 
                 // 腐蚀  -- 识别中文字符效果会好一点，识别数字及字母效果会更差
-                f = PlateUtil.features(ImageUtil.erode(img, 2, 2), Constant.predictSize);
+                f = PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), Constant.predictSize);
                 ann.predict(f, output);  // 预测结果
                 for (int j = 0; j < Constant.strChinese.length; j++) {
                     double val = output.get(0, j)[0];

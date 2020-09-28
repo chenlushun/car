@@ -104,7 +104,6 @@ public class Constant {
     /* 34+31=65 34个字符跟31个汉字 */
     public static final Integer numAll = strCharacters.length + strChinese.length; 
 
-    public static Map<String, Integer> debugMap = Maps.newLinkedHashMap();
     public static Map<String, String> KEY_CHINESE_MAP = new HashMap<String, String>();
     
     static {
@@ -142,42 +141,6 @@ public class Constant {
             KEY_CHINESE_MAP.put("zh_zhe", "浙");
         }
 
-        // 车牌定位处理步骤，该map用于表示步骤图片的顺序
-        debugMap.put("resizeMat", 0);  // 图像灰度化
-        debugMap.put("gray", 0);  // 图像灰度化
-        debugMap.put("blur", 0); // 高斯模糊 降噪
-        debugMap.put("colorRange", 0); // hsv颜色范围过滤
-        debugMap.put("sobel", 0); // Sobel 运算，得到图像的一阶水平方向导数
-        // debugMap.put("scharr", 0); // scharr 运算，得到图像的一阶水平方向导数
-        debugMap.put("threshold", 0); //图像二值化
-        debugMap.put("morphology", 0); // 图像闭操作
-        debugMap.put("clearInnerHole", 0); // 降噪
-        debugMap.put("clearSmallConnArea", 0); // 降噪
-        debugMap.put("clearAngleConn", 0); // 降噪
-        debugMap.put("clearHole", 0); // 降噪
-        debugMap.put("contours", 0); // 提取外部轮廓
-        debugMap.put("screenblock", 0); // 外部轮廓筛选
-        debugMap.put("crop", 0); // 切图
-        debugMap.put("resize", 0); // 切图resize
-        
-        // 车牌字符识别处理步骤
-        debugMap.put("platePredict", 0); 
-        debugMap.put("colorMatch", 0); 
-        debugMap.put("plateThreshold", 0); 
-        debugMap.put("plateContours", 0); 
-        
-        debugMap.put("plateRect", 0); 
-        debugMap.put("plateCrop", 0);
-        debugMap.put("chineseMat", 0);
-        debugMap.put("specMat", 0);
-
-        
-        // 设置index， 用于debug生成文件时候按名称排序
-        Integer index = 101;
-        for (Entry<String, Integer> entry : debugMap.entrySet()) {
-            entry.setValue(index);
-            index ++;
-        }
     }
 
 

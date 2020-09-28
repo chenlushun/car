@@ -45,7 +45,6 @@ public class PlateServiceImpl implements PlateService {
     @Autowired
     private TempPlateFileMapper tempPlateFileMapper;
     
-    
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
@@ -107,12 +106,6 @@ public class PlateServiceImpl implements PlateService {
         });
 
         return 1;
-    }
-
-
-    @Override
-    public Object getProcessStep() {
-        return Constant.debugMap;
     }
 
 
@@ -179,7 +172,7 @@ public class PlateServiceImpl implements PlateService {
         Set<String> plates = Sets.newHashSet();
         Set<String> colors = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
-            PlateColor color = PlateUtil.getPlateColor(inMat, debug, debug, tempPath);
+            PlateColor color = PlateUtil.getPlateColor(inMat, true, false, tempPath);
             colors.add(color.code);
             String plate = PlateUtil.charsSegment(inMat, color, debug, tempPath);
             plates.add(plate);
@@ -199,10 +192,7 @@ public class PlateServiceImpl implements PlateService {
             String fileName = d.getName();
             
             String debugType = fileName.substring(fileName.indexOf("_") + 1, fileName.lastIndexOf("."));
-            if(debugType.contains("_")) {
-                debugType = debugType.substring(0, debugType.lastIndexOf("_"));
-            }
-
+            Integer sort = Integer.parseInt(fileName.substring(0, fileName.indexOf("_")));
             PlateRecoDebugEntity de = new PlateRecoDebugEntity();
             de.setRecoPlate("");
             de.setPlateColor("");
@@ -210,7 +200,7 @@ public class PlateServiceImpl implements PlateService {
             de.setFileName(d.getName());
             de.setParentId(e.getId());
             de.setDebugType(debugType);
-            de.setSort(Constant.debugMap.get(debugType));
+            de.setSort(sort);
             list.add(de);
         });
 

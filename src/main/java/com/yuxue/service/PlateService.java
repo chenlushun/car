@@ -3,8 +3,6 @@ package com.yuxue.service;
 
 public interface PlateService {
     
-    public Object getProcessStep();
-    
     public Object recognise(String filePath, boolean reRecognise);
 
     public Object refreshFileInfo();

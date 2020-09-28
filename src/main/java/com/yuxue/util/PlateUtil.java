@@ -119,7 +119,7 @@ public class PlateUtil {
     public static void getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
         // 修改图片尺寸，防止图片像素尺寸过大，影响计算速度 
         src = ImageUtil.resizeMat(src, 400, debug, tempPath);
-        
+
         // 灰度图
         Mat gray = ImageUtil.gray(src, debug, tempPath);
 
@@ -140,17 +140,16 @@ public class PlateUtil {
 
         // 使用闭操作  同时处理一些干扰元素
         Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
-        Mat clear1 = ImageUtil.clearInnerHole(morphology, 8, 16, debug, tempPath);
-        
+
         // 边缘腐蚀，边缘膨胀，可以多执行两次
-        clear1 = ImageUtil.erode(clear1, 4, 4);
-        clear1 = ImageUtil.dilate(clear1, 4, 4);
-        
+        morphology = ImageUtil.erode(morphology, debug, tempPath, 4, 4);
+        morphology = ImageUtil.dilate(morphology, debug, tempPath, 4, 4);
+
         // Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
         // Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
 
         // 获取图中所有的轮廓
-        List<MatOfPoint> contours = ImageUtil.contours(src, clear1, debug, tempPath);
+        List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
         Vector<Mat> inMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
 
@@ -165,18 +164,14 @@ public class PlateUtil {
      * @param dst 包含车牌的图块
      */
     public static void hasPlate(Vector<Mat> inMat, Vector<Mat> dst, Boolean debug, String tempPath) {
-        int i = 0;
         for (Mat src : inMat) {
             if(src.rows() == Constant.DEFAULT_HEIGHT && src.cols() == Constant.DEFAULT_WIDTH) {
                 Mat samples = SVMTrain.getFeature(src);
                 float flag = svm.predict(samples);
                 if (flag == 0) {
                     dst.add(src);
-                    if(debug) {
-                        // System.err.println("目标符合");
-                        Imgcodecs.imwrite(tempPath + Constant.debugMap.get("platePredict") + "_platePredict_" + i + ".png", src);
-                    }
-                    i++;
+                    // System.err.println("目标符合");
+                    ImageUtil.debugImg(debug, tempPath, "platePredict", src);
                 } else {
                     // System.out.println("目标不符合");
                 }
@@ -223,7 +218,8 @@ public class PlateUtil {
         final float minref_sv = 64;
         final float minabs_sv = 95;
 
-        Mat hsvMat = ImageUtil.rgb2Hsv(inMat, debug, tempPath);
+        // 转到HSV空间，对H均衡化之后的结果
+        Mat hsvMat = ImageUtil.equalizeHist(inMat, debug, tempPath);
 
         // 匹配模板基色,切换以查找想要的基色
         int min_h = r.minH;
@@ -267,9 +263,7 @@ public class PlateUtil {
         Mat gray = hsvSplit.get(2);
 
         float percent = (float) Core.countNonZero(gray) / (gray.rows() * gray.cols());
-        if (debug) {
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("colorMatch") + "_colorMatch.jpg", gray);
-        }
+        ImageUtil.debugImg(debug, tempPath, "colorMatch", gray);
         return percent;
     }
 
@@ -303,9 +297,8 @@ public class PlateUtil {
         default:
             return null;
         }
-        if (debug) {    // 输出二值图
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("plateThreshold") + "_plateThreshold.jpg", threshold);
-        }
+        // 输出二值图
+        ImageUtil.debugImg(debug, tempPath, "plateThreshold", threshold);
 
         // 提取外部轮廓
         List<MatOfPoint> contours = Lists.newArrayList();
@@ -314,7 +307,7 @@ public class PlateUtil {
             Mat result = new Mat();
             inMat.copyTo(result);
             Imgproc.drawContours(result, contours, -1, new Scalar(0, 0, 255, 255));
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("plateContours") + "_plateContours.jpg", result);
+            ImageUtil.debugImg(debug, tempPath, "plateContours", result);
         }
 
         Vector<Rect> rt = new Vector<Rect>();
@@ -341,9 +334,7 @@ public class PlateUtil {
 
         Mat chineseMat = new Mat(threshold, chineseRect);
         chineseMat = preprocessChar(chineseMat);
-        if (debug) {  
-            Imgcodecs.imwrite(tempPath + Constant.debugMap.get("chineseMat") + "_chineseMat.jpg", chineseMat);
-        }
+        ImageUtil.debugImg(debug, tempPath, "chineseMat", chineseMat);
 
         String plate = "";
 
@@ -365,11 +356,9 @@ public class PlateUtil {
             Mat img_crop = new Mat(threshold, sorted.get(i));
             img_crop = preprocessChar(img_crop);
             plate = plate + predict(img_crop);
-            if (debug) {  
-                Imgcodecs.imwrite(tempPath + Constant.debugMap.get("specMat") + "_specMat_" + i + ".jpg", img_crop);
-            }
+            System.err.println(plate);
+            ImageUtil.debugImg(debug, tempPath, "specMat", img_crop);
         }
-        System.err.println("=========>" + plate);
         return plate;
     }
 
@@ -390,7 +379,7 @@ public class PlateUtil {
         }
 
         // 膨胀
-        f = PlateUtil.features(ImageUtil.dilate(img, 2, 2), Constant.predictSize);
+        f = PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2), Constant.predictSize);
         ann.predict(f, output);  // 预测结果
         for (int j = 0; j < Constant.strCharacters.length; j++) {
             double val = output.get(0, j)[0];
@@ -419,7 +408,7 @@ public class PlateUtil {
             }
         }
         // 腐蚀  -- 识别中文字符效果会好一点，识别数字及字母效果会更差
-        f = PlateUtil.features(ImageUtil.erode(img, 2, 2), Constant.predictSize);
+        f = PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), Constant.predictSize);
         ann_cn.predict(f, output);  // 预测结果
         for (int j = 0; j < Constant.strChinese.length; j++) {
             double val = output.get(0, j)[0];
@@ -501,6 +490,7 @@ public class PlateUtil {
      * <ul>
      * @return
      */
+    @SuppressWarnings("unused")
     private int rebuildRect(final Vector<Rect> vecRect, Vector<Rect> outRect, int specIndex, PlateColor color) {
         // 最大只能有7个Rect,减去中文的就只有6个Rect
         int count = 6;
@@ -716,7 +706,7 @@ public class PlateUtil {
 
         Instant start = Instant.now();
         String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
-        String filename = tempPath + "8.jpg";
+        String filename = tempPath + "1.jpg";
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();

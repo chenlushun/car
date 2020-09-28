@@ -80,13 +80,6 @@ public class PlateController {
     }
     
     
-    @ApiOperation(value = "获取处理步骤", notes = "")
-    @RequestMapping(value = "/getProcessStep", method = RequestMethod.GET)
-    public Object getProcessStep() {
-        return service.getProcessStep();
-    }
-    
-    
     @ApiOperation(value = "获取图片信息", notes = "通过opencv计算，获取图片基础信息等")
     @RequestMapping(value = "/getImgInfo", method = RequestMethod.POST)
     public Object getImgInfo(String imgPath) {

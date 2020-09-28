@@ -33,37 +33,9 @@ define(['api', 'utils'], function(api, utils){
         //     });
         // });
 
-        getProcessStep();
     }
 
-    function getProcessStep() {
-        function successFun(ret) {
-            if (ret.code === 200) {
-                $("#processStepDiv").html("").html('<br/>');
-                $.each(ret.obj, function (index, item){
-                    var $div = $('<div class="process" align="left" style="padding-top:10px;width: 100%;"></div>');
-                    $div.attr("id", index);
-                    $span = $('<span style="float: left;font-weight: bolder;font-size: 20px;"></span>');
-                    $span.text(index + "：");
-
-                    $div.append($span);
-                    $div.append($('<br/><br/>'));
-
-                    $("#processStepDiv").append($div);
-                });
-            } else {
-                layer.msg('失败 ！', {icon: 2});
-            }
-        }
-        var option = {
-            type: 'get',
-            url: api.plate.getProcessStep,
-            data: {},
-            success: successFun
-        };
-        utils.ajax(option);
-    }
-
+    
     function bindBtnEvent(){
         $("#recognise").on("click", function () {
             recognise(plateTreeNode.filePath, true);
@@ -81,13 +53,24 @@ define(['api', 'utils'], function(api, utils){
 
                 $("#processStepDiv").find(".process-div").remove();
                 $("#processStepDiv").find(".process-img").remove();
-
+                
+                $.each(ret.obj.debug, function (index, item){
+                	if($("#"+ item.debugType).length <= 0){ // 上级对象不存在, 创建
+                    	var $div = $('<div class="process" align="left" style="padding-top:10px;width: 100%;"></div>');
+                        $div.attr("id", item.debugType);
+                        $span = $('<span style="float: left;font-weight: bolder;font-size: 20px;"></span>');
+                        $span.text(item.debugType + "：");
+                        $div.append($span);
+                        $div.append($('<br/><br/>'));
+                        $("#processStepDiv").append($div);
+                    }
+                });
                 $.each(ret.obj.debug, function (index, item){
                     var $div = $('<div class="process-div"></div>');
                     var $img = $('<img class="process-img">');
                     $img.attr("src", encodeURI(api.file.readFile + "?filePath="+ item.filePath));
                     $div.append($img);
-
+                    
                     $("#"+ item.debugType).append($div);
                 });
             } else {

@@ -80,7 +80,7 @@ public class ANNTrain {
                 trainingLabels.add(i); 
 
                 // 增加膨胀样本
-                samples.push_back(PlateUtil.features(ImageUtil.dilate(img, 2, 2), _predictsize));
+                samples.push_back(PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2), _predictsize));
                 trainingLabels.add(i); 
 
                 // 增加腐蚀样本
@@ -158,7 +158,7 @@ public class ANNTrain {
                 }
 
                 // 膨胀
-                f = PlateUtil.features(ImageUtil.dilate(img, 2, 2), Constant.predictSize);
+                f = PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2), Constant.predictSize);
                 ann.predict(f, output);  // 预测结果
                 for (int j = 0; j < Constant.strCharacters.length; j++) {
                     double val = output.get(0, j)[0];
