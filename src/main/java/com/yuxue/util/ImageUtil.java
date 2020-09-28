@@ -303,7 +303,7 @@ public class ImageUtil {
 
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
-                Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // resize
+                Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // INTER_AREA 缩小图像的时候使用 ; INTER_CUBIC 放大图像的时候使用
                 // Imgproc.getPerspectiveTransform(img_crop, resized); // 投影变换
                 debugImg(debug, tempPath, "crop_resize", resized);
                 dst.add(resized);
@@ -423,13 +423,16 @@ public class ImageUtil {
 
     /**
      * 锁定横纵比，调整图片大小
+     * 防止图片像素太大，后续的计算太费时
+     * 但是这样处理之后，图片可能会失真，影响车牌文字识别效果
+     * 可以考虑，定位出车牌位置之后，计算出原图的车牌位置，从原图中区图块进行车牌文字识别
      * @param inMat
      * @param maxRows
      * @return
      */
     public static Mat resizeMat(Mat inMat, Integer maxCols, Boolean debug, String tempPath) {
         if(null == maxCols || maxCols <= 0) {
-            maxCols = 400;
+            maxCols = 600;
         }
         if(maxCols >= inMat.cols()) {   // 图片尺寸小于指定大小，则不处理
             return inMat;
@@ -437,7 +440,14 @@ public class ImageUtil {
         float r = inMat.rows() * 1.0f / inMat.cols(); 
         Integer rows = Math.round(maxCols * r);
         Mat resized = new Mat(rows, maxCols, inMat.type());
-        Imgproc.resize(inMat, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC);
+        
+        /**
+         * INTER_AREA 缩小图像的时候使用
+         * INTER_CUBIC 放大图像的时候使用
+         */
+        double fx = (double)resized.cols()/inMat.cols(); // 水平缩放比例，输入为0时，则默认当前计算方式
+        double fy = (double)resized.rows()/inMat.rows(); // 垂直缩放比例，输入为0时，则默认当前计算方式
+        Imgproc.resize(inMat, resized, resized.size(), fx, fy, Imgproc.INTER_LINEAR);
         debugImg(debug, tempPath, "resizeMat", resized);
         return resized;
     }
