@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -118,7 +120,7 @@ public class PlateUtil {
      */
     public static void getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
         // 修改图片尺寸，防止图片像素尺寸过大，影响计算速度 
-        src = ImageUtil.resizeMat(src, 400, debug, tempPath);
+        src = ImageUtil.resizeMat(src, 600, debug, tempPath);
 
         // 灰度图
         Mat gray = ImageUtil.gray(src, debug, tempPath);
@@ -695,12 +697,57 @@ public class PlateUtil {
         Imgproc.warpAffine(source, dst, rot_mat, source.size());    
         return dst;
     }
-
-
+    
+    
+    public static Vector<Mat> test1(Mat mat){
+        Vector<Mat> dst = new Vector<Mat>();
+        System.out.println("test1执行了");
+        dst.add(mat);
+        dst.add(mat);
+        return dst;
+    }
+    
+    
+    public static Vector<Mat> test2(Mat mat){
+        Vector<Mat> dst = new Vector<Mat>();
+        System.out.println("test2执行了");
+        dst.add(mat);
+        dst.add(mat);
+        dst.add(mat);
+        return dst;
+    }
+    
+    
+    /**
+     * 多线程执行计算任务， 测试方法
+     * 可以尝试不同车牌类型分别计算
+     * 可以尝试不同车牌定位算法分别计算等
+     */
+    public static void getPlateMat() {
+        Mat mat = Imgcodecs.imread("D:\\PlateDetect\\temp\\test\\qietu.png");
+        CompletableFuture<Vector<Mat>> f1 = CompletableFuture.supplyAsync(() -> {
+            Vector<Mat> r = test1(mat);
+            return r;
+        });
+        CompletableFuture<Vector<Mat>> f2 = CompletableFuture.supplyAsync(() -> {
+            Vector<Mat> r = test2(mat);
+            return r;
+        });
+        // 这里的 join() 将阻塞，直到所有的任务执行结束
+        CompletableFuture.anyOf(f1, f2).join();
+        try {
+            Vector<Mat> result = f1.get();
+            result.addAll(f2.get());
+            System.err.println(result.size());
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+    
     public static void main(String[] args) {
         // main方法执行，会调用PlateUtil的static方法，但是加载xml文件放在static，会报异常
         // 通过spring管理对象，会先执行static，然后执行构造方法
-        PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm.xml");
+        /*PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm.xml");
         PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
         PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
 
@@ -721,7 +768,9 @@ public class PlateUtil {
         });
 
         Instant end = Instant.now();
-        System.err.println("总耗时：" + Duration.between(start, end).toMillis());
+        System.err.println("总耗时：" + Duration.between(start, end).toMillis());*/
+        
+        getPlateMat();
     }
 
 }

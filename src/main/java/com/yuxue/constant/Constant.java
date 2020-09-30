@@ -2,9 +2,6 @@ package com.yuxue.constant;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-
-import com.google.common.collect.Maps;
 
 /**
  * 系统常量
