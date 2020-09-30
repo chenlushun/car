@@ -14,12 +14,10 @@
         <result column="width_px" jdbcType="INTEGER" property="widthPx" />
         <result column="height_gb" jdbcType="INTEGER" property="heightGb" />
         <result column="width_gb" jdbcType="INTEGER" property="widthGb" />
-        <result column="min_h" jdbcType="INTEGER" property="minH" />
-        <result column="max_h" jdbcType="INTEGER" property="maxH" />
-        <result column="min_s" jdbcType="INTEGER" property="minS" />
-        <result column="max_s" jdbcType="INTEGER" property="maxS" />
-        <result column="min_v" jdbcType="INTEGER" property="minV" />
-        <result column="max_v" jdbcType="INTEGER" property="maxV" />
+        <result column="plate_min_h" jdbcType="INTEGER" property="plateMinH" />
+        <result column="plate_max_h" jdbcType="INTEGER" property="plateMaxH" />
+        <result column="char_min_h" jdbcType="INTEGER" property="charMinH" />
+        <result column="char_max_h" jdbcType="INTEGER" property="charMaxH" />
         <result column="remark" jdbcType="VARCHAR" property="remark" />
         <result column="create_time" jdbcType="VARCHAR" property="createTime" />
         <result column="creator_id" jdbcType="INTEGER" property="creatorId" />
@@ -29,8 +27,8 @@
     
     <sql id="Base_Column_List">
         id, type_name, plate_color, char_color, char_count, ch_index, line_count, height_px, 
-        width_px, height_gb, width_gb, min_h, max_h, min_s, max_s, min_v, max_v, remark, 
-        create_time, creator_id, version, del_flag
+        width_px, height_gb, width_gb, plate_min_h, plate_max_h, char_min_h, char_max_h, 
+        remark, create_time, creator_id, version, del_flag
     </sql>
     
     <sql id="Base_Where_Clause">
@@ -65,23 +63,17 @@
             <if test="widthGb != null">
                  and width_gb = #{widthGb,jdbcType=INTEGER}
             </if>
-            <if test="minH != null">
-                 and min_h = #{minH,jdbcType=INTEGER}
+            <if test="plateMinH != null">
+                 and plate_min_h = #{plateMinH,jdbcType=INTEGER}
             </if>
-            <if test="maxH != null">
-                 and max_h = #{maxH,jdbcType=INTEGER}
+            <if test="plateMaxH != null">
+                 and plate_max_h = #{plateMaxH,jdbcType=INTEGER}
             </if>
-            <if test="minS != null">
-                 and min_s = #{minS,jdbcType=INTEGER}
+            <if test="charMinH != null">
+                 and char_min_h = #{charMinH,jdbcType=INTEGER}
             </if>
-            <if test="maxS != null">
-                 and max_s = #{maxS,jdbcType=INTEGER}
-            </if>
-            <if test="minV != null">
-                 and min_v = #{minV,jdbcType=INTEGER}
-            </if>
-            <if test="maxV != null">
-                 and max_v = #{maxV,jdbcType=INTEGER}
+            <if test="charMaxH != null">
+                 and char_max_h = #{charMaxH,jdbcType=INTEGER}
             </if>
             <if test="remark != null">
                  and remark = #{remark,jdbcType=VARCHAR}
@@ -105,7 +97,7 @@
     
     <select id="selectByCondition" resultMap="BaseResultMap">
         select id, type_name, plate_color, char_color, char_count, ch_index, line_count, 
-        height_px, width_px, height_gb, width_gb, min_h, max_h, min_s, max_s, min_v, max_v, 
+        height_px, width_px, height_gb, width_gb, plate_min_h, plate_max_h, char_min_h, char_max_h, 
         remark, create_time, creator_id, version, del_flag
         from t_plate_type
         <include refid="Base_Where_Clause" />
@@ -119,17 +111,15 @@
         insert into t_plate_type (type_name, plate_color, char_color, 
             char_count, ch_index, line_count, 
             height_px, width_px, height_gb, 
-            width_gb, min_h, max_h, 
-            min_s, max_s, min_v, 
-            max_v, remark, create_time, 
-            creator_id)
+            width_gb, plate_min_h, plate_max_h, 
+            char_min_h, char_max_h, remark, 
+            create_time, creator_id)
         values (#{typeName,jdbcType=VARCHAR}, #{plateColor,jdbcType=VARCHAR}, #{charColor,jdbcType=VARCHAR}, 
             #{charCount,jdbcType=INTEGER}, #{chIndex,jdbcType=VARCHAR}, #{lineCount,jdbcType=INTEGER}, 
             #{heightPx,jdbcType=INTEGER}, #{widthPx,jdbcType=INTEGER}, #{heightGb,jdbcType=INTEGER}, 
-            #{widthGb,jdbcType=INTEGER}, #{minH,jdbcType=INTEGER}, #{maxH,jdbcType=INTEGER}, 
-            #{minS,jdbcType=INTEGER}, #{maxS,jdbcType=INTEGER}, #{minV,jdbcType=INTEGER}, 
-            #{maxV,jdbcType=INTEGER}, #{remark,jdbcType=VARCHAR}, #{createTime,jdbcType=VARCHAR}, 
-            #{creatorId,jdbcType=INTEGER})
+            #{widthGb,jdbcType=INTEGER}, #{plateMinH,jdbcType=INTEGER}, #{plateMaxH,jdbcType=INTEGER}, 
+            #{charMinH,jdbcType=INTEGER}, #{charMaxH,jdbcType=INTEGER}, #{remark,jdbcType=VARCHAR}, 
+            #{createTime,jdbcType=VARCHAR}, #{creatorId,jdbcType=INTEGER})
     </insert>
     
     <insert id="insertSelective" parameterType="com.yuxue.entity.PlateTypeEntity">
@@ -168,23 +158,17 @@
             <if test="widthGb != null">
                 width_gb,
             </if>
-            <if test="minH != null">
-                min_h,
+            <if test="plateMinH != null">
+                plate_min_h,
             </if>
-            <if test="maxH != null">
-                max_h,
+            <if test="plateMaxH != null">
+                plate_max_h,
             </if>
-            <if test="minS != null">
-                min_s,
+            <if test="charMinH != null">
+                char_min_h,
             </if>
-            <if test="maxS != null">
-                max_s,
-            </if>
-            <if test="minV != null">
-                min_v,
-            </if>
-            <if test="maxV != null">
-                max_v,
+            <if test="charMaxH != null">
+                char_max_h,
             </if>
             <if test="remark != null">
                 remark,
@@ -227,23 +211,17 @@
             <if test="widthGb != null">
                 #{widthGb,jdbcType=INTEGER},
             </if>
-            <if test="minH != null">
-                #{minH,jdbcType=INTEGER},
+            <if test="plateMinH != null">
+                #{plateMinH,jdbcType=INTEGER},
             </if>
-            <if test="maxH != null">
-                #{maxH,jdbcType=INTEGER},
+            <if test="plateMaxH != null">
+                #{plateMaxH,jdbcType=INTEGER},
             </if>
-            <if test="minS != null">
-                #{minS,jdbcType=INTEGER},
+            <if test="charMinH != null">
+                #{charMinH,jdbcType=INTEGER},
             </if>
-            <if test="maxS != null">
-                #{maxS,jdbcType=INTEGER},
-            </if>
-            <if test="minV != null">
-                #{minV,jdbcType=INTEGER},
-            </if>
-            <if test="maxV != null">
-                #{maxV,jdbcType=INTEGER},
+            <if test="charMaxH != null">
+                #{charMaxH,jdbcType=INTEGER},
             </if>
             <if test="remark != null">
                 #{remark,jdbcType=VARCHAR},
@@ -290,23 +268,17 @@
             <if test="widthGb != null">
                 width_gb = #{widthGb,jdbcType=INTEGER},
             </if>
-            <if test="minH != null">
-                min_h = #{minH,jdbcType=INTEGER},
+            <if test="plateMinH != null">
+                plate_min_h = #{plateMinH,jdbcType=INTEGER},
             </if>
-            <if test="maxH != null">
-                max_h = #{maxH,jdbcType=INTEGER},
+            <if test="plateMaxH != null">
+                plate_max_h = #{plateMaxH,jdbcType=INTEGER},
             </if>
-            <if test="minS != null">
-                min_s = #{minS,jdbcType=INTEGER},
+            <if test="charMinH != null">
+                char_min_h = #{charMinH,jdbcType=INTEGER},
             </if>
-            <if test="maxS != null">
-                max_s = #{maxS,jdbcType=INTEGER},
-            </if>
-            <if test="minV != null">
-                min_v = #{minV,jdbcType=INTEGER},
-            </if>
-            <if test="maxV != null">
-                max_v = #{maxV,jdbcType=INTEGER},
+            <if test="charMaxH != null">
+                char_max_h = #{charMaxH,jdbcType=INTEGER},
             </if>
             <if test="remark != null">
                 remark = #{remark,jdbcType=VARCHAR},
@@ -332,12 +304,10 @@
             width_px = #{widthPx,jdbcType=INTEGER},
             height_gb = #{heightGb,jdbcType=INTEGER},
             width_gb = #{widthGb,jdbcType=INTEGER},
-            min_h = #{minH,jdbcType=INTEGER},
-            max_h = #{maxH,jdbcType=INTEGER},
-            min_s = #{minS,jdbcType=INTEGER},
-            max_s = #{maxS,jdbcType=INTEGER},
-            min_v = #{minV,jdbcType=INTEGER},
-            max_v = #{maxV,jdbcType=INTEGER},
+            plate_min_h = #{plateMinH,jdbcType=INTEGER},
+            plate_max_h = #{plateMaxH,jdbcType=INTEGER},
+            char_min_h = #{charMinH,jdbcType=INTEGER},
+            char_max_h = #{charMaxH,jdbcType=INTEGER},
             remark = #{remark,jdbcType=VARCHAR},
             creator_id = #{creatorId,jdbcType=INTEGER},
             version =  version + 1 

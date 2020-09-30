@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * 服务实现层接口
  * @author yuxue
- * @date 2020-09-30T16:44:07.193
+ * @date 2020-09-30T16:54:41.820
  */
 public interface PlateTypeService {
 	

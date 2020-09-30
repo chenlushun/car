@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * 服务实现层
  * @author yuxue
- * @date 2020-09-30T16:44:07.229
+ * @date 2020-09-30T16:54:41.823
  */
 @Service
 public class PlateTypeServiceImpl implements PlateTypeService {

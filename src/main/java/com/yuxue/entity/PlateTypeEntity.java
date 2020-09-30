@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * t_plate_type
  * @author yuxue
- * 2020-09-30 16:44:07.182
+ * 2020-09-30 16:54:41.815
  */
 @Data
 @NoArgsConstructor
@@ -80,40 +80,28 @@ public class PlateTypeEntity implements Serializable {
     private Integer widthGb;
 
     /**
-     * minH
+     * plateMinH
      */
-    @ApiModelProperty(example="Integer-minH")
-    private Integer minH;
+    @ApiModelProperty(example="Integer-plateMinH")
+    private Integer plateMinH;
 
     /**
-     * maxH
+     * plateMaxH
      */
-    @ApiModelProperty(example="Integer-maxH")
-    private Integer maxH;
+    @ApiModelProperty(example="Integer-plateMaxH")
+    private Integer plateMaxH;
 
     /**
-     * minS
+     * charMinH
      */
-    @ApiModelProperty(example="Integer-minS")
-    private Integer minS;
+    @ApiModelProperty(example="Integer-charMinH")
+    private Integer charMinH;
 
     /**
-     * maxS
+     * charMaxH
      */
-    @ApiModelProperty(example="Integer-maxS")
-    private Integer maxS;
-
-    /**
-     * minV
-     */
-    @ApiModelProperty(example="Integer-minV")
-    private Integer minV;
-
-    /**
-     * maxV
-     */
-    @ApiModelProperty(example="Integer-maxV")
-    private Integer maxV;
+    @ApiModelProperty(example="Integer-charMaxH")
+    private Integer charMaxH;
 
     /**
      * remark
