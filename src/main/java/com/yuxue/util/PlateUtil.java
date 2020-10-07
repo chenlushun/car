@@ -761,9 +761,6 @@ public class PlateUtil {
     
 
     /**
-     * 多线程执行计算任务， 测试方法
-     * 可以尝试不同车牌类型分别计算
-     * 可以尝试不同车牌定位算法分别计算等
      * 根据图片，获取可能是车牌的图块集合
      * @param src 输入原图
      * @param dst 可能是车牌的图块集合
@@ -794,9 +791,9 @@ public class PlateUtil {
             result.addAll(f2.get());
             result.addAll(f3.get());
             
-            // 遍历轮廓，resize到原图的尺寸，
+            // 遍历轮廓，resize到原图的尺寸--未完成
             
-            // 从原图中提取图块
+            // 从原图中提取图块--未完成
             
             return result;
         } catch (InterruptedException | ExecutionException e) {
