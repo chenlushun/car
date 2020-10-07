@@ -22,19 +22,8 @@ import com.yuxue.util.FileUtil;
 /**
  * 基于org.opencv官方包实现的训练
  * 
- * windows下环境配置：
- * 1、官网下载对应版本的openvp：https://opencv.org/releases/page/2/  当前使用4.0.1版本
- * 2、双击exe文件安装，将 安装目录下\build\java\x64\opencv_java401.dll 拷贝到\build\x64\vc14\bin\目录下
- * 3、eclipse添加User Libraries
- * 4、项目右键build path，添加步骤三新增的lib
- * 
  * 图片识别车牌训练
- * 训练出来的库文件，用于判断切图是否包含车牌
- * 
- * 训练的svm.xml应用：
- * 1、替换res/model/svm.xml文件
- * 2、修改com.yuxue.easypr.core.PlateJudge.plateJudge(Mat) 方法
- *      将样本处理方法切换一下，即将对应被注释掉的模块代码取消注释
+ * 训练出来的xml模型文件，用于判断切图是否是车牌
  * @author yuxue
  * @date 2020-05-13 10:10
  */
