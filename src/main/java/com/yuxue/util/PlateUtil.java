@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.enumtype.Direction;
 import com.yuxue.enumtype.PlateColor;
@@ -106,22 +107,7 @@ public class PlateUtil {
      * @param debug 是否保留图片的处理过程
      * @param tempPath 图片处理过程的缓存目录
      */
-    public static void getPlateMat(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
-        Mat src = Imgcodecs.imread(imagePath);
-        getPlateMat(src, dst, debug, tempPath);
-    }
-
-    /**
-     * 根据图片，获取可能是车牌的图块集合
-     * @param src 输入原图
-     * @param dst 可能是车牌的图块集合
-     * @param debug 是否保留图片的处理过程
-     * @param tempPath 图片处理过程的缓存目录
-     */
-    public static void getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
-        // 修改图片尺寸，防止图片像素尺寸过大，影响计算速度 
-        src = ImageUtil.resizeMat(src, 600, debug, tempPath);
-
+    public static Vector<Mat> getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
         // 灰度图
         Mat gray = ImageUtil.gray(src, debug, tempPath);
 
@@ -150,6 +136,8 @@ public class PlateUtil {
         // Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
         // Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
 
+
+
         // 获取图中所有的轮廓
         List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
@@ -157,7 +145,79 @@ public class PlateUtil {
 
         // 找出可能是车牌的图块，存到dst中， 返回结果
         hasPlate(inMat, dst, debug, tempPath);
+        
+        return inMat;
     }
+
+
+
+    public static Vector<Mat> findPlateByHsvFilter(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
+        Mat hsvMat = new Mat();
+        Imgproc.cvtColor(src, hsvMat, Imgproc.COLOR_BGR2HSV);
+        for (int i = 0; i < hsvMat.rows(); i++) {
+            for (int j = 0; j < hsvMat.cols(); j++) {
+                double[] hsv = hsvMat.get(i, j);
+                Integer h = (int)hsv[0];
+                Integer s = (int)hsv[1];
+                Integer v = (int)hsv[2];
+                if (105 <= h && h <= 125 /*&& 50 <= s && s <= 255 && 50 <= v && v <= 255*/) {
+                    hsv[0] = 255.0;
+                    hsv[1] = 255.0;
+                    hsv[2] = 255.0; // 白色
+                } else {
+                    hsv[0] = 0.0;
+                    hsv[1] = 0.0;
+                    hsv[2] = 0.0;   // 黑色 二值算法
+                    hsvMat.put(i, j, hsv);
+                }
+            }
+        }
+
+        Imgproc.cvtColor(hsvMat, hsvMat, Imgproc.COLOR_HSV2BGR);
+        ImageUtil.debugImg(debug, tempPath, "hsvFilter", hsvMat);
+
+        hsvMat = ImageUtil.equalizeHist(hsvMat, debug, tempPath);
+        Imgproc.cvtColor(hsvMat, hsvMat, Imgproc.COLOR_BGR2HSV);
+        Mat threshold = hsvMat.clone();
+        for (int i = 0; i < hsvMat.rows(); i++) {
+            for (int j = 0; j < hsvMat.cols(); j++) {
+                double[] hsv = hsvMat.get(i, j);
+                Integer h = (int)hsv[0];
+                if (5 <= h && h <= 35) {
+                    hsv[0] = 255.0;
+                    hsv[1] = 255.0;
+                    hsv[2] = 255.0; // 白色
+                } else {
+                    hsv[0] = 0.0;
+                    hsv[1] = 0.0;
+                    hsv[2] = 0.0;   // 黑色 二值算法
+                }
+                threshold.put(i, j, hsv);
+            }
+        }
+
+        // 使用闭操作
+        Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
+
+        Mat erode = ImageUtil.erode(morphology, debug, tempPath, 2, 2);
+        Mat dilate = ImageUtil.dilate(erode, debug, tempPath, 2, 2);
+
+        Imgproc.cvtColor(dilate, dilate, Imgproc.COLOR_BGR2GRAY);
+
+        // 提取轮廓
+        List<MatOfPoint> contours = ImageUtil.contours(src, dilate, debug, tempPath);
+
+        // 根据轮廓， 筛选出可能是车牌的图块
+        Vector<Mat> vMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
+
+        // 找出可能是车牌的图块，存到dst中， 返回结果
+        hasPlate(vMat, dst, debug, tempPath);
+        return vMat;
+    }
+
+
+
+
 
 
     /**
@@ -358,9 +418,9 @@ public class PlateUtil {
             Mat img_crop = new Mat(threshold, sorted.get(i));
             img_crop = preprocessChar(img_crop);
             plate = plate + predict(img_crop);
-            System.err.println(plate);
             ImageUtil.debugImg(debug, tempPath, "specMat", img_crop);
         }
+        System.err.println(plate);
         return plate;
     }
 
@@ -697,59 +757,58 @@ public class PlateUtil {
         Imgproc.warpAffine(source, dst, rot_mat, source.size());    
         return dst;
     }
+
     
-    
-    public static Vector<Mat> test1(Mat mat){
-        Vector<Mat> dst = new Vector<Mat>();
-        System.out.println("test1执行了");
-        dst.add(mat);
-        dst.add(mat);
-        return dst;
-    }
-    
-    
-    public static Vector<Mat> test2(Mat mat){
-        Vector<Mat> dst = new Vector<Mat>();
-        System.out.println("test2执行了");
-        dst.add(mat);
-        dst.add(mat);
-        dst.add(mat);
-        return dst;
-    }
-    
-    
+
     /**
      * 多线程执行计算任务， 测试方法
      * 可以尝试不同车牌类型分别计算
      * 可以尝试不同车牌定位算法分别计算等
+     * 根据图片，获取可能是车牌的图块集合
+     * @param src 输入原图
+     * @param dst 可能是车牌的图块集合
+     * @param debug 是否保留图片的处理过程
+     * @param tempPath 图片处理过程的缓存目录
      */
-    public static void getPlateMat() {
-        Mat mat = Imgcodecs.imread("D:\\PlateDetect\\temp\\test\\qietu.png");
+    public static Vector<Mat> getPlateMat(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
+        Mat src = Imgcodecs.imread(imagePath);
+        final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
+        
         CompletableFuture<Vector<Mat>> f1 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = test1(mat);
+            Vector<Mat> r = getPlateMat(resized, dst, debug, tempPath); // 网上常见的轮廓提取车牌算法
             return r;
         });
         CompletableFuture<Vector<Mat>> f2 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = test2(mat);
+            Vector<Mat> r = findPlateByHsvFilter(resized, dst, debug, tempPath); // hsv色彩分割提取车牌算法，当前仅实现蓝牌的
             return r;
         });
+        CompletableFuture<Vector<Mat>> f3 = CompletableFuture.supplyAsync(() -> {
+            Vector<Mat> r = new Vector<Mat>(); // 参考人脸识别算法，实现特征识别算法，--未完成
+            return r;
+        });
+        
         // 这里的 join() 将阻塞，直到所有的任务执行结束
-        CompletableFuture.anyOf(f1, f2).join();
+        CompletableFuture.allOf(f1, f2, f3).join();
         try {
             Vector<Mat> result = f1.get();
             result.addAll(f2.get());
-            System.err.println(result.size());
+            result.addAll(f3.get());
+            
+            // 遍历轮廓，resize到原图的尺寸，
+            
+            // 从原图中提取图块
+            
+            return result;
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
+        return null;
     }
     
+
     public static void main(String[] args) {
-        // main方法执行，会调用PlateUtil的static方法，但是加载xml文件放在static，会报异常
-        // 通过spring管理对象，会先执行static，然后执行构造方法
-        /*PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm.xml");
-        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
-        PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
+        // 执行构造方法
+        new PlateUtil();
 
         Instant start = Instant.now();
         String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
@@ -758,19 +817,21 @@ public class PlateUtil {
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
         getPlateMat(filename, dst, debug, tempPath);
-
-        System.err.println("识别到的车牌数量：" + dst.size());
+        
+        Set<String> result = Sets.newHashSet();
 
         dst.stream().forEach(inMat -> {
             PlateColor color = PlateUtil.getPlateColor(inMat, debug, debug, tempPath);
-            System.err.println(color.desc);
-            PlateUtil.charsSegment(inMat, color, debug, tempPath);
+            String plateNo = PlateUtil.charsSegment(inMat, color, debug, tempPath);
+            result.add(plateNo + "\t" + color.desc);
         });
-
-        Instant end = Instant.now();
-        System.err.println("总耗时：" + Duration.between(start, end).toMillis());*/
+        System.out.println(result.toString());
         
-        getPlateMat();
+        Instant end = Instant.now();
+        System.err.println("总耗时：" + Duration.between(start, end).toMillis());
     }
 
 }
+
+
+

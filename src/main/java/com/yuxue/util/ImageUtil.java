@@ -26,7 +26,7 @@ import com.yuxue.constant.Constant;
  */
 public class ImageUtil {
 
-    
+
     static {
         // 加载本地安装的opencv库
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -45,7 +45,7 @@ public class ImageUtil {
         return id++;
     }
 
-    
+
     /***
      * 保存算法过程每个步骤处理结果，输出结果jpg图像
      * @param debug 缓存目录
@@ -219,7 +219,7 @@ public class ImageUtil {
      * @return
      */
     public static final int DEFAULT_MORPH_SIZE_WIDTH = 10;
-    public static final int DEFAULT_MORPH_SIZE_HEIGHT = 1; // 大于1
+    public static final int DEFAULT_MORPH_SIZE_HEIGHT = 10; // 大于1
     public static Mat morphology(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
         Size size = new Size(DEFAULT_MORPH_SIZE_WIDTH, DEFAULT_MORPH_SIZE_HEIGHT);
@@ -400,23 +400,47 @@ public class ImageUtil {
         return dst;
     }
 
-    
+
 
     /**
-     * 颜色范围提取，以及二值化
+     * 颜色范围提取
      * @param grey
      * @param tempPath
      * @param debug
      * @return
      */
-    public static Mat getByColor(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
-        Scalar lowerb = new Scalar(new double[] { 100, 43, 46 });
-        Scalar upperb = new Scalar(new double[] { 124, 200, 200 });
-        Mat hsv = new Mat();    // 转换为hsv图像
-        Imgproc.cvtColor(inMat, hsv, Imgproc.COLOR_BGR2HSV);
-        Core.inRange(hsv, lowerb, upperb, dst);
-        debugImg(debug, tempPath, "getByColor", dst);
+    public static Mat hsvFilter(Mat inMat, Boolean debug, String tempPath) {
+        Mat dst = inMat.clone();
+        Mat hsvMat = new Mat();    // 转换为hsv图像
+        Imgproc.cvtColor(inMat, hsvMat, Imgproc.COLOR_BGR2HSV);
+        // 从数据库中读取配置参数
+        // 蓝牌
+        /*Scalar lowerB = new Scalar(new double[] { 110, 230, 183 });
+        Scalar upperB = new Scalar(new double[] { 120, 250, 229 });
+        // 绿牌
+        Scalar lowerG = new Scalar(new double[] { 75, 166, 194 });
+        Scalar upperG = new Scalar(new double[] { 80, 38, 183 });
+        // 黄牌
+        Scalar lowerY = new Scalar(new double[] { 20, 188, 253 });
+        Scalar upperY = new Scalar(new double[] { 30, 188, 253 });*/
+
+        for (int i = 0; i < hsvMat.rows(); i++) {
+            for (int j = 0; j < hsvMat.cols(); j++) {
+                double[] hsv = hsvMat.get(i, j);
+                Integer h = (int)hsv[0];
+                Integer s = (int)hsv[1];
+                Integer v = (int)hsv[2];
+                if (105 <= h && h <= 125 && 100 <= s && s <= 255 && 50 <= v && v <= 200) {
+                    continue;
+                } else {
+                    hsv[0] = 255.0;
+                    hsv[1] = 255.0;
+                    hsv[2] = 255.0;
+                    dst.put(i, j, hsv);
+                }
+            }
+        }
+        debugImg(debug, tempPath, "hsvFilter", dst);
         return dst;
     }
 
@@ -440,7 +464,7 @@ public class ImageUtil {
         float r = inMat.rows() * 1.0f / inMat.cols(); 
         Integer rows = Math.round(maxCols * r);
         Mat resized = new Mat(rows, maxCols, inMat.type());
-        
+
         /**
          * INTER_AREA 缩小图像的时候使用
          * INTER_CUBIC 放大图像的时候使用
