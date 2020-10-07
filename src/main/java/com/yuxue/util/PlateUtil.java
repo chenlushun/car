@@ -1,5 +1,6 @@
 package com.yuxue.util;
 
+import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -48,24 +49,20 @@ public class PlateUtil {
 
     private static String DEFAULT_BASE_TEST_PATH = "D:/PlateDetect/temp/";
 
+    private static SVM svm = null;
+    private static ANN_MLP ann= null;
+    private static ANN_MLP ann_cn= null;
+
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        // 这个位置加载模型文件会报错，暂时没时间定位啥问题报错
-        /*loadSvmModel("D:/PlateDetect/train/plate_detect_svm/svm.xml");
-        loadAnnModel("D:/PlateDetect/train/chars_recognise_ann/ann.xml");
-        loadAnnCnModel("D:/PlateDetect/train/chars_recognise_ann/ann_cn.xml");*/
-    }
-
-    PlateUtil(){
+        
+        svm = SVM.create();
+        ann=ANN_MLP.create();
+        ann_cn=ANN_MLP.create();
         loadSvmModel(Constant.DEFAULT_SVM_PATH);
         loadAnnModel(Constant.DEFAULT_ANN_PATH);
         loadAnnCnModel(Constant.DEFAULT_ANN_CN_PATH);
     }
-
-    private static SVM svm = SVM.create();
-
-    private static ANN_MLP ann=ANN_MLP.create();
-    private static ANN_MLP ann_cn=ANN_MLP.create();
 
     public static void loadSvmModel(String path) {
         svm.clear();
@@ -107,21 +104,15 @@ public class PlateUtil {
      * @param debug 是否保留图片的处理过程
      * @param tempPath 图片处理过程的缓存目录
      */
-    public static Vector<Mat> getPlateMat(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
+    public static Vector<Mat> findPlateByContours(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
         // 灰度图
         Mat gray = ImageUtil.gray(src, debug, tempPath);
 
         // 高斯模糊
         Mat gsMat = ImageUtil.gaussianBlur(gray, debug, tempPath);
 
-        // 颜色范围提取
-        // Mat crMat = ImageUtil.getByColor(gsMat, debug, tempPath);
-
         // Sobel 运算，得到图像的一阶水平方向导数
         Mat sobel = ImageUtil.sobel(gsMat, debug, tempPath);
-
-        // Mat scharr = ImageUtil.scharr(gray, debug, tempPath);    // 得到图像的一阶水平方向导数
-        // Mat threshold = ImageUtil.threshold(scharr, debug, tempPath);
 
         // 图像进行二值化
         Mat threshold = ImageUtil.threshold(sobel, debug, tempPath);
@@ -132,11 +123,6 @@ public class PlateUtil {
         // 边缘腐蚀，边缘膨胀，可以多执行两次
         morphology = ImageUtil.erode(morphology, debug, tempPath, 4, 4);
         morphology = ImageUtil.dilate(morphology, debug, tempPath, 4, 4);
-
-        // Mat clear2 = ImageUtil.clearSmallConnArea(clear1, 4, 10, debug, tempPath);
-        // Mat clear3 = ImageUtil.clearAngleConn(clear2, 5, debug, tempPath);
-
-
 
         // 获取图中所有的轮廓
         List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
@@ -149,8 +135,15 @@ public class PlateUtil {
         return inMat;
     }
 
-
-
+    
+    /**
+     * 
+     * @param src 输入原图
+     * @param dst 可能是车牌的图块集合
+     * @param debug 是否保留图片的处理过程
+     * @param tempPath 图片处理过程的缓存目录   
+     * @return
+     */
     public static Vector<Mat> findPlateByHsvFilter(Mat src, Vector<Mat> dst, Boolean debug, String tempPath) {
         Mat hsvMat = new Mat();
         Imgproc.cvtColor(src, hsvMat, Imgproc.COLOR_BGR2HSV);
@@ -214,10 +207,6 @@ public class PlateUtil {
         hasPlate(vMat, dst, debug, tempPath);
         return vMat;
     }
-
-
-
-
 
 
     /**
@@ -399,9 +388,7 @@ public class PlateUtil {
         ImageUtil.debugImg(debug, tempPath, "chineseMat", chineseMat);
 
         String plate = "";
-
-        // 预测中文字符
-        plate = plate + predictChinese(chineseMat);
+        plate = plate + predictChinese(chineseMat); // 预测中文字符
 
         // 预测中文之外的字符
         for (int i = 0; i < sorted.size(); i++) {
@@ -772,7 +759,7 @@ public class PlateUtil {
         final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
         
         CompletableFuture<Vector<Mat>> f1 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = getPlateMat(resized, dst, debug, tempPath); // 网上常见的轮廓提取车牌算法
+            Vector<Mat> r = findPlateByContours(resized, dst, debug, tempPath); // 网上常见的轮廓提取车牌算法
             return r;
         });
         CompletableFuture<Vector<Mat>> f2 = CompletableFuture.supplyAsync(() -> {
@@ -804,12 +791,22 @@ public class PlateUtil {
     
 
     public static void main(String[] args) {
-        // 执行构造方法
-        new PlateUtil();
-
         Instant start = Instant.now();
+        
+        /*PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm.xml");
+        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
+        PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");*/
+        
         String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
         String filename = tempPath + "1.jpg";
+        File f = new File(filename);
+        if(!f.exists()) {
+            filename = filename.replace("jpg", "png");
+        }
+        f = new File(filename);
+        if(!f.exists()) {
+            filename = filename.replace("png", "bmp");
+        }
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
