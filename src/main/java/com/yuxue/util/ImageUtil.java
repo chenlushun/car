@@ -307,8 +307,7 @@ public class ImageUtil {
 
                 // 仿射变换  对原图进行错切
                 // 获取轮廓四个顶点，来判断是否需要进行错切， 取三个点计算即可 --未完成yuxue
-                
-                
+                Mat shear = shearCorrection(m2, img_rotated);
                 
                 // 切图
                 Mat img_crop = new Mat();
@@ -337,13 +336,27 @@ public class ImageUtil {
     
     /**
      * 图块错切校正
-     * 
+     * 考虑使用轮廓的四个顶点来计算，但是估计比较不精确
+     * 可以尝试
+     *  1、基于最小字符投影的车牌图像错切校正方法   https://doc.docsou.com/bffe156ab6cba26c3d293fa0e.html
+     *  2、基于字符上下边缘的车牌校正方法   http://www.doc88.com/p-7857712691324.html   // 这个应该是旋转处理而已
+     *  3、基于字符预分割的车牌倾斜校正方法 http://www.xjishu.com/zhuanli/55/200910200259.html
+     *  
+     * 未完成
      * @return
      */
     private static Mat shearCorrection(MatOfPoint2f m2, Mat inMat){
         Mat shear = new Mat();  // 校正后的图片
         
+        MatOfPoint2f srcPoints = new MatOfPoint2f();
+        srcPoints.fromArray(new Point(0, 0), new Point(0, 0), new Point(0, 0));
         
+        MatOfPoint2f dstPoints = new MatOfPoint2f();
+        dstPoints.fromArray(new Point(0, 0), new Point(0, 0), new Point(0, 0));
+        
+        Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
+        
+        Imgproc.warpAffine(inMat, shear, m3, inMat.size());
         return shear;
     }
     /**
