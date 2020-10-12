@@ -23,7 +23,7 @@ public class CommandRunner implements CommandLineRunner {
         	String os = System.getProperty("os.name").toLowerCase();
         	if(os.contains("windows")) {
         	    // 默认浏览器打开
-        		// Runtime.getRuntime().exec("cmd   /c   start   http://localhost:" + port + "/index");
+        		Runtime.getRuntime().exec("cmd   /c   start   https://gitee.com/admin_yu/yx-image-recognition");
         	}
         } catch (Exception ex) {
             ex.printStackTrace();

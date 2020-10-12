@@ -145,6 +145,13 @@ public class PlateUtil {
     }
 
 
+    
+    public static Vector<Mat> findPlateByHsvFilter(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
+        Mat src = Imgcodecs.imread(imagePath);
+        final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
+        return findPlateByHsvFilter(src, resized, dst, debug, tempPath);
+    }
+    
     /**
      * 
      * @param src 输入原图
@@ -819,7 +826,7 @@ public class PlateUtil {
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
-        findPlateByContours(filename, dst, debug, tempPath);
+        findPlateByHsvFilter(filename, dst, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
 

@@ -109,7 +109,7 @@ public class ImageUtil {
     public static Mat gray(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat();
         Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GRAY);
-        debugImg(debug, tempPath, "gray", dst);
+        debugImg(false, tempPath, "gray", dst);
         return dst;
     }
 
@@ -244,7 +244,11 @@ public class ImageUtil {
         Mat hierarchy = new Mat();
         // RETR_EXTERNAL只检测最外围轮廓， // RETR_LIST   检测所有的轮廓
         // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
-        Imgproc.findContours(inMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+        Point offset = new Point(0, 0); // 偏移量
+        if(inMat.width() > 600) {
+            offset = new Point(0, -10); // 偏移量 // 对应sobel的偏移量
+        }
+        Imgproc.findContours(inMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE, offset);
         if (debug) {
             Mat result = new Mat();
             src.copyTo(result); //  复制一张图，不在原图上进行操作，防止后续需要使用原图
@@ -273,39 +277,42 @@ public class ImageUtil {
 
         for (int i = 0; i < contours.size(); i++) {
             MatOfPoint m1 = contours.get(i);
-            
-            // 多边形逼近
-            
-            // 旋转角度
-            
-            // 投影变换
-            
             MatOfPoint2f m2 = new MatOfPoint2f();
             m1.convertTo(m2, CvType.CV_32F);
+            
+            // 多边形逼近 -- 没什么卵用
+            /*double epsilon = 0.001 * Imgproc.arcLength(m2, true);
+            Imgproc.approxPolyDP(m2, m2, epsilon, true);*/
+            
             // RotatedRect 该类表示平面上的旋转矩形，有三个属性： 矩形中心点(质心); 边长(长和宽); 旋转角度
             // boundingRect()得到包覆此轮廓的最小正矩形， minAreaRect()得到包覆轮廓的最小斜矩形
             RotatedRect mr = Imgproc.minAreaRect(m2);
-
-            double angle = Math.abs(mr.angle);
-
-            if (checkPlateSize(mr) && angle <= DEFAULT_ANGLE) {  // 判断尺寸及旋转角度 ±30°，排除不合法的图块
+            
+            // 以图片左上角为原点，上边为x轴建立坐标系；
+            // x轴逆时针旋转，首次平行的边为mr.size.width，x轴跟该条边组成的角度，即angle，  角度取值范围：[-90° ~ 0°]
+            double angle = mr.angle;
+            if (checkPlateSize(mr) && Math.abs(mr.angle) <= DEFAULT_ANGLE) {  //排除不合法的图块
                 mv.add(contours.get(i));
                 Size rect_size = new Size((int) mr.size.width, (int) mr.size.height);
-                if (mr.size.width / mr.size.height < 1) {   // 宽度小于高度
-                    angle = 90 + angle; // 旋转90°
+                if (mr.size.width < mr.size.height) {
+                    angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
-
                 // 旋转角度，根据需要是否进行角度旋转
-                /*Mat img_rotated = new Mat();
-                Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转
-                Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  考虑是否需要进行投影变换？
-                 */
+                Mat img_rotated = new Mat();
+                Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转对象；angle>0则 逆时针
+                // 如果相机在车牌正前方，拍摄角度较小，不管相机是否保持水平，使用仿射变换，减少照片倾斜影响即可
+                // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
+                Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转 
 
+                // 仿射变换  对原图进行错切
+                // 获取轮廓四个顶点，来判断是否需要进行错切， 取三个点计算即可 --未完成yuxue
+                
+                
+                
                 // 切图
                 Mat img_crop = new Mat();
-                Imgproc.getRectSubPix(src, rect_size, mr.center, img_crop);
-
+                Imgproc.getRectSubPix(img_rotated, rect_size, mr.center, img_crop);
                 debugImg(debug, tempPath, "crop", img_crop);
 
                 // 处理切图，调整为指定大小
@@ -327,6 +334,18 @@ public class ImageUtil {
         return  dst;
     }
 
+    
+    /**
+     * 图块错切校正
+     * 
+     * @return
+     */
+    private static Mat shearCorrection(MatOfPoint2f m2, Mat inMat){
+        Mat shear = new Mat();  // 校正后的图片
+        
+        
+        return shear;
+    }
     /**
      * 对minAreaRect获得的最小外接矩形
      * 判断面积以及宽高比是否在制定的范围内
@@ -338,7 +357,7 @@ public class ImageUtil {
     private static boolean checkPlateSize(RotatedRect mr) {
         // 切图面积取值范围
         int min = 44 * 14 * 1;
-        int max = 44 * 14 * 30;
+        int max = 44 * 14 * 40;
         // 计算切图面积
         int area = (int) (mr.size.height * mr.size.width);
         // 计算切图宽高比
@@ -479,7 +498,7 @@ public class ImageUtil {
         double fx = (double)resized.cols()/inMat.cols(); // 水平缩放比例，输入为0时，则默认当前计算方式
         double fy = (double)resized.rows()/inMat.rows(); // 垂直缩放比例，输入为0时，则默认当前计算方式
         Imgproc.resize(inMat, resized, resized.size(), fx, fy, Imgproc.INTER_LINEAR);
-        debugImg(debug, tempPath, "resizeMat", resized);
+        debugImg(true, tempPath, "resizeMat", resized);
         return resized;
     }
 
