@@ -273,6 +273,13 @@ public class ImageUtil {
 
         for (int i = 0; i < contours.size(); i++) {
             MatOfPoint m1 = contours.get(i);
+            
+            // 多边形逼近
+            
+            // 旋转角度
+            
+            // 投影变换
+            
             MatOfPoint2f m2 = new MatOfPoint2f();
             m1.convertTo(m2, CvType.CV_32F);
             // RotatedRect 该类表示平面上的旋转矩形，有三个属性： 矩形中心点(质心); 边长(长和宽); 旋转角度
@@ -446,7 +453,7 @@ public class ImageUtil {
 
 
     /**
-     * 锁定横纵比，调整图片大小
+     * 锁定横纵比，调整图片大小(缩小)
      * 防止图片像素太大，后续的计算太费时
      * 但是这样处理之后，图片可能会失真，影响车牌文字识别效果
      * 可以考虑，定位出车牌位置之后，计算出原图的车牌位置，从原图中区图块进行车牌文字识别
@@ -476,6 +483,29 @@ public class ImageUtil {
         return resized;
     }
 
+    
+    /**
+     * 还原图片的尺寸(放大)
+     * 放大二值图像到原始图片的尺寸，然后提取轮廓，再从原图裁剪图块
+     * 防止直接在缩放后的图片上提取图块，因图片变形导致图块识别结果异常
+     * @param inMat
+     * @param size
+     * @param debug
+     * @param tempPath
+     * @return
+     */
+    public static Mat restoreSize(Mat inMat, Size size, Boolean debug, String tempPath) {
+        if(inMat.width() >= size.width) {
+            return inMat;
+        }
+        Mat restore = new Mat();
+        Imgproc.resize(inMat, restore, size, 0, 0, Imgproc.INTER_CUBIC);
+        debugImg(debug, tempPath, "restoreSize", restore);
+        return restore;
+    }
+    
+    
+    
 
 
 }

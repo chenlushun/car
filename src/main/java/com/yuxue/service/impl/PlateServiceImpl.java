@@ -30,6 +30,7 @@ import com.yuxue.mapper.PlateRecoDebugMapper;
 import com.yuxue.mapper.TempPlateFileMapper;
 import com.yuxue.service.PlateService;
 import com.yuxue.util.FileUtil;
+import com.yuxue.util.GenerateIdUtil;
 import com.yuxue.util.PlateUtil;
 
 
@@ -48,15 +49,7 @@ public class PlateServiceImpl implements PlateService {
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
-    
-    /**
-     * 获取时间戳，生成文件名称
-     * @return
-     */
-    public static synchronized Long getId() {
-        return System.currentTimeMillis();
-    }
-
+   
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
@@ -144,6 +137,7 @@ public class PlateServiceImpl implements PlateService {
         return e;
     }
 
+    
     /**
      * 单张图片 车牌识别
      * 拷贝文件到临时目录
@@ -154,7 +148,7 @@ public class PlateServiceImpl implements PlateService {
      */
     public Object doRecognise(File f, PlateFileEntity e) {
 
-        Long ct = getId();
+        Long ct = GenerateIdUtil.getId();
 
         // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下
         String targetPath = Constant.DEFAULT_TEMP_DIR.concat(ct.toString())
@@ -214,10 +208,8 @@ public class PlateServiceImpl implements PlateService {
 
     @Override
     public Object getImgInfo(String imgPath) {
-        
-        
         Map<String, Object> result = Maps.newHashMap();
-        Long ct = getId();
+        Long ct = GenerateIdUtil.getId();
         File f = new File(imgPath);
         if(f.exists()) {
             // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下
