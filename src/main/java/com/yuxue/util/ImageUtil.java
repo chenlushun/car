@@ -26,12 +26,10 @@ import com.yuxue.constant.Constant;
  */
 public class ImageUtil {
 
-
     static {
         // 加载本地安装的opencv库
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
-
 
     /**
      * 生成文件名称
@@ -62,6 +60,21 @@ public class ImageUtil {
 
 
     /**
+     * 图像灰度化
+     * @param inMat 高斯滤波后的图
+     * @param debug 是否输出结果图片
+     * @param tempPath 结果图片输出路径
+     * @return
+     */
+    public static Mat gray(Mat inMat, Boolean debug, String tempPath) {
+        Mat dst = new Mat();
+        Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GRAY);
+        // debugImg(false, tempPath, "gray", dst);
+        return dst;
+    }
+
+
+    /**
      * 高斯滤波，用于 抑制噪声，平滑图像， 防止把噪点也检测为边缘
      * 高斯滤波器相比于均值滤波器对图像个模糊程度较小
      * https://blog.csdn.net/qinchao315/article/details/81269328
@@ -76,7 +89,7 @@ public class ImageUtil {
         Mat dst = new Mat();
         Size ksize = new Size(GS_BLUR_KERNEL, GS_BLUR_KERNEL);
         Imgproc.GaussianBlur(inMat, dst, ksize, 0, 0, Core.BORDER_DEFAULT);
-        debugImg(debug, tempPath, "gaussianBlur", dst);
+        // debugImg(debug, tempPath, "gaussianBlur", dst);
         return dst;
     }
 
@@ -94,24 +107,10 @@ public class ImageUtil {
         Point anchor = new Point(-1,-1);
         Size ksize = new Size(BLUR_KERNEL, BLUR_KERNEL);
         Imgproc.blur(inMat, dst, ksize, anchor, Core.BORDER_DEFAULT);
-        debugImg(debug, tempPath, "blur", dst);
+        // debugImg(debug, tempPath, "blur", dst);
         return dst;
     }
 
-
-    /**
-     * 图像灰度化
-     * @param inMat 高斯滤波后的图
-     * @param debug 是否输出结果图片
-     * @param tempPath 结果图片输出路径
-     * @return
-     */
-    public static Mat gray(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
-        Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GRAY);
-        debugImg(false, tempPath, "gray", dst);
-        return dst;
-    }
 
 
     /**
@@ -246,7 +245,7 @@ public class ImageUtil {
         // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
         Point offset = new Point(0, 0); // 偏移量
         if(inMat.width() > 600) {
-            offset = new Point(0, -10); // 偏移量 // 对应sobel的偏移量
+            // offset = new Point(-5, -10); // 偏移量 // 对应sobel的偏移量
         }
         Imgproc.findContours(inMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE, offset);
         if (debug) {
@@ -273,31 +272,52 @@ public class ImageUtil {
     public static final int TYPE = CvType.CV_8UC3;
     public static Vector<Mat> screenBlock(Mat src, List<MatOfPoint> contours, Boolean debug, String tempPath){
         Vector<Mat> dst = new Vector<Mat>();
-        List<MatOfPoint> mv = Lists.newArrayList(); // 用于在原图上描绘筛选后的结果
 
         for (int i = 0; i < contours.size(); i++) {
             MatOfPoint m1 = contours.get(i);
-            MatOfPoint2f m2 = new MatOfPoint2f();
-            m1.convertTo(m2, CvType.CV_32F);
-            
-            // 多边形逼近 -- 没什么卵用
-            /*double epsilon = 0.001 * Imgproc.arcLength(m2, true);
-            Imgproc.approxPolyDP(m2, m2, epsilon, true);*/
-            
+            MatOfPoint2f m2 = new MatOfPoint2f(m1.toArray());
+
             // RotatedRect 该类表示平面上的旋转矩形，有三个属性： 矩形中心点(质心); 边长(长和宽); 旋转角度
             // boundingRect()得到包覆此轮廓的最小正矩形， minAreaRect()得到包覆轮廓的最小斜矩形
             RotatedRect mr = Imgproc.minAreaRect(m2);
-            
+
             // 以图片左上角为原点，上边为x轴建立坐标系；
             // x轴逆时针旋转，首次平行的边为mr.size.width，x轴跟该条边组成的角度，即angle，  角度取值范围：[-90° ~ 0°]
             double angle = mr.angle;
-            if (checkPlateSize(mr) && Math.abs(mr.angle) <= DEFAULT_ANGLE) {  //排除不合法的图块
-                mv.add(contours.get(i));
+            if (checkPlateSize(mr)) {  //排除不合法的图块
+                if (debug) {
+                    Mat result = src.clone();
+                    // 外接斜矩形 描绘到原图 
+                    Mat points = new Mat();
+                    Imgproc.boxPoints(mr, points);
+                    if(points.rows() == 4) {
+                        Point start = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
+                        Point end = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
+                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
+                        start = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
+                        end = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
+                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
+                        start = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
+                        end = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
+                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
+                        start = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
+                        end = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
+                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
+                    }
+                    // 将轮廓描绘到原图   
+                    Imgproc.drawContours(result, Lists.newArrayList(m1), -1, new Scalar(0, 0, 255, 255));
+                    // 输出带轮廓的原图
+                    debugImg(debug, tempPath, "crop", result);
+                }
+                
                 Size rect_size = new Size((int) mr.size.width, (int) mr.size.height);
                 if (mr.size.width < mr.size.height) {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
+                System.err.println("外接矩形倾斜角度：" +  mr.angle);
+                System.err.println("校正角度：" +  angle);
+
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();
                 Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转对象；angle>0则 逆时针
@@ -305,35 +325,27 @@ public class ImageUtil {
                 // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
                 Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转 
 
+                debugImg(true, tempPath, "img_rotated", img_rotated);
+
                 // 仿射变换  对原图进行错切
-                // 获取轮廓四个顶点，来判断是否需要进行错切， 取三个点计算即可 --未完成yuxue
-                Mat shear = shearCorrection(m2, img_rotated);
-                
-                // 切图
+                // 获取轮廓四个顶点，来判断是否需要进行错切， 取三个点计算即可
+                // Mat shear = shearCorrection(m2, src, debug, tempPath);
+
+                // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
                 Imgproc.getRectSubPix(img_rotated, rect_size, mr.center, img_crop);
-                debugImg(debug, tempPath, "crop", img_crop);
 
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
                 Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // INTER_AREA 缩小图像的时候使用 ; INTER_CUBIC 放大图像的时候使用
-                // Imgproc.getPerspectiveTransform(img_crop, resized); // 投影变换
-                debugImg(debug, tempPath, "crop_resize", resized);
+                debugImg(true, tempPath, "crop_resize", resized);
                 dst.add(resized);
             }
-        }
-        if (debug) {
-            Mat result = new Mat();
-            src.copyTo(result);
-            // 将轮廓描绘到原图
-            Imgproc.drawContours(result, mv, -1, new Scalar(0, 0, 255, 255));
-            // 输出带轮廓的原图
-            debugImg(debug, tempPath, "screenblock", result);
         }
         return  dst;
     }
 
-    
+
     /**
      * 图块错切校正
      * 考虑使用轮廓的四个顶点来计算，但是估计比较不精确
@@ -341,22 +353,57 @@ public class ImageUtil {
      *  1、基于最小字符投影的车牌图像错切校正方法   https://doc.docsou.com/bffe156ab6cba26c3d293fa0e.html
      *  2、基于字符上下边缘的车牌校正方法   http://www.doc88.com/p-7857712691324.html   // 这个应该是旋转处理而已
      *  3、基于字符预分割的车牌倾斜校正方法 http://www.xjishu.com/zhuanli/55/200910200259.html
-     *  
-     * 未完成
+     * 
+     *  可以考虑，在处理字符的时候，进行错切校正，根据字符的外接矩形倾斜角度来校正字符即可
+     *  --未完成yuxue
      * @return
      */
-    private static Mat shearCorrection(MatOfPoint2f m2, Mat inMat){
+    private static Mat shearCorrection(MatOfPoint2f m2, Mat inMat, Boolean debug, String tempPath){
         Mat shear = new Mat();  // 校正后的图片
-        
+
+        // 多边形逼近
+        /*double epsilon = 0.001 * Imgproc.arcLength(m2, true);
+        Imgproc.approxPolyDP(m2, m2, epsilon, true);*/
+
+        // RotatedRect 该类表示平面上的旋转矩形，有三个属性： 矩形中心点(质心); 边长(长和宽); 旋转角度
+        // boundingRect()得到包覆此轮廓的最小正矩形， minAreaRect()得到包覆轮廓的最小斜矩形
+
+
+        // 根据轮廓计算校正像素值； 错切像素取值范围：[5,30]以内，否则不予处理，防止动作较大，影响结果
+        List<Point> points = m2.toList();
+        if(null == points || points.size() <= 0) {
+            return inMat;
+        }
+
+        Integer width = m2.width();
+        Integer height = m2.height();
+        Double minX = points.get(0).x, maxX = minX, minY = points.get(0).y, maxY = minY;
+        Point leftUp = points.get(0);    // 轮廓左上角 // 仅考虑轮廓为比较理想的类矩形轮廓
+        Point leftDown = points.get(0); // 轮廓左下角
+        for (Point point : points) {
+
+        }
+
+        // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
         MatOfPoint2f srcPoints = new MatOfPoint2f();
-        srcPoints.fromArray(new Point(0, 0), new Point(0, 0), new Point(0, 0));
-        
+        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0));
         MatOfPoint2f dstPoints = new MatOfPoint2f();
-        dstPoints.fromArray(new Point(0, 0), new Point(0, 0), new Point(0, 0));
-        
+        dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0)); // 上边线向右，下边线向左拉伸
+        // dstPoints.fromArray(new Point(0 - 80, 0), new Point(0 + 80, inMat.rows()), new Point(inMat.cols() - 80, 0)); // 上边线向左，下边线向右拉伸
+
+        // 对整张图进行错切校正
         Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
-        
         Imgproc.warpAffine(inMat, shear, m3, inMat.size());
+
+        // 投影变换举例; 对于车牌的处理效果来说，跟三点法差不多，但是效率慢
+        /*MatOfPoint2f srcPoints = new MatOfPoint2f();
+        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0), new Point(inMat.cols(), inMat.rows()));
+        MatOfPoint2f dstPoints = new MatOfPoint2f();
+        dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0) , new Point(inMat.cols() - 80, inMat.rows()));
+        Mat m3 = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
+        Imgproc.warpPerspective(inMat, shear, m3, inMat.size());*/
+
+        debugImg(debug, tempPath, "shearCorrection", shear);
         return shear;
     }
     /**
@@ -369,8 +416,8 @@ public class ImageUtil {
      */
     private static boolean checkPlateSize(RotatedRect mr) {
         // 切图面积取值范围
-        int min = 44 * 14 * 1;
-        int max = 44 * 14 * 40;
+        int min = Constant.DEFAULT_MIN_SIZE;
+        int max = Constant.DEFAULT_MAX_SIZE;
         // 计算切图面积
         int area = (int) (mr.size.height * mr.size.width);
         // 计算切图宽高比
@@ -378,7 +425,7 @@ public class ImageUtil {
         if (r < 1) {  // 特殊情况下，获取到的width  height 值是相反的
             r = mr.size.height / mr.size.width;
         }
-        return min <= area && area <= max && 2 <= r && r <= 10;
+        return min <= area && area <= max && Constant.DEFAULT_MIN_RATIO <= r && r <= Constant.DEFAULT_MAX_RATIO;
     }
 
 
@@ -442,39 +489,49 @@ public class ImageUtil {
 
 
     /**
-     * 颜色范围提取
-     * @param grey
-     * @param tempPath
+     * HSV色彩空间过滤
+     * @param inMat rgb图像
      * @param debug
-     * @return
+     * @param tempPath
+     * @param hsv 变长参数，依次为： minH,maxH,minS,maxS,minV,maxV
+     * @return 返回过滤后的hsvMat; 不满足range的像素点，替换为黑色
      */
-    public static Mat hsvFilter(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = inMat.clone();
+    public static Mat hsvFilter(Mat inMat, Boolean debug, String tempPath, Integer...range) {
         Mat hsvMat = new Mat();    // 转换为hsv图像
         Imgproc.cvtColor(inMat, hsvMat, Imgproc.COLOR_BGR2HSV);
+        Mat dst = hsvMat.clone();
         // 从数据库中读取配置参数
-        // 蓝牌
-        /*Scalar lowerB = new Scalar(new double[] { 110, 230, 183 });
-        Scalar upperB = new Scalar(new double[] { 120, 250, 229 });
-        // 绿牌
-        Scalar lowerG = new Scalar(new double[] { 75, 166, 194 });
-        Scalar upperG = new Scalar(new double[] { 80, 38, 183 });
-        // 黄牌
-        Scalar lowerY = new Scalar(new double[] { 20, 188, 253 });
-        Scalar upperY = new Scalar(new double[] { 30, 188, 253 });*/
-
         for (int i = 0; i < hsvMat.rows(); i++) {
             for (int j = 0; j < hsvMat.cols(); j++) {
                 double[] hsv = hsvMat.get(i, j);
-                Integer h = (int)hsv[0];
-                Integer s = (int)hsv[1];
-                Integer v = (int)hsv[2];
-                if (105 <= h && h <= 125 && 100 <= s && s <= 255 && 50 <= v && v <= 200) {
+                Integer h = (int) hsv[0];
+                Integer s = (int) hsv[1];
+                Integer v = (int) hsv[2];
+                Integer c = 0;
+                if (range.length >= 1 && range[0] <= h) {
+                    c++;
+                }
+                if (range.length >= 2 && h <= range[1]) {
+                    c++;
+                }
+                if (range.length >= 3 && range[2] <= s) {
+                    c++;
+                }
+                if (range.length >= 4 && s <= range[3]) {
+                    c++;
+                }
+                if (range.length >= 5 && range[4] <= v) {
+                    c++;
+                }
+                if (range.length >= 6 && v <= range[5]) {
+                    c++;
+                }
+                if (c == range.length) {   // 所有条件都满足，不处理
                     continue;
                 } else {
-                    hsv[0] = 255.0;
-                    hsv[1] = 255.0;
-                    hsv[2] = 255.0;
+                    hsv[0] = 0.0;
+                    hsv[1] = 0.0;
+                    hsv[2] = 0.0;   // 黑色
                     dst.put(i, j, hsv);
                 }
             }
@@ -482,6 +539,62 @@ public class ImageUtil {
         debugImg(debug, tempPath, "hsvFilter", dst);
         return dst;
     }
+
+
+    /**
+     * HSV色彩空间过滤
+     * @param inMat rgb图像
+     * @param debug
+     * @param tempPath
+     * @param hsv 变长参数，依次为： minH,maxH,minS,maxS,minV,maxV
+     * @return 返回二值图像
+     */
+    public static Mat hsvThreshold(Mat inMat, Boolean debug, String tempPath, Integer...range) {
+        Mat hsvMat = new Mat();    // 转换为hsv图像
+        Imgproc.cvtColor(inMat, hsvMat, Imgproc.COLOR_BGR2HSV);
+        Mat threshold = new Mat(hsvMat.size(), hsvMat.type());
+        for (int i = 0; i < hsvMat.rows(); i++) {
+            for (int j = 0; j < hsvMat.cols(); j++) {
+                double[] hsv = hsvMat.get(i, j);
+                Integer h = (int) hsv[0];
+                Integer s = (int) hsv[1];
+                Integer v = (int) hsv[2];
+                Integer c = 0;
+                if (range.length >= 1 && range[0] <= h) {
+                    c++;
+                }
+                if (range.length >= 2 && h <= range[1]) {
+                    c++;
+                }
+                if (range.length >= 3 && range[2] <= s) {
+                    c++;
+                }
+                if (range.length >= 4 && s <= range[3]) {
+                    c++;
+                }
+                if (range.length >= 5 && range[4] <= v) {
+                    c++;
+                }
+                if (range.length >= 6 && v <= range[5]) {
+                    c++;
+                }
+                if (c == range.length) {   // 所有条件都满足，不处理
+                    hsv[0] = 255.0;
+                    hsv[1] = 255.0;
+                    hsv[2] = 255.0; // 白色
+                } else {
+                    hsv[0] = 0.0;
+                    hsv[1] = 0.0;
+                    hsv[2] = 0.0;   // 黑色 二值算法
+                }
+                threshold.put(i, j, hsv);
+            }
+        }
+        debugImg(debug, tempPath, "hsvThreshold", threshold);
+        return threshold;
+    }
+
+
 
 
     /**
@@ -504,18 +617,15 @@ public class ImageUtil {
         Integer rows = Math.round(maxCols * r);
         Mat resized = new Mat(rows, maxCols, inMat.type());
 
-        /**
-         * INTER_AREA 缩小图像的时候使用
-         * INTER_CUBIC 放大图像的时候使用
-         */
+        // INTER_AREA 缩小图像的时候使用 // INTER_CUBIC 放大图像的时候使用
         double fx = (double)resized.cols()/inMat.cols(); // 水平缩放比例，输入为0时，则默认当前计算方式
         double fy = (double)resized.rows()/inMat.rows(); // 垂直缩放比例，输入为0时，则默认当前计算方式
         Imgproc.resize(inMat, resized, resized.size(), fx, fy, Imgproc.INTER_LINEAR);
-        debugImg(true, tempPath, "resizeMat", resized);
+        // debugImg(debug, tempPath, "resizeMat", resized); // 不再生成debug图片
         return resized;
     }
 
-    
+
     /**
      * 还原图片的尺寸(放大)
      * 放大二值图像到原始图片的尺寸，然后提取轮廓，再从原图裁剪图块
@@ -535,9 +645,9 @@ public class ImageUtil {
         debugImg(debug, tempPath, "restoreSize", restore);
         return restore;
     }
-    
-    
-    
+
+
+
 
 
 }

@@ -16,7 +16,6 @@ public class Constant {
     public static final String BASE_DIR = "D:/";      // 使用盘符的绝对路径
     
     
-    
     // 车牌识别相关路径
     public static final String DEFAULT_DIR = BASE_DIR + "PlateDetect/";
     // 车牌识别， 默认图片处理过程temp路径
@@ -35,16 +34,15 @@ public class Constant {
     public static final String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
     public static final String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
     
-    /**
-     * opencv 官方给出的模型文件 训练模型文件保存位置
-     * <haarcascade_frontalface_default type_id="opencv-haar-classifier">
-     * <size>24 24</size>
-     * <stage_threshold>-2.9928278923034668</stage_threshold>
-     * <parent>23</parent>
-     * <next>-1</next>
-     * 总计200个样本
-     */
-
+    // 图片中，车牌图块尺寸允许的像素值范围  (width * height * multiple)
+    public static final Integer DEFAULT_MIN_SIZE = 44 * 14 * 5;
+    public static final Integer DEFAULT_MAX_SIZE = 44 * 14 * 40;
+    
+    // 图片中，车牌图块尺寸允许的  width/height 比例
+    public static final Integer DEFAULT_MIN_RATIO =  2;
+    public static final Integer DEFAULT_MAX_RATIO =  10;
+    
+    // 提取到车牌图块之后，调整图块的大小（像素值）
     public static final int DEFAULT_WIDTH = 136;    // cols
     public static final int DEFAULT_HEIGHT = 36;    // rows
 

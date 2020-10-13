@@ -26,7 +26,6 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.ml.ANN_MLP;
 import org.opencv.ml.SVM;
-import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -34,6 +33,7 @@ import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.enumtype.Direction;
 import com.yuxue.enumtype.PlateColor;
+import com.yuxue.enumtype.PlateHSV;
 import com.yuxue.train.SVMTrain;
 
 
@@ -44,10 +44,7 @@ import com.yuxue.train.SVMTrain;
  * @author yuxue
  * @date 2020-05-28 15:11
  */
-@Component
 public class PlateUtil {
-
-    private static String DEFAULT_BASE_TEST_PATH = "D:/PlateDetect/temp/";
 
     private static SVM svm = null;
     private static ANN_MLP ann= null;
@@ -55,7 +52,6 @@ public class PlateUtil {
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
         svm = SVM.create();
         ann=ANN_MLP.create();
         ann_cn=ANN_MLP.create();
@@ -95,7 +91,7 @@ public class PlateUtil {
         }
         return bl;
     }
-    
+
     public static Vector<Mat> findPlateByContours(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
         Mat src = Imgcodecs.imread(imagePath);
         final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
@@ -145,13 +141,13 @@ public class PlateUtil {
     }
 
 
-    
-    public static Vector<Mat> findPlateByHsvFilter(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
+
+    public static Vector<Mat> findPlateByHsvFilter(String imagePath, Vector<Mat> dst, PlateHSV plateHSV, Boolean debug, String tempPath) {
         Mat src = Imgcodecs.imread(imagePath);
         final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
-        return findPlateByHsvFilter(src, resized, dst, debug, tempPath);
+        return findPlateByHsvFilter(src, resized, dst, plateHSV, debug, tempPath);
     }
-    
+
     /**
      * 
      * @param src 输入原图
@@ -161,64 +157,30 @@ public class PlateUtil {
      * @param tempPath 图片处理过程的缓存目录   
      * @return
      */
-    public static Vector<Mat> findPlateByHsvFilter(Mat src, Mat inMat, Vector<Mat> dst, Boolean debug, String tempPath) {
-        Mat hsvMat = new Mat();
-        Imgproc.cvtColor(inMat, hsvMat, Imgproc.COLOR_BGR2HSV);
-        for (int i = 0; i < hsvMat.rows(); i++) {
-            for (int j = 0; j < hsvMat.cols(); j++) {
-                double[] hsv = hsvMat.get(i, j);
-                Integer h = (int)hsv[0];
-                // Integer s = (int)hsv[1];
-                // Integer v = (int)hsv[2];
-                if (105 <= h && h <= 125 /*&& 50 <= s && s <= 255 && 50 <= v && v <= 255*/) {
-                    hsv[0] = 255.0;
-                    hsv[1] = 255.0;
-                    hsv[2] = 255.0; // 白色
-                } else {
-                    hsv[0] = 0.0;
-                    hsv[1] = 0.0;
-                    hsv[2] = 0.0;   // 黑色 二值算法
-                    hsvMat.put(i, j, hsv);
-                }
-            }
-        }
-
+    public static Vector<Mat> findPlateByHsvFilter(Mat src, Mat inMat, Vector<Mat> dst, PlateHSV plateHSV, Boolean debug, String tempPath) {
+        // hsv取值范围过滤
+        Mat hsvMat = ImageUtil.hsvFilter(inMat, debug, tempPath, plateHSV.minH, plateHSV.maxH);
+        // 图像均衡化
         Imgproc.cvtColor(hsvMat, hsvMat, Imgproc.COLOR_HSV2BGR);
-        ImageUtil.debugImg(debug, tempPath, "hsvFilter", hsvMat);
+        Mat equalizeMat = ImageUtil.equalizeHist(hsvMat, debug, tempPath);
 
-        hsvMat = ImageUtil.equalizeHist(hsvMat, debug, tempPath);
-        Imgproc.cvtColor(hsvMat, hsvMat, Imgproc.COLOR_BGR2HSV);
-        Mat threshold = hsvMat.clone();
-        for (int i = 0; i < hsvMat.rows(); i++) {
-            for (int j = 0; j < hsvMat.cols(); j++) {
-                double[] hsv = hsvMat.get(i, j);
-                Integer h = (int)hsv[0];
-                if (5 <= h && h <= 35) {
-                    hsv[0] = 255.0;
-                    hsv[1] = 255.0;
-                    hsv[2] = 255.0; // 白色
-                } else {
-                    hsv[0] = 0.0;
-                    hsv[1] = 0.0;
-                    hsv[2] = 0.0;   // 黑色 二值算法
-                }
-                threshold.put(i, j, hsv);
-            }
-        }
+        // 二次hsv过滤，二值化
+        Mat threshold = ImageUtil.hsvThreshold(equalizeMat, debug, tempPath, plateHSV.equalizeMinH, plateHSV.equalizeMaxH);
 
         // 使用闭操作
         Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
 
-        Mat erode = ImageUtil.erode(morphology, debug, tempPath, 2, 2);
-        Mat dilate = ImageUtil.dilate(erode, debug, tempPath, 2, 2);
+        /*Mat erode = ImageUtil.erode(morphology, debug, tempPath, 2, 2);
+        Mat dilate = ImageUtil.dilate(erode, debug, tempPath, 2, 2);*/
 
-        Imgproc.cvtColor(dilate, dilate, Imgproc.COLOR_BGR2GRAY);
+        Mat rgb = new Mat();
+        Imgproc.cvtColor(morphology, rgb, Imgproc.COLOR_BGR2GRAY);
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
-        dilate = ImageUtil.restoreSize(dilate, src.size(), debug, tempPath);
+        rgb = ImageUtil.restoreSize(rgb, src.size(), debug, tempPath);
 
-        // 提取轮廓     
-        List<MatOfPoint> contours = ImageUtil.contours(src, dilate, debug, tempPath);
+        // 提取轮廓     // 处理绿牌，需要往上方扩展一定比例像素--未完成yuxue
+        List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);
 
         // 根据轮廓， 筛选出可能是车牌的图块
         Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
@@ -783,7 +745,7 @@ public class PlateUtil {
             return r;
         });
         CompletableFuture<Vector<Mat>> f2 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, debug, tempPath); // hsv色彩分割提取车牌算法，当前仅实现蓝牌的
+            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.BLUE, debug, tempPath); // hsv色彩分割提取车牌算法，当前仅实现蓝牌的
             return r;
         });
         CompletableFuture<Vector<Mat>> f3 = CompletableFuture.supplyAsync(() -> {
@@ -813,8 +775,8 @@ public class PlateUtil {
         PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
         PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
 
-        String tempPath = DEFAULT_BASE_TEST_PATH + "test/";
-        String filename = tempPath + "8.jpg";
+        String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
+        String filename = tempPath + "10.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             filename = filename.replace("jpg", "png");
@@ -826,15 +788,19 @@ public class PlateUtil {
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
-        findPlateByHsvFilter(filename, dst, debug, tempPath);
+        // 提取车牌图块
+        //findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
+        findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
-
         dst.stream().forEach(inMat -> {
+            // 识别车牌颜色
             PlateColor color = PlateUtil.getPlateColor(inMat, debug, debug, tempPath);
+            // 识别车牌字符
             String plateNo = PlateUtil.charsSegment(inMat, color, debug, tempPath);
             result.add(plateNo + "\t" + color.desc);
         });
+
         System.out.println(result.toString());
 
         Instant end = Instant.now();
