@@ -1,5 +1,6 @@
 package com.yuxue.util;
 
+import java.io.File;
 import java.util.List;
 import java.util.Vector;
 
@@ -309,7 +310,7 @@ public class ImageUtil {
                     // 输出带轮廓的原图
                     debugImg(debug, tempPath, "crop", result);
                 }
-                
+
                 Size rect_size = new Size((int) mr.size.width, (int) mr.size.height);
                 if (mr.size.width < mr.size.height) {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
@@ -323,17 +324,18 @@ public class ImageUtil {
                 Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转对象；angle>0则 逆时针
                 // 如果相机在车牌正前方，拍摄角度较小，不管相机是否保持水平，使用仿射变换，减少照片倾斜影响即可
                 // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
-                Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转 
-
+                Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转校正
                 debugImg(true, tempPath, "img_rotated", img_rotated);
 
-                // 仿射变换  对原图进行错切
-                // 获取轮廓四个顶点，来判断是否需要进行错切， 取三个点计算即可
-                // Mat shear = shearCorrection(m2, src, debug, tempPath);
+                // 仿射变换  对原图进行错切校正
+                // 轮廓的提取，直接影响校正的效果
+                Mat shear = img_rotated.clone();
+                rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
 
+                // 如果是新能源拍照，需要向上扩展一定的尺寸--未完成yuxue
                 // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
-                Imgproc.getRectSubPix(img_rotated, rect_size, mr.center, img_crop);
+                Imgproc.getRectSubPix(shear, rect_size, mr.center, img_crop);
 
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
@@ -355,45 +357,117 @@ public class ImageUtil {
      *  3、基于字符预分割的车牌倾斜校正方法 http://www.xjishu.com/zhuanli/55/200910200259.html
      * 
      *  可以考虑，在处理字符的时候，进行错切校正，根据字符的外接矩形倾斜角度来校正字符即可
-     *  --未完成yuxue
      * @return
      */
-    private static Mat shearCorrection(MatOfPoint2f m2, Mat inMat, Boolean debug, String tempPath){
-        Mat shear = new Mat();  // 校正后的图片
+    private static Size shearCorrection(MatOfPoint2f m2, RotatedRect mr, Mat inMat, Mat shear, Size rect_size, Boolean debug, String tempPath){
+        Mat vertex = new Mat(); 
+        Imgproc.boxPoints(mr, vertex);  // 最小外接矩形，四个顶点 Mat(4, 2)
+        // 提取短边的两个顶点， 命名为上、下顶点
+        Point p0 = new Point(vertex.get(0, 0)[0], vertex.get(0, 1)[0]);
+        Point p1 = new Point(vertex.get(1, 0)[0], vertex.get(1, 1)[0]);
+        Point p2 = new Point(vertex.get(2, 0)[0], vertex.get(2, 1)[0]);
+        Point p3 = new Point(vertex.get(3, 0)[0], vertex.get(3, 1)[0]);
+        /*System.err.println(p0.x + "\t" + p0.y);
+        System.err.println(p1.x + "\t" + p1.y);
+        System.err.println(p2.x + "\t" + p2.y);
+        System.err.println(p3.x + "\t" + p3.y);*/
+        Point[] shortLine0 = {p0, p1}; // 短边
+        Point[] shortLine1 = {p2, p3}; // 短边
+        Point[] longLine0 = {p0, p3}; // 长边
+        Point[] longLine1 = {p2, p1}; // 长边
+        if(getDistance(p0, p1) > getDistance(p0, p3)) {
+            shortLine0[1] = p3;
+            shortLine1[1] = p1;
+            longLine0[1] = p1;
+            longLine1[1] = p3;
+        }
 
-        // 多边形逼近
-        /*double epsilon = 0.001 * Imgproc.arcLength(m2, true);
-        Imgproc.approxPolyDP(m2, m2, epsilon, true);*/
+        Point[] leftShortLine = shortLine0;
+        if(shortLine0[0].x + shortLine0[1].x > shortLine1[0].x + shortLine1[1].x ) { // 只要有错切，就一定不相等
+            leftShortLine = shortLine1;
+        }
 
-        // RotatedRect 该类表示平面上的旋转矩形，有三个属性： 矩形中心点(质心); 边长(长和宽); 旋转角度
-        // boundingRect()得到包覆此轮廓的最小正矩形， minAreaRect()得到包覆轮廓的最小斜矩形
-
-
+        double height = mr.size.height;
+        double width = mr.size.width;
+        if(width < height) {
+            height = mr.size.width;
+            width = mr.size.height;
+        }
+        // 最小外接矩形，两条长的边，一定是跟轮廓的长的边保持平行的
         // 根据轮廓计算校正像素值； 错切像素取值范围：[5,30]以内，否则不予处理，防止动作较大，影响结果
+        // 计算，轮廓里面，离短边最近的点，获取其距离短边的距离
         List<Point> points = m2.toList();
         if(null == points || points.size() <= 0) {
-            return inMat;
+            return rect_size;
         }
 
-        Integer width = m2.width();
-        Integer height = m2.height();
-        Double minX = points.get(0).x, maxX = minX, minY = points.get(0).y, maxY = minY;
-        Point leftUp = points.get(0);    // 轮廓左上角 // 仅考虑轮廓为比较理想的类矩形轮廓
-        Point leftDown = points.get(0); // 轮廓左下角
-        for (Point point : points) {
-
+        List<Point> result = Lists.newArrayList(); // 按坐标有序
+        double distanceSum = 0;
+        // 遍历，获取离短边最近轮廓短边的点集合; 计算错切值
+        for (Point p : points) {
+            // 排除离两条长边较近的点
+            if(getDistance(p, longLine0[0], longLine0[1]) <= height/5) {
+                continue;
+            }
+            if(getDistance(p, longLine1[0], longLine1[1]) <= height/5) {
+                continue;
+            }
+            // 提取剩下点中，离左短边较近的点
+            double distance = getDistance(p, leftShortLine[0], leftShortLine[1]);
+            if(distance <= width/4) {
+                result.add(p);
+                distanceSum += distance;
+            }
         }
+        // 计算到的错切值，大于0，则上边线向右，下边线向左拉伸； 小于0，则上边线向左，下边线向右拉伸
+        double shearPX = distanceSum / result.size();
+        if( Constant.DEFAULT_MIN_SHEAR_PX > shearPX || shearPX > Constant.DEFAULT_MAX_SHEAR_PX) {
+            return rect_size;
+        }
+        // 距离跟坐标排序，判断需要错切的方向
+        // 任取两个点得到一条直线，得到跟短边的交点，
+        // 交点距up点较近，则向右拉伸，交点距离down点较近，则向左拉伸
+        Point up = leftShortLine[0];
+        Point down = leftShortLine[1];
+        if(up.y > down.y) {
+            up = leftShortLine[1];
+            down = leftShortLine[0];
+        }
+        /*System.out.println(up.x + "\t" + up.y);
+        System.out.println(down.x + "\t" + down.y);*/
+        
+        Integer c1 = 0, c2 = 0; // c1>c2,则向右拉伸
+        for (int i = 0; i < result.size() / 2; i++) {
+            Point s = result.get(i);
+            for (int j = result.size() / 2; j < result.size(); j++) {
+                Point e = result.get(j);
+                if(getDistance(up, s, e) < getDistance(down, s, e) ) {
+                    c1++;
+                } else {
+                    c2++;
+                }
+            }
+        }
+        // 错切校正之后，要减掉校正的像素值；校正前轮廓外接矩形较大，校正后，需要调整矩形的width
+        rect_size = new Size(rect_size.width - shearPX, rect_size.height);
+        if(c1<c2) {
+            shearPX = -shearPX;
+        }
+        // System.err.println("错切方向： " + shearPX);
+        // 计算错切比例
+        double top = shearPX / height *  down.y; 
+        double bottom = shearPX / height * (inMat.height() - up.y); 
+        /*System.err.println("top: " + top);
+        System.err.println("bottom: " + bottom);*/
 
         // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
         MatOfPoint2f srcPoints = new MatOfPoint2f();
         srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0));
         MatOfPoint2f dstPoints = new MatOfPoint2f();
-        dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0)); // 上边线向右，下边线向左拉伸
-        // dstPoints.fromArray(new Point(0 - 80, 0), new Point(0 + 80, inMat.rows()), new Point(inMat.cols() - 80, 0)); // 上边线向左，下边线向右拉伸
+        dstPoints.fromArray(new Point(0 + top, 0), new Point(0 - bottom, inMat.rows()), new Point(inMat.cols() + top, 0));
 
-        // 对整张图进行错切校正
         Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
-        Imgproc.warpAffine(inMat, shear, m3, inMat.size());
+        Imgproc.warpAffine(inMat, shear, m3, inMat.size()); // 对整张图进行错切校正
 
         // 投影变换举例; 对于车牌的处理效果来说，跟三点法差不多，但是效率慢
         /*MatOfPoint2f srcPoints = new MatOfPoint2f();
@@ -402,10 +476,46 @@ public class ImageUtil {
         dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0) , new Point(inMat.cols() - 80, inMat.rows()));
         Mat m3 = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
         Imgproc.warpPerspective(inMat, shear, m3, inMat.size());*/
-
+        
         debugImg(debug, tempPath, "shearCorrection", shear);
-        return shear;
+        return rect_size;
     }
+
+
+    /**
+     * 计算两个点之间的距离
+     * @param p1
+     * @param p2
+     * @return
+     */
+    public static double getDistance(Point p1, Point p2) {
+        double distance = 0;
+        distance = Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2);
+        distance = Math.sqrt(distance);
+        return distance;
+    }
+
+
+    /**
+     * 计算点到AB点的距离
+     * 即，计算点到线的垂直距离
+     * @param p
+     * @param a
+     * @param b
+     * @return
+     */
+    public static double getDistance(Point p, Point a, Point b) {
+        double distance = 0, A = 0, B = 0, C = 0;
+        A = a.y - b.y;
+        B = b.x - a.x;
+        C = a.x * b.y - a.y * b.x;
+        // 代入点到直线距离公式
+        distance = (Math.abs(A * p.x + B * p.y + C)) / (Math.sqrt(A * A + B * B));
+        return distance;
+    }
+
+
+
     /**
      * 对minAreaRect获得的最小外接矩形
      * 判断面积以及宽高比是否在制定的范围内
@@ -647,7 +757,31 @@ public class ImageUtil {
     }
 
 
+    public static void main(String[] args) {
+        Mat shear = new Mat();  // 校正后的图片
 
+        String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
+        String filename = tempPath + "15.jpg";
+        File f = new File(filename);
+        if(!f.exists()) {
+            filename = filename.replace("jpg", "png");
+        }
+        f = new File(filename);
+        if(!f.exists()) {
+            filename = filename.replace("png", "bmp");
+        }
+        Mat inMat = Imgcodecs.imread(filename);
+        // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
+        MatOfPoint2f srcPoints = new MatOfPoint2f();
+        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0));
+        MatOfPoint2f dstPoints = new MatOfPoint2f();
+        dstPoints.fromArray(new Point(0 - 180, 0), new Point(0 + 180, inMat.rows()), new Point(inMat.cols() - 180, 0)); // 上边线向左，下边线向右拉伸
+
+        // 对整张图进行错切校正
+        Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
+        Imgproc.warpAffine(inMat, shear, m3, inMat.size());
+        debugImg(true, tempPath, "shearCorrection", shear);
+    }
 
 
 }

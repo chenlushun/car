@@ -776,7 +776,7 @@ public class PlateUtil {
         PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
 
         String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "10.jpg";
+        String filename = tempPath + "9.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             filename = filename.replace("jpg", "png");
@@ -789,8 +789,8 @@ public class PlateUtil {
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
         // 提取车牌图块
-        //findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
-        findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
+        findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
+        // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
         dst.stream().forEach(inMat -> {

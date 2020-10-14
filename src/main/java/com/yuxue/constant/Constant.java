@@ -45,6 +45,10 @@ public class Constant {
     // 提取到车牌图块之后，调整图块的大小（像素值）
     public static final int DEFAULT_WIDTH = 136;    // cols
     public static final int DEFAULT_HEIGHT = 36;    // rows
+    
+    // 车牌错切调整像素值范围
+    public static final Integer DEFAULT_MIN_SHEAR_PX = 8;
+    public static final Integer DEFAULT_MAX_SHEAR_PX = 40;
 
     // 判断是否车牌的正则表达式
     public static final String plateReg = "([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}(([0-9]{5}[DF])|([DF]([A-HJ-NP-Z0-9])[0-9]{4})))|([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[A-Z]{1}[A-HJ-NP-Z0-9]{4}[A-HJ-NP-Z0-9挂学警港澳]{1})";
