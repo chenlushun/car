@@ -29,7 +29,6 @@ import org.opencv.ml.SVM;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.enumtype.Direction;
 import com.yuxue.enumtype.PlateColor;
@@ -125,7 +124,7 @@ public class PlateUtil {
 
         // 边缘腐蚀，边缘膨胀，可以多执行两次
         morphology = ImageUtil.erode(morphology, debug, tempPath, 4, 4);
-        morphology = ImageUtil.dilate(morphology, debug, tempPath, 4, 4);
+        morphology = ImageUtil.dilate(morphology, debug, tempPath, 4, 4, true);
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
         morphology = ImageUtil.restoreSize(morphology, src.size(), debug, tempPath);
@@ -332,10 +331,14 @@ public class PlateUtil {
         }
         // 输出二值图
         ImageUtil.debugImg(debug, tempPath, "plateThreshold", threshold);
+        
+        // 先腐蚀 后扩张，会存在一定的偏移
+        Mat erode = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
+        Mat dilate = ImageUtil.dilate(erode, debug, tempPath, 2, 2, true);
 
         // 提取外部轮廓
         List<MatOfPoint> contours = Lists.newArrayList();
-        Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+        Imgproc.findContours(dilate, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
         if (debug) {    // 输出轮廓图
             Mat result = new Mat();
             inMat.copyTo(result);
@@ -345,8 +348,8 @@ public class PlateUtil {
 
         Vector<Rect> rt = new Vector<Rect>();
         for (int i = 0; i < contours.size(); i++) {
-            Rect mr = Imgproc.boundingRect(contours.get(i));    //  boundingRect()得到包覆此轮廓的最小正矩形
-
+            MatOfPoint contour = contours.get(i);
+            Rect mr = Imgproc.boundingRect(contour);    //  boundingRect()得到包覆此轮廓的最小正矩形
             if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
                 rt.add(mr);
             }
@@ -358,12 +361,11 @@ public class PlateUtil {
         // 排序 
         Vector<Rect> sorted = new Vector<Rect>();
         sortRect(rt, sorted);
-
         // 定位省份字母位置
         Integer posi = getSpecificRect(sorted, color);
-
-        // 定位中文字符等等
-        Rect chineseRect = getChineseRect(sorted.get(posi));
+        Integer prev = posi-1<=0? 0: posi-1;
+        // 定位中文字符 // 中文字符可能不是连续的轮廓，需要特殊处理
+        Rect chineseRect = getChineseRect(sorted.get(posi), sorted.get(prev));
 
         Mat chineseMat = new Mat(threshold, chineseRect);
         chineseMat = preprocessChar(chineseMat);
@@ -410,7 +412,7 @@ public class PlateUtil {
         }
 
         // 膨胀
-        f = PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2), Constant.predictSize);
+        f = PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2, true), Constant.predictSize);
         ann.predict(f, output);  // 预测结果
         for (int j = 0; j < Constant.strCharacters.length; j++) {
             double val = output.get(0, j)[0];
@@ -501,12 +503,17 @@ public class PlateUtil {
      * @param rectSpe
      * @return
      */
-    public static Rect getChineseRect(Rect rectSpe) {
+    public static Rect getChineseRect(Rect rectSpe, Rect rectPrev) {
         int height = rectSpe.height;
         float newwidth = rectSpe.width * 1.15f;
         int x = rectSpe.x;
         int y = rectSpe.y;
-
+        
+        // 判断省份字符前面的位置，是否有宽度符合要求的中文字符
+        if(rectPrev.width >= rectSpe.width && rectPrev.x <= rectSpe.x-rectSpe.width) {
+            return rectPrev;
+        }
+        // 如果没有，则按照车牌尺寸来切割
         int newx = x - (int) (newwidth * 1.15);
         newx = Math.max(newx, 0);
         Rect a = new Rect(newx, y, (int) newwidth, height);
@@ -590,7 +597,7 @@ public class PlateUtil {
     public static void sortRect(Vector<Rect> vecRect, Vector<Rect> out) {
         Map<Integer, Integer> map = Maps.newHashMap();
         for (int i = 0; i < vecRect.size(); ++i) {
-            map.put(vecRect.get(i).x, i);
+            map.put(vecRect.get(i).x, vecRect.indexOf(vecRect.get(i)));
         }
         Set<Integer> set = map.keySet();
         Object[] arr = set.toArray();
@@ -767,30 +774,54 @@ public class PlateUtil {
         return null;
     }
 
-
+    
+    
     public static void main(String[] args) {
         Instant start = Instant.now();
+        
+        /*// 批量提取图块； 获取训练正负样本
+        String tempPath = Constant.DEFAULT_DIR + "train/plate_sample/green/";
+        Vector<String> files = new Vector<String>();
+        FileUtil.getFiles(Constant.DEFAULT_DIR + "plate1/", files);
+        Boolean debug = false;
+        for (String filename : files) {
+            String targetPath = Constant.DEFAULT_TEMP_DIR.concat(GenerateIdUtil.getStrId()).concat(".jpg");
+            FileUtil.copyAndRename(filename, targetPath);
+            // System.out.println(filename + "\t" + targetPath);
+            Vector<Mat> dst = new Vector<Mat>();
+            findPlateByHsvFilter(targetPath, dst, PlateHSV.GREEN, debug, tempPath);
+            new File(targetPath).delete();
+        }*/
+        
+        
+        // 批量提取图块； 获取训练正负样本
+        String tempPath = Constant.DEFAULT_DIR + "train/plate_sample/blue/";
+        Vector<String> files = new Vector<String>();
+        FileUtil.getFiles(Constant.DEFAULT_DIR + "plate/", files);
+        Boolean debug = false;
+        for (String filename : files) {
+            String targetPath = Constant.DEFAULT_TEMP_DIR.concat(GenerateIdUtil.getStrId()).concat(".jpg");
+            FileUtil.copyAndRename(filename, targetPath);
+            // System.out.println(filename + "\t" + targetPath);
+            Vector<Mat> dst = new Vector<Mat>();
+            findPlateByHsvFilter(targetPath, dst, PlateHSV.BLUE, debug, tempPath);
+            new File(targetPath).delete();
+        }
 
-        PlateUtil.loadSvmModel(Constant.DEFAULT_DIR + "train/plate_detect_svm/svm.xml");
-        PlateUtil.loadAnnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann.xml");
-        PlateUtil.loadAnnCnModel(Constant.DEFAULT_DIR + "train/chars_recognise_ann/ann_cn.xml");
-
-        String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "9.jpg";
+        /*String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
+        String filename = tempPath + "10.jpg";
         File f = new File(filename);
         if(!f.exists()) {
-            filename = filename.replace("jpg", "png");
-        }
-        f = new File(filename);
-        if(!f.exists()) {
-            filename = filename.replace("png", "bmp");
+            File f1 = new File(filename.replace("jpg", "png"));
+            File f2 = new File(filename.replace("png", "bmp"));
+            filename = f1.exists() ? f1.getPath() : f2.getPath();
         }
 
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
         // 提取车牌图块
-        findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
-        // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
+        // findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
+        findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
@@ -800,8 +831,7 @@ public class PlateUtil {
             String plateNo = PlateUtil.charsSegment(inMat, color, debug, tempPath);
             result.add(plateNo + "\t" + color.desc);
         });
-
-        System.out.println(result.toString());
+        System.out.println(result.toString());*/
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());

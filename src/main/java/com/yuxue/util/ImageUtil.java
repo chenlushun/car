@@ -32,18 +32,6 @@ public class ImageUtil {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
-    /**
-     * 生成文件名称
-     * @return
-     */
-    private static Integer id = 1000;
-    public static synchronized Integer getId() {
-        if(id == Integer.MAX_VALUE) {
-            id = 1000;
-        }
-        return id++;
-    }
-
 
     /***
      * 保存算法过程每个步骤处理结果，输出结果jpg图像
@@ -55,17 +43,17 @@ public class ImageUtil {
     public static void debugImg(Boolean debug, String tempPath, String methodName, Mat inMat) {
         if (debug) {
             // 通过getId生成文件名称，使得每个步骤生成的图片能够按照执行时间进行排序
-            Imgcodecs.imwrite(tempPath + getId() +"_" +methodName + ".jpg", inMat);
+            Imgcodecs.imwrite(tempPath + GenerateIdUtil.getId() +"_" +methodName + ".jpg", inMat);
         }
     }
 
 
     /**
      * 图像灰度化
-     * @param inMat 高斯滤波后的图
+     * @param inMat rgbMat/原图
      * @param debug 是否输出结果图片
      * @param tempPath 结果图片输出路径
-     * @return
+     * @return greyMat
      */
     public static Mat gray(Mat inMat, Boolean debug, String tempPath) {
         Mat dst = new Mat();
@@ -175,7 +163,7 @@ public class ImageUtil {
         Mat abs_grad_x = new Mat();
         Mat abs_grad_y = new Mat();
 
-        //注意求梯度的时候我们使用的是Scharr算法，sofia算法容易收到图像细节的干扰
+        //注意求梯度的时候我们使用的是Scharr算法，sofia算法容易受到图像细节的干扰
         Imgproc.Scharr(inMat, grad_x, CvType.CV_32F, 1, 0);
         Imgproc.Scharr(inMat, grad_y, CvType.CV_32F, 0, 1);
         //openCV中有32位浮点数的CvType用于保存可能是负值的像素数据值
@@ -212,7 +200,7 @@ public class ImageUtil {
 
 
     /**
-     * 使用闭操作。对图像进行闭操作以后，可以看到车牌区域被连接成一个矩形装的区域
+     * 使用闭操作。对图像进行闭操作以后，可以看到车牌区域被连接成一个矩形的区域
      * @param inMat
      * @param debug
      * @param tempPath
@@ -245,9 +233,9 @@ public class ImageUtil {
         // RETR_EXTERNAL只检测最外围轮廓， // RETR_LIST   检测所有的轮廓
         // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
         Point offset = new Point(0, 0); // 偏移量
-        if(inMat.width() > 600) {
-            // offset = new Point(-5, -10); // 偏移量 // 对应sobel的偏移量
-        }
+        /*if(inMat.width() > 600) {
+            offset = new Point(-5, -10); // 偏移量 // 对应sobel的偏移量
+        }*/
         Imgproc.findContours(inMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE, offset);
         if (debug) {
             Mat result = new Mat();
@@ -316,26 +304,31 @@ public class ImageUtil {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
-                System.err.println("外接矩形倾斜角度：" +  mr.angle);
-                System.err.println("校正角度：" +  angle);
+                /*System.err.println("外接矩形倾斜角度：" +  mr.angle);
+                System.err.println("校正角度：" +  angle);*/
 
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();
                 Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转对象；angle>0则 逆时针
                 // 如果相机在车牌正前方，拍摄角度较小，不管相机是否保持水平，使用仿射变换，减少照片倾斜影响即可
                 // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
-                Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转校正
-                debugImg(true, tempPath, "img_rotated", img_rotated);
+                Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转校正 // 处理倾斜的图片
+                debugImg(debug, tempPath, "img_rotated", img_rotated);
 
                 // 仿射变换  对原图进行错切校正
                 // 轮廓的提取，直接影响校正的效果
                 Mat shear = img_rotated.clone();
                 rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
 
-                // 如果是新能源拍照，需要向上扩展一定的尺寸--未完成yuxue
                 // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
-                Imgproc.getRectSubPix(shear, rect_size, mr.center, img_crop);
+                Point c = new Point(mr.center.x, mr.center.y -4);   // 偏移量修正
+                Imgproc.getRectSubPix(img_rotated, rect_size, c, img_crop);
+                
+                // 如果是新能源牌照，需要向上扩展一定的尺寸--未完成yuxue
+                /*Size s = new Size(rect_size.width, rect_size.height + (rect_size.height/8));
+                Point c = new Point(mr.center.x, mr.center.y - (rect_size.height/16) -8);   // 偏移量修正
+                Imgproc.getRectSubPix(shear, s, c, img_crop);*/
 
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
@@ -350,13 +343,18 @@ public class ImageUtil {
 
     /**
      * 图块错切校正
-     * 考虑使用轮廓的四个顶点来计算，但是估计比较不精确
-     * 可以尝试
-     *  1、基于最小字符投影的车牌图像错切校正方法   https://doc.docsou.com/bffe156ab6cba26c3d293fa0e.html
-     *  2、基于字符上下边缘的车牌校正方法   http://www.doc88.com/p-7857712691324.html   // 这个应该是旋转处理而已
-     *  3、基于字符预分割的车牌倾斜校正方法 http://www.xjishu.com/zhuanli/55/200910200259.html
-     * 
-     *  可以考虑，在处理字符的时候，进行错切校正，根据字符的外接矩形倾斜角度来校正字符即可
+     * 根据轮廓、以及最小斜矩形矩形错切校正，用于处理变形(不是倾斜)的车牌图片  即【平行四边形】的车牌校正为【长方形】
+     * 该算法，容易受到到轮廓的影响，要求轮廓定位得比较精确 
+     * 其他方案: 
+     *  1、在处理字符的时候，进行错切校正，根据字符的外接矩形倾斜角度来校正字符即可
+     *  2、在训练字符识别模型的时候，加入错切的样本数据
+     * @param m2 轮廓
+     * @param mr 包覆轮廓的最小斜矩形
+     * @param inMat 原图
+     * @param shear 错切校正后的图
+     * @param rect_size 斜矩形的size
+     * @param debug
+     * @param tempPath
      * @return
      */
     private static Size shearCorrection(MatOfPoint2f m2, RotatedRect mr, Mat inMat, Mat shear, Size rect_size, Boolean debug, String tempPath){
@@ -367,10 +365,6 @@ public class ImageUtil {
         Point p1 = new Point(vertex.get(1, 0)[0], vertex.get(1, 1)[0]);
         Point p2 = new Point(vertex.get(2, 0)[0], vertex.get(2, 1)[0]);
         Point p3 = new Point(vertex.get(3, 0)[0], vertex.get(3, 1)[0]);
-        /*System.err.println(p0.x + "\t" + p0.y);
-        System.err.println(p1.x + "\t" + p1.y);
-        System.err.println(p2.x + "\t" + p2.y);
-        System.err.println(p3.x + "\t" + p3.y);*/
         Point[] shortLine0 = {p0, p1}; // 短边
         Point[] shortLine1 = {p2, p3}; // 短边
         Point[] longLine0 = {p0, p3}; // 长边
@@ -420,7 +414,7 @@ public class ImageUtil {
             }
         }
         // 计算到的错切值，大于0，则上边线向右，下边线向左拉伸； 小于0，则上边线向左，下边线向右拉伸
-        double shearPX = distanceSum / result.size();
+        double shearPX = 2 * distanceSum / result.size();
         if( Constant.DEFAULT_MIN_SHEAR_PX > shearPX || shearPX > Constant.DEFAULT_MAX_SHEAR_PX) {
             return rect_size;
         }
@@ -433,8 +427,6 @@ public class ImageUtil {
             up = leftShortLine[1];
             down = leftShortLine[0];
         }
-        /*System.out.println(up.x + "\t" + up.y);
-        System.out.println(down.x + "\t" + down.y);*/
         
         Integer c1 = 0, c2 = 0; // c1>c2,则向右拉伸
         for (int i = 0; i < result.size() / 2; i++) {
@@ -449,7 +441,9 @@ public class ImageUtil {
             }
         }
         // 错切校正之后，要减掉校正的像素值；校正前轮廓外接矩形较大，校正后，需要调整矩形的width
-        rect_size = new Size(rect_size.width - shearPX, rect_size.height);
+        if(rect_size.width - shearPX > 0) {
+            rect_size = new Size(rect_size.width - shearPX, rect_size.height);
+        }
         if(c1<c2) {
             shearPX = -shearPX;
         }
@@ -457,8 +451,6 @@ public class ImageUtil {
         // 计算错切比例
         double top = shearPX / height *  down.y; 
         double bottom = shearPX / height * (inMat.height() - up.y); 
-        /*System.err.println("top: " + top);
-        System.err.println("bottom: " + bottom);*/
 
         // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
         MatOfPoint2f srcPoints = new MatOfPoint2f();
@@ -545,11 +537,19 @@ public class ImageUtil {
      * @param inMat
      * @return
      */
-    public static Mat dilate(Mat inMat, Boolean debug, String tempPath, int row, int col) {
+    public static Mat dilate(Mat inMat, Boolean debug, String tempPath, int row, int col, Boolean correct) {
         Mat result = inMat.clone();
         // 返回指定形状和尺寸的结构元素  矩形：MORPH_RECT;交叉形：MORPH_CROSS; 椭圆形：MORPH_ELLIPSE
         Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(row, col));
         Imgproc.dilate(inMat, result, element);
+        
+        // 先腐蚀 后扩张，会存在一定的偏移； 这里校正偏移量
+        if(correct) {
+            Mat transformMat = Mat.eye(2, 3, CvType.CV_32F);
+            transformMat.put(0, 2, -col/2);
+            transformMat.put(1, 2, -row/2);
+            Imgproc.warpAffine(result, result, transformMat, inMat.size());
+        }
         debugImg(debug, tempPath, "dilate", result);
         return result;
     }
@@ -764,12 +764,11 @@ public class ImageUtil {
         String filename = tempPath + "15.jpg";
         File f = new File(filename);
         if(!f.exists()) {
-            filename = filename.replace("jpg", "png");
+            File f1 = new File(filename.replace("jpg", "png"));
+            File f2 = new File(filename.replace("png", "bmp"));
+            filename = f1.exists() ? f1.getPath() : f2.getPath();
         }
-        f = new File(filename);
-        if(!f.exists()) {
-            filename = filename.replace("png", "bmp");
-        }
+        
         Mat inMat = Imgcodecs.imread(filename);
         // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
         MatOfPoint2f srcPoints = new MatOfPoint2f();
