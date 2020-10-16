@@ -29,14 +29,14 @@ public class Constant {
     // 默认处理图片类型
     public static final String DEFAULT_TYPE = "png,jpg,jpeg,bmp";
 
-    public static final String DEFAULT_SVM_PATH = "res/model/svm.xml";
+    public static final String DEFAULT_SVM_PATH = "res/model/1602828039163_svm.xml";
     public static final String DEFAULT_ANN_PATH = "res/model/ann.xml";
     public static final String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
     public static final String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
     
     // 图片中，车牌图块尺寸允许的像素值范围  (width * height * multiple)
     public static final Integer DEFAULT_MIN_SIZE = 44 * 14 * 5;
-    public static final Integer DEFAULT_MAX_SIZE = 44 * 14 * 40;
+    public static final Integer DEFAULT_MAX_SIZE = 44 * 14 * 70;
     
     // 图片中，车牌图块尺寸允许的  width/height 比例
     public static final Integer DEFAULT_MIN_RATIO =  2;

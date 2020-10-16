@@ -259,7 +259,7 @@ public class ImageUtil {
      */
     public static final int DEFAULT_ANGLE = 90; // 角度判断所用常量
     public static final int TYPE = CvType.CV_8UC3;
-    public static Vector<Mat> screenBlock(Mat src, List<MatOfPoint> contours, Boolean debug, String tempPath){
+    public static Vector<Mat> screenBlock(Mat src, List<MatOfPoint> contours, Boolean isGreen,Boolean debug, String tempPath){
         Vector<Mat> dst = new Vector<Mat>();
 
         for (int i = 0; i < contours.size(); i++) {
@@ -322,13 +322,16 @@ public class ImageUtil {
 
                 // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
-                Point c = new Point(mr.center.x, mr.center.y -4);   // 偏移量修正
-                Imgproc.getRectSubPix(img_rotated, rect_size, c, img_crop);
-                
-                // 如果是新能源牌照，需要向上扩展一定的尺寸--未完成yuxue
-                /*Size s = new Size(rect_size.width, rect_size.height + (rect_size.height/8));
-                Point c = new Point(mr.center.x, mr.center.y - (rect_size.height/16) -8);   // 偏移量修正
-                Imgproc.getRectSubPix(shear, s, c, img_crop);*/
+
+                if(isGreen) {
+                    // 如果是新能源牌照，需要向上扩展一定的尺寸
+                    Size s = new Size(rect_size.width, rect_size.height + (rect_size.height/8));
+                    Point c = new Point(mr.center.x, mr.center.y - (rect_size.height/16) -8);   // 偏移量修正
+                    Imgproc.getRectSubPix(shear, s, c, img_crop);
+                } else {
+                    Point c = new Point(mr.center.x, mr.center.y -4);   // 偏移量修正
+                    Imgproc.getRectSubPix(img_rotated, rect_size, c, img_crop);
+                }
 
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
@@ -427,7 +430,7 @@ public class ImageUtil {
             up = leftShortLine[1];
             down = leftShortLine[0];
         }
-        
+
         Integer c1 = 0, c2 = 0; // c1>c2,则向右拉伸
         for (int i = 0; i < result.size() / 2; i++) {
             Point s = result.get(i);
@@ -468,7 +471,7 @@ public class ImageUtil {
         dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0) , new Point(inMat.cols() - 80, inMat.rows()));
         Mat m3 = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
         Imgproc.warpPerspective(inMat, shear, m3, inMat.size());*/
-        
+
         debugImg(debug, tempPath, "shearCorrection", shear);
         return rect_size;
     }
@@ -542,7 +545,7 @@ public class ImageUtil {
         // 返回指定形状和尺寸的结构元素  矩形：MORPH_RECT;交叉形：MORPH_CROSS; 椭圆形：MORPH_ELLIPSE
         Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(row, col));
         Imgproc.dilate(inMat, result, element);
-        
+
         // 先腐蚀 后扩张，会存在一定的偏移； 这里校正偏移量
         if(correct) {
             Mat transformMat = Mat.eye(2, 3, CvType.CV_32F);
@@ -768,7 +771,7 @@ public class ImageUtil {
             File f2 = new File(filename.replace("png", "bmp"));
             filename = f1.exists() ? f1.getPath() : f2.getPath();
         }
-        
+
         Mat inMat = Imgcodecs.imread(filename);
         // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
         MatOfPoint2f srcPoints = new MatOfPoint2f();

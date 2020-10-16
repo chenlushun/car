@@ -132,7 +132,7 @@ public class PlateUtil {
         // 获取图中所有的轮廓
         List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
-        Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
+        Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, false, debug, tempPath);
 
         // 找出可能是车牌的图块，存到dst中， 返回结果
         hasPlate(blockMat, dst, debug, tempPath);
@@ -183,7 +183,7 @@ public class PlateUtil {
         List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);
 
         // 根据轮廓， 筛选出可能是车牌的图块
-        Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, debug, tempPath);
+        Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, plateHSV.equals(PlateHSV.GREEN), debug, tempPath);
 
         // 找出可能是车牌的图块，存到dst中， 返回结果
         hasPlate(blockMat, dst, debug, tempPath);
@@ -374,15 +374,16 @@ public class PlateUtil {
 
         String plate = "";
         plate = plate + predictChinese(chineseMat); // 预测中文字符
-
+        
+        int charCount = 7;
+        if(color.equals(PlateColor.GREEN)) {
+            charCount = 8;
+        }
+        
         // 预测中文之外的字符
         for (int i = 0; i < sorted.size(); i++) {
             if(i < posi) {
                 continue;
-            }
-            int charCount = 7;
-            if(color.equals(PlateColor.GREEN)) {
-                charCount = 8;
             }
             if(i >= charCount) {
                 continue;
@@ -781,7 +782,7 @@ public class PlateUtil {
         Instant start = Instant.now();
 
         String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "23.jpg";
+        String filename = tempPath + "123 (7).jpg";
         File f = new File(filename);
         if(!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));

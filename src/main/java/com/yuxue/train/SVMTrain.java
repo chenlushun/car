@@ -18,6 +18,7 @@ import com.google.common.collect.Lists;
 import com.yuxue.constant.Constant;
 import com.yuxue.enumtype.Direction;
 import com.yuxue.util.FileUtil;
+import com.yuxue.util.GenerateIdUtil;
 
 /**
  * 基于org.opencv官方包实现的训练
@@ -30,10 +31,10 @@ import com.yuxue.util.FileUtil;
 public class SVMTrain {
 
     // 默认的训练操作的根目录
-    private static final String DEFAULT_PATH = "D:/PlateDetect/train/plate_detect_svm/";
+    private static final String DEFAULT_PATH = Constant.DEFAULT_DIR + "train/";
 
     // 训练模型文件保存位置
-    private static final String MODEL_PATH = DEFAULT_PATH + "svm2.xml";
+    private static final String MODEL_PATH = DEFAULT_PATH + GenerateIdUtil.getStrId() +"_svm.xml";
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -44,16 +45,27 @@ public class SVMTrain {
         train(); 
 
         // 识别，判断样本文件是否是车牌
-        predict(); 
+        // predict(); 
     }
 
     public static void train() {
 
         // 正样本  // 136 × 36 像素  训练的源图像文件要相同大小
-        List<File> imgList0 = FileUtil.listFile(new File(DEFAULT_PATH + "/learn/HasPlate"), Constant.DEFAULT_TYPE, false);
-
+        // List<File> imgList0 = FileUtil.listFile(new File(DEFAULT_PATH + "/learn/HasPlate"), Constant.DEFAULT_TYPE, false);
+        
+        List<File> imgList0 = Lists.newArrayList();
+        imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/blue_old"), Constant.DEFAULT_TYPE, false));
+        imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/blue_new"), Constant.DEFAULT_TYPE, false));
+        imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/green"), Constant.DEFAULT_TYPE, false));
+        imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/white"), Constant.DEFAULT_TYPE, false));
+        imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/yellow_old"), Constant.DEFAULT_TYPE, false));
+        
         // 负样本   // 136 × 36 像素 训练的源图像文件要相同大小
-        List<File> imgList1 = FileUtil.listFile(new File(DEFAULT_PATH + "/learn/NoPlate"), Constant.DEFAULT_TYPE, false);
+        // List<File> imgList1 = FileUtil.listFile(new File(DEFAULT_PATH + "/learn/NoPlate"), Constant.DEFAULT_TYPE, false);
+        List<File> imgList1 = Lists.newArrayList();
+        imgList1.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/no_plate_blue"), Constant.DEFAULT_TYPE, false));
+        imgList1.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/no_plate_green"), Constant.DEFAULT_TYPE, false));
+        imgList1.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/no_plate_old"), Constant.DEFAULT_TYPE, false));
 
         // 标记：正样本用 0 表示，负样本用 1 表示。
         int labels[] = createLabelArray(imgList0.size(), imgList1.size());
