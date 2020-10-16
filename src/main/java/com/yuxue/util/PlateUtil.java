@@ -29,6 +29,7 @@ import org.opencv.ml.SVM;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.enumtype.Direction;
 import com.yuxue.enumtype.PlateColor;
@@ -778,38 +779,9 @@ public class PlateUtil {
     
     public static void main(String[] args) {
         Instant start = Instant.now();
-        
-        /*// 批量提取图块； 获取训练正负样本
-        String tempPath = Constant.DEFAULT_DIR + "train/plate_sample/green/";
-        Vector<String> files = new Vector<String>();
-        FileUtil.getFiles(Constant.DEFAULT_DIR + "plate1/", files);
-        Boolean debug = false;
-        for (String filename : files) {
-            String targetPath = Constant.DEFAULT_TEMP_DIR.concat(GenerateIdUtil.getStrId()).concat(".jpg");
-            FileUtil.copyAndRename(filename, targetPath);
-            // System.out.println(filename + "\t" + targetPath);
-            Vector<Mat> dst = new Vector<Mat>();
-            findPlateByHsvFilter(targetPath, dst, PlateHSV.GREEN, debug, tempPath);
-            new File(targetPath).delete();
-        }*/
-        
-        
-        // 批量提取图块； 获取训练正负样本
-        String tempPath = Constant.DEFAULT_DIR + "train/plate_sample/blue/";
-        Vector<String> files = new Vector<String>();
-        FileUtil.getFiles(Constant.DEFAULT_DIR + "plate/", files);
-        Boolean debug = false;
-        for (String filename : files) {
-            String targetPath = Constant.DEFAULT_TEMP_DIR.concat(GenerateIdUtil.getStrId()).concat(".jpg");
-            FileUtil.copyAndRename(filename, targetPath);
-            // System.out.println(filename + "\t" + targetPath);
-            Vector<Mat> dst = new Vector<Mat>();
-            findPlateByHsvFilter(targetPath, dst, PlateHSV.BLUE, debug, tempPath);
-            new File(targetPath).delete();
-        }
 
-        /*String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "10.jpg";
+        String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
+        String filename = tempPath + "23.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));
@@ -820,8 +792,9 @@ public class PlateUtil {
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
         // 提取车牌图块
+        getPlateMat(filename, dst, debug, tempPath);
         // findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
-        findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
+        // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
@@ -831,7 +804,7 @@ public class PlateUtil {
             String plateNo = PlateUtil.charsSegment(inMat, color, debug, tempPath);
             result.add(plateNo + "\t" + color.desc);
         });
-        System.out.println(result.toString());*/
+        System.out.println(result.toString());
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());
