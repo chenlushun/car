@@ -304,8 +304,8 @@ public class ImageUtil {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
-                /*System.err.println("外接矩形倾斜角度：" +  mr.angle);
-                System.err.println("校正角度：" +  angle);*/
+                System.err.println("外接矩形倾斜角度：" +  mr.angle);
+                System.err.println("校正角度：" +  angle);
 
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();
@@ -324,7 +324,7 @@ public class ImageUtil {
                 Mat img_crop = new Mat();
 
                 if(isGreen) {
-                    // 如果是新能源牌照，需要向上扩展一定的尺寸
+                    // 如果是新能源牌照，需要向上扩展一定的尺寸--未完成yuxue
                     Size s = new Size(rect_size.width, rect_size.height + (rect_size.height/8));
                     Point c = new Point(mr.center.x, mr.center.y - (rect_size.height/16) -8);   // 偏移量修正
                     Imgproc.getRectSubPix(shear, s, c, img_crop);

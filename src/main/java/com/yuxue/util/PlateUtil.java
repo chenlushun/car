@@ -782,7 +782,7 @@ public class PlateUtil {
         Instant start = Instant.now();
 
         String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "123 (7).jpg";
+        String filename = tempPath + "11.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));
@@ -793,9 +793,9 @@ public class PlateUtil {
         Boolean debug = true;
         Vector<Mat> dst = new Vector<Mat>();
         // 提取车牌图块
-        getPlateMat(filename, dst, debug, tempPath);
+        // getPlateMat(filename, dst, debug, tempPath);
         // findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
-        // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
+        findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
