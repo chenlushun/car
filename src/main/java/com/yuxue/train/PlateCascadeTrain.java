@@ -42,6 +42,8 @@ public class PlateCascadeTrain {
 
     // 默认的训练操作的根目录
     private static final String DEFAULT_PATH = Constant.DEFAULT_DIR + "train/cascade_sample/";
+    
+    private static final String MODEL_PATH = Constant.DEFAULT_DIR + "train/cascade_sample/data";
 
     // 应用程序所在目录
     private static final String EXE_BASE_PATH = "D:/OpenCV/3.4.1/build/x64/vc14/bin/";
@@ -63,15 +65,15 @@ public class PlateCascadeTrain {
      */
     public static void train() {
         Map<String, Object> param = Maps.newLinkedHashMap();
-        param.put("data", DEFAULT_PATH + "data/");
+        param.put("data", MODEL_PATH);
         param.put("vec", DEFAULT_PATH + posVec);
         param.put("bg", DEFAULT_PATH + negInfo);
-        param.put("numPos", 2000);
-        param.put("numNeg", 2000);
+        param.put("numPos", 400);
+        param.put("numNeg", 400);
         param.put("numStages", 16);
         param.put("minhitrate", 0.99);
         param.put("maxfalsealarm", 0.45);
-        param.put("featureType", "LBP"); // LBP
+        param.put("featureType", "LBP"); // LBP   //HAAR模型训练贼慢，400个正样本的模型，一个stage训练一个多小时
         param.put("mode", "ALL");
         param.put("w", width);
         param.put("h", height);
@@ -156,9 +158,9 @@ public class PlateCascadeTrain {
      */
     public static void predict() {
         // 训练结果文件路径
-        String trainedModel = DEFAULT_PATH + "data/cascade.xml";
+        String trainedModel = MODEL_PATH + "/cascade.xml";
         CascadeClassifier faceDetector = new CascadeClassifier(trainedModel);
-        Mat inMat = Imgcodecs.imread(DEFAULT_PATH+ "test/10.png");
+        Mat inMat = Imgcodecs.imread(DEFAULT_PATH+ "test/9.png");
         String targetPath =  DEFAULT_PATH + "test/result.jpg";
 
         Boolean debug = false;
@@ -184,13 +186,11 @@ public class PlateCascadeTrain {
         String negative = DEFAULT_PATH + "negative/";
         String positive = DEFAULT_PATH + "positive/";
 
-        // loadSamples(negative, positive);
+        loadSamples(negative, positive);
 
-        train();
+        // train();
 
         // predict();
-
-        return;
     }
 
 }

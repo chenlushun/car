@@ -16,17 +16,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.entity.PlateFileEntity;
-import com.yuxue.entity.PlateRecoDebugEntity;
 import com.yuxue.entity.TempPlateFileEntity;
 import com.yuxue.enumtype.PlateColor;
 import com.yuxue.mapper.PlateFileMapper;
-import com.yuxue.mapper.PlateRecoDebugMapper;
 import com.yuxue.mapper.TempPlateFileMapper;
 import com.yuxue.service.PlateService;
 import com.yuxue.util.FileUtil;
@@ -39,9 +38,6 @@ public class PlateServiceImpl implements PlateService {
 
     @Autowired
     private PlateFileMapper plateFileMapper;
-
-    @Autowired
-    private PlateRecoDebugMapper plateRecoDebugMapper;
 
     @Autowired
     private TempPlateFileMapper tempPlateFileMapper;
@@ -86,135 +82,101 @@ public class PlateServiceImpl implements PlateService {
 
 
     @Override
-    public Object recogniseAll() {
-        // 查询到还没有进行车牌识别的图片
-        List<PlateFileEntity> list = plateFileMapper.getUnRecogniseList();
-
-        // 开启多线程进行识别
-        list.parallelStream().forEach(n->{
-            File f = new File(n.getFilePath());
-            if(FileUtil.checkFile(f)) {
-                doRecognise(f, n);
-            }
-        });
-
-        return 1;
-    }
-
-
-    @Override
     public Object recognise(String filePath, boolean reRecognise) {
         filePath = filePath.replaceAll("\\\\", "/");
         File f = new File(filePath);
-        PlateFileEntity e = null;
+        PlateFileEntity entity = null;
 
         Map<String, Object> paramMap = Maps.newHashMap();
         paramMap.put("filePath", filePath);
         List<PlateFileEntity> list= plateFileMapper.selectByCondition(paramMap);
         if(null == list || list.size() <= 0) {
             if(FileUtil.checkFile(f)) {
-                e = new PlateFileEntity();
-                e.setFileName(f.getName());
-                e.setFilePath(f.getAbsolutePath().replaceAll("\\\\", "/"));
-                e.setFileType(f.getName().substring(f.getName().lastIndexOf(".") + 1));
-                plateFileMapper.insertSelective(e);
+                entity = new PlateFileEntity();
+                entity.setFileName(f.getName());
+                entity.setFilePath(f.getAbsolutePath().replaceAll("\\\\", "/"));
+                entity.setFileType(f.getName().substring(f.getName().lastIndexOf(".") + 1));
+                plateFileMapper.insertSelective(entity);
             }
             reRecognise = true;
         } else {
-            e = list.get(0);
+            entity = list.get(0);
         }
 
-        if(reRecognise) {
-            doRecognise(f, e); // 重新识别
-            e = plateFileMapper.selectByPrimaryKey(e.getId()); // 重新识别之后，重新获取一下数据
+        if(reRecognise || StringUtils.isEmpty(entity.getTempPath())) {
+            doRecognise(f, entity); // 重新识别
+            entity = plateFileMapper.selectByPrimaryKey(entity.getId()); // 重新识别之后，重新获取一下数据
         }
-
-        // 查询数据库，返回结果
-        paramMap.clear();
-        paramMap.put("parentId", e.getId());
-        e.setDebug(plateRecoDebugMapper.selectByCondition(paramMap));
-
-        return e;
+        // 查询debug文件
+        if(!StringUtils.isEmpty(entity.getTempPath())) {
+            Vector<String> debugFiles = new Vector<String>();
+            FileUtil.getFiles(entity.getTempPath(), debugFiles);
+            entity.setDebugFiles(debugFiles);
+        }
+        return entity;
     }
 
+    @Override
+    public Object recogniseAll() {
+        // 查询到还没有进行车牌识别的图片
+        List<PlateFileEntity> list = plateFileMapper.getUnRecogniseList();
+        list.parallelStream().forEach(n->{
+            File f = new File(n.getFilePath());
+            if(FileUtil.checkFile(f)) {
+                doRecognise(f, n);
+            }
+        });
+        return 1;
+    }
+
+    
     
     /**
      * 单张图片 车牌识别
      * 拷贝文件到临时目录
      * 过程及结果更新数据库
-     * @param f 调用方需要验证文件存在
+     * @param f
      * @param result
      * @return
      */
     public Object doRecognise(File f, PlateFileEntity e) {
-
-        Long ct = GenerateIdUtil.getId();
-
-        // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下
-        String targetPath = Constant.DEFAULT_TEMP_DIR.concat(ct.toString())
-                .concat(f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf(".")));
-        FileUtil.copyAndRename(f.getAbsolutePath(), targetPath);
+        if(!f.exists()) {
+            return null;
+        }
+        
+        String ct = GenerateIdUtil.getStrId();
+        String targetPath = Constant.DEFAULT_TEMP_DIR + ct + (f.getName().substring(f.getName().lastIndexOf(".")));
+        FileUtil.copyAndRename(f.getAbsolutePath(), targetPath); // 拷贝文件并且重命名
 
         // 创建临时目录， 存放过程图片
-        String tempPath =  Constant.DEFAULT_TEMP_DIR.concat(ct.toString()).concat("/");
-        FileUtil.createDir(tempPath); // 创建文件夹
+        String tempPath =  Constant.DEFAULT_TEMP_DIR + ct + "/";
+        FileUtil.createDir(tempPath);
+        e.setTempPath(tempPath);
 
-        Boolean debug = true;
+        Boolean debug = false;
         Vector<Mat> dst = new Vector<Mat>();
         PlateUtil.getPlateMat(targetPath, dst, debug, tempPath);
 
         Set<String> plates = Sets.newHashSet();
-        Set<String> colors = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
             PlateColor color = PlateUtil.getPlateColor(inMat, true, false, tempPath);
-            colors.add(color.code);
             String plate = PlateUtil.charsSegment(inMat, color, debug, tempPath);
-            plates.add(plate);
+            plates.add("<" + plate + "," + color.desc + ">");
         });
-
-        e.setTempPath(tempPath);
-        e.setRecoColor(colors.toString());
         e.setRecoPlate(plates.toString());
-
-        // 删除拷贝的文件
-        new File(targetPath).delete();
         
-        // 插入识别过程图片数据信息 通过temp文件夹的文件，更新数据库
-        List<PlateRecoDebugEntity> list = Lists.newArrayList();
-        List<File> debugList = FileUtil.listFile(new File(tempPath), Constant.DEFAULT_TYPE, false);
-        debugList.parallelStream().forEach(d -> {
-            String fileName = d.getName();
-            
-            String debugType = fileName.substring(fileName.indexOf("_") + 1, fileName.lastIndexOf("."));
-            Integer sort = Integer.parseInt(fileName.substring(0, fileName.indexOf("_")));
-            PlateRecoDebugEntity de = new PlateRecoDebugEntity();
-            de.setRecoPlate("");
-            de.setPlateColor("");
-            de.setFilePath(d.getAbsolutePath().replaceAll("\\\\", "/"));
-            de.setFileName(d.getName());
-            de.setParentId(e.getId());
-            de.setDebugType(debugType);
-            de.setSort(sort);
-            list.add(de);
-        });
-
-        // 更新图片主表信息
+        new File(targetPath).delete();  // 删除拷贝的临时文件
         plateFileMapper.updateByPrimaryKeySelective(e);
-        plateRecoDebugMapper.deleteByParentId(e.getId());
-        plateRecoDebugMapper.batchInsert(list);
-
         return 1;
     }
 
     @Override
     public Object getImgInfo(String imgPath) {
         Map<String, Object> result = Maps.newHashMap();
-        Long ct = GenerateIdUtil.getId();
+        String ct = GenerateIdUtil.getStrId();
         File f = new File(imgPath);
         if(f.exists()) {
-            // 先将文件拷贝并且重命名到不包含中文及特殊字符的目录下
-            String targetPath = Constant.DEFAULT_TEMP_DIR.concat(ct.toString())
-                    .concat(f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf(".")));
+            String targetPath = Constant.DEFAULT_TEMP_DIR + ct + (f.getName().substring(f.getName().lastIndexOf(".")));
             FileUtil.copyAndRename(f.getAbsolutePath(), targetPath);
             result.put("targetPath", targetPath);   // 返回临时路径给前端
             // 获取图片的基本信息
@@ -242,25 +204,5 @@ public class PlateServiceImpl implements PlateService {
         return result;
     }
     
-
-    public static void main(String[] args) {
-        Mat inMat = Imgcodecs.imread("D:\\PlateDetect\\temp\\test\\qietu.png");
-        Mat dst = new Mat(inMat.rows(), inMat.cols(), CvType.CV_32FC3);
-        Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2HSV); // 转到HSV空间进行处理
-        double[] d = null;
-        for (int row = 0; row < inMat.rows(); row++) {
-            for (int col = 0; col < inMat.cols(); col++) {
-                d = dst.get(row, col);
-                String s = JSONObject.toJSONString(d);
-                if(!s.equals("[0.0,0.0,0.0]")) {    // png图片，透明部分颜色取值：[0.0,0.0,0.0]
-                    System.out.print(row);
-                    System.out.print("\t" + col);
-                    System.out.println("\t" + s);
-                }
-            }
-        }
-        return;
-    }
-
 
 }

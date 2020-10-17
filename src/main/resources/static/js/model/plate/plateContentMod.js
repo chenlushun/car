@@ -42,40 +42,24 @@ define(['api', 'utils'], function(api, utils){
     }
 
     function recognise(filePath, reRecognise){
+        $("#span_plate").text("");
+        $("#span_color").text("");
+        $("#reco_plate").text("");
         function successFun(ret) {
             if (ret.code === 200) {
                 $("#span_plate").text(ret.obj.plate);
                 $("#span_color").text(ret.obj.plateColor);
-				
 				$("#reco_plate").text(ret.obj.recoPlate);
-                $("#reco_color").text(ret.obj.recoColor);
 
                 $("#processStepDiv").find(".process-div").remove();
                 $("#processStepDiv").find(".process-img").remove();
                 
-                if(ret.obj.debug.length <= 0){
-                	recognise(plateTreeNode.filePath, true);
-                	return;
-                }
-                
-                $.each(ret.obj.debug, function (index, item){
-                	if($("#"+ item.debugType).length <= 0){ // 上级对象不存在, 创建
-                    	var $div = $('<div class="process" align="left" style="padding-top:10px;width: 100%;"></div>');
-                        $div.attr("id", item.debugType);
-                        $span = $('<span style="float: left;font-weight: bolder;font-size: 20px;"></span>');
-                        $span.text(item.debugType + "：");
-                        $div.append($span);
-                        $div.append($('<br/><br/>'));
-                        $("#processStepDiv").append($div);
-                    }
-                });
-                $.each(ret.obj.debug, function (index, item){
+                $.each(ret.obj.debugFiles, function (index, item){
                     var $div = $('<div class="process-div"></div>');
                     var $img = $('<img class="process-img">');
-                    $img.attr("src", encodeURI(api.file.readFile + "?filePath="+ item.filePath));
+                    $img.attr("src", encodeURI(api.file.readFile + "?filePath="+ item));
                     $div.append($img);
-                    
-                    $("#"+ item.debugType).append($div);
+                    $("#resultDiv").append($div);
                 });
             } else {
                 layer.msg('失败 ！', {icon: 2});
@@ -238,7 +222,7 @@ define(['api', 'utils'], function(api, utils){
     function treeClick(event, treeId, node) {
         var treeObj = $.fn.zTree.getZTreeObj(treeId);
 
-        if(node.name.indexOf(".png") > 1 || node.name.indexOf(".jpg") > 1){
+        if(node.name.indexOf(".png") >= 1 || node.name.indexOf(".jpg") >= 1){
             $('#baseImage').attr("src", encodeURI(api.file.readFile + "?filePath=" + node.filePath));
             recognise(node.filePath, false);
         }

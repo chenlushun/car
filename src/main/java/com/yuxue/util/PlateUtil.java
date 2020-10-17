@@ -393,7 +393,7 @@ public class PlateUtil {
             plate = plate + predict(img_crop);
             ImageUtil.debugImg(debug, tempPath, "specMat", img_crop);
         }
-        System.err.println(plate);
+        // System.err.println(plate);
         return plate;
     }
 
@@ -768,7 +768,6 @@ public class PlateUtil {
             Vector<Mat> result = f1.get();
             result.addAll(f2.get());
             result.addAll(f3.get());
-
             return result;
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();

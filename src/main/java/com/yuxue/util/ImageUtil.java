@@ -304,8 +304,8 @@ public class ImageUtil {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
-                System.err.println("外接矩形倾斜角度：" +  mr.angle);
-                System.err.println("校正角度：" +  angle);
+                /*System.err.println("外接矩形倾斜角度：" +  mr.angle);
+                System.err.println("校正角度：" +  angle);*/
 
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();
@@ -336,7 +336,7 @@ public class ImageUtil {
                 // 处理切图，调整为指定大小
                 Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
                 Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // INTER_AREA 缩小图像的时候使用 ; INTER_CUBIC 放大图像的时候使用
-                debugImg(true, tempPath, "crop_resize", resized);
+                debugImg(debug, tempPath, "crop_resize", resized);
                 dst.add(resized);
             }
         }

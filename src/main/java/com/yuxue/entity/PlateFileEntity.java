@@ -2,6 +2,7 @@ package com.yuxue.entity;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Vector;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -75,7 +76,7 @@ public class PlateFileEntity implements Serializable {
      */
     private Integer recoCorrect;
     
-    private List<PlateRecoDebugEntity> debug;
+    private Vector<String> debugFiles;
 
     private static final long serialVersionUID = 1L;
 }

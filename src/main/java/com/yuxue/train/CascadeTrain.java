@@ -78,7 +78,7 @@ public class CascadeTrain {
         param.put("numStages", 16);
         param.put("minhitrate", 0.99);
         param.put("maxfalsealarm", 0.45);
-        param.put("featureType", "LBP"); // LBP
+        param.put("featureType", "HAAR"); // LBP
         param.put("mode", "ALL");
         param.put("w", width);
         param.put("h", height);
