@@ -164,12 +164,14 @@ public class PlateCascadeTrain {
         String targetPath =  DEFAULT_PATH + "test/result.jpg";
 
         Boolean debug = false;
-        Mat resized = ImageUtil.resizeMat(inMat, 600, debug, DEFAULT_PATH);
-        Mat grey = ImageUtil.gray(resized, debug, DEFAULT_PATH);
-        Mat gsBlur = ImageUtil.gaussianBlur(grey, debug, DEFAULT_PATH);
+        Mat resized = ImageUtil.narrow(inMat, 600, debug, DEFAULT_PATH);
+        Mat grey = new Mat();
+        ImageUtil.gray(resized, grey, debug, DEFAULT_PATH);
+        Mat gsMat = new Mat();
+        ImageUtil.gaussianBlur(grey, gsMat, debug, DEFAULT_PATH);
 
         MatOfRect faceDetections = new MatOfRect(); // 识别结果存储对象 // Rect矩形类
-        faceDetector.detectMultiScale(gsBlur, faceDetections); // 识别车牌
+        faceDetector.detectMultiScale(gsMat, faceDetections); // 识别车牌
         System.out.println(String.format("识别出 %s 块车牌", faceDetections.toArray().length));
 
         // 在识别到部位描框

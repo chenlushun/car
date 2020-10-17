@@ -55,11 +55,9 @@ public class ImageUtil {
      * @param tempPath 结果图片输出路径
      * @return greyMat
      */
-    public static Mat gray(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
+    public static void gray(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GRAY);
-        // debugImg(false, tempPath, "gray", dst);
-        return dst;
+        debugImg(false, tempPath, "gray", dst);
     }
 
 
@@ -74,12 +72,10 @@ public class ImageUtil {
      * @return
      */
     public static final int GS_BLUR_KERNEL = 3;  // 滤波内核大小必须是 正奇数
-    public static Mat gaussianBlur(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
+    public static void gaussianBlur(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Size ksize = new Size(GS_BLUR_KERNEL, GS_BLUR_KERNEL);
         Imgproc.GaussianBlur(inMat, dst, ksize, 0, 0, Core.BORDER_DEFAULT);
-        // debugImg(debug, tempPath, "gaussianBlur", dst);
-        return dst;
+        debugImg(debug, tempPath, "gaussianBlur", dst);
     }
 
 
@@ -91,13 +87,11 @@ public class ImageUtil {
      * @return
      */
     public static final int BLUR_KERNEL = 5;  // 滤波内核大小必须是 正奇数
-    public static Mat blur(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
+    public static void blur(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Point anchor = new Point(-1,-1);
         Size ksize = new Size(BLUR_KERNEL, BLUR_KERNEL);
         Imgproc.blur(inMat, dst, ksize, anchor, Core.BORDER_DEFAULT);
-        // debugImg(debug, tempPath, "blur", dst);
-        return dst;
+        debugImg(debug, tempPath, "blur", dst);
     }
 
 
@@ -119,8 +113,7 @@ public class ImageUtil {
     public static final int SOBEL_KERNEL = 3;// 内核大小必须为奇数且不大于31
     public static final double alpha = 1.5; // 乘数因子
     public static final double beta = 10.0; // 偏移量
-    public static Mat sobel(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
+    public static void sobel(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Mat grad_x = new Mat();
         Mat grad_y = new Mat();
         Mat abs_grad_x = new Mat();
@@ -140,9 +133,7 @@ public class ImageUtil {
         Core.addWeighted(abs_grad_x, SOBEL_X_WEIGHT, abs_grad_y, SOBEL_Y_WEIGHT, 0, dst);
         abs_grad_x.release();
         abs_grad_y.release();
-
         debugImg(debug, tempPath, "sobel", dst);
-        return dst;
     }
 
 
@@ -155,9 +146,7 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static Mat scharr(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
-
+    public static void scharr(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Mat grad_x = new Mat();
         Mat grad_y = new Mat();
         Mat abs_grad_x = new Mat();
@@ -176,9 +165,7 @@ public class ImageUtil {
         Core.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, dst);
         abs_grad_x.release();
         abs_grad_y.release();
-
         debugImg(debug, tempPath, "scharr", dst);
-        return dst;
     }
 
 
@@ -190,12 +177,10 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static Mat threshold(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat();
+    public static void threshold(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Imgproc.threshold(inMat, dst, 100, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
         debugImg(debug, tempPath, "threshold", dst);
         inMat.release();
-        return dst;
     }
 
 
@@ -230,12 +215,12 @@ public class ImageUtil {
     public static List<MatOfPoint> contours(Mat src, Mat inMat, Boolean debug, String tempPath) {
         List<MatOfPoint> contours = Lists.newArrayList();
         Mat hierarchy = new Mat();
-        // RETR_EXTERNAL只检测最外围轮廓， // RETR_LIST   检测所有的轮廓
-        // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
         Point offset = new Point(0, 0); // 偏移量
         /*if(inMat.width() > 600) {
             offset = new Point(-5, -10); // 偏移量 // 对应sobel的偏移量
         }*/
+        // RETR_EXTERNAL只检测最外围轮廓， // RETR_LIST   检测所有的轮廓
+        // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
         Imgproc.findContours(inMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE, offset);
         if (debug) {
             Mat result = new Mat();
@@ -276,23 +261,8 @@ public class ImageUtil {
             if (checkPlateSize(mr)) {  //排除不合法的图块
                 if (debug) {
                     Mat result = src.clone();
-                    // 外接斜矩形 描绘到原图 
-                    Mat points = new Mat();
-                    Imgproc.boxPoints(mr, points);
-                    if(points.rows() == 4) {
-                        Point start = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
-                        Point end = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
-                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
-                        start = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
-                        end = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
-                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
-                        start = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
-                        end = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
-                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
-                        start = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
-                        end = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
-                        Imgproc.line(result, start, end, new Scalar(0, 255, 0, 255));
-                    }
+                    // 将斜矩形轮廓描绘到原图
+                    drawRectangle(result, result, mr);
                     // 将轮廓描绘到原图   
                     Imgproc.drawContours(result, Lists.newArrayList(m1), -1, new Scalar(0, 0, 255, 255));
                     // 输出带轮廓的原图
@@ -310,15 +280,15 @@ public class ImageUtil {
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();
                 Mat rotmat = Imgproc.getRotationMatrix2D(mr.center, angle, 1); // 旋转对象；angle>0则 逆时针
-                // 如果相机在车牌正前方，拍摄角度较小，不管相机是否保持水平，使用仿射变换，减少照片倾斜影响即可
-                // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
                 Imgproc.warpAffine(src, img_rotated, rotmat, src.size()); // 仿射变换  对原图进行旋转校正 // 处理倾斜的图片
                 debugImg(debug, tempPath, "img_rotated", img_rotated);
 
+                // 如果相机在车牌正前方，拍摄角度较小，不管相机是否保持水平，使用仿射变换，减少照片倾斜影响即可
+                // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
                 // 仿射变换  对原图进行错切校正
                 // 轮廓的提取，直接影响校正的效果
                 Mat shear = img_rotated.clone();
-                rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
+                // rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
 
                 // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
@@ -344,6 +314,36 @@ public class ImageUtil {
     }
 
 
+
+    /**
+     * 外接斜矩形 描绘到原图 
+     * @param inMat
+     * @param dst
+     */
+    public static void drawRectangle(Mat inMat, Mat dst, RotatedRect mr) {
+        Mat points = new Mat();
+        Imgproc.boxPoints(mr, points);
+        Scalar scalar = new Scalar(0, 255, 0, 255); //蓝色
+        if(points.rows() == 4) {
+            Point start = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
+            Point end = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
+            Imgproc.line(dst, start, end, scalar);
+            
+            start = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
+            end = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
+            Imgproc.line(dst, start, end, scalar);
+            
+            start = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
+            end = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
+            Imgproc.line(dst, start, end, scalar);
+            
+            start = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
+            end = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
+            Imgproc.line(dst, start, end, scalar);
+        }
+    }
+
+
     /**
      * 图块错切校正
      * 根据轮廓、以及最小斜矩形矩形错切校正，用于处理变形(不是倾斜)的车牌图片  即【平行四边形】的车牌校正为【长方形】
@@ -360,7 +360,7 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    private static Size shearCorrection(MatOfPoint2f m2, RotatedRect mr, Mat inMat, Mat shear, Size rect_size, Boolean debug, String tempPath){
+    private static Size shearCorrection(MatOfPoint2f m2, RotatedRect mr, Mat inMat, Mat dst, Size rect_size, Boolean debug, String tempPath){
         Mat vertex = new Mat(); 
         Imgproc.boxPoints(mr, vertex);  // 最小外接矩形，四个顶点 Mat(4, 2)
         // 提取短边的两个顶点， 命名为上、下顶点
@@ -462,7 +462,7 @@ public class ImageUtil {
         dstPoints.fromArray(new Point(0 + top, 0), new Point(0 - bottom, inMat.rows()), new Point(inMat.cols() + top, 0));
 
         Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
-        Imgproc.warpAffine(inMat, shear, m3, inMat.size()); // 对整张图进行错切校正
+        Imgproc.warpAffine(inMat, dst, m3, inMat.size()); // 对整张图进行错切校正
 
         // 投影变换举例; 对于车牌的处理效果来说，跟三点法差不多，但是效率慢
         /*MatOfPoint2f srcPoints = new MatOfPoint2f();
@@ -470,9 +470,9 @@ public class ImageUtil {
         MatOfPoint2f dstPoints = new MatOfPoint2f();
         dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0) , new Point(inMat.cols() - 80, inMat.rows()));
         Mat m3 = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
-        Imgproc.warpPerspective(inMat, shear, m3, inMat.size());*/
+        Imgproc.warpPerspective(inMat, dst, m3, inMat.size());*/
 
-        debugImg(debug, tempPath, "shearCorrection", shear);
+        debugImg(debug, tempPath, "shearCorrection", dst);
         return rect_size;
     }
 
@@ -492,7 +492,7 @@ public class ImageUtil {
 
 
     /**
-     * 计算点到AB点的距离
+     * 计算点到AB点连线的距离
      * 即，计算点到线的垂直距离
      * @param p
      * @param a
@@ -537,7 +537,7 @@ public class ImageUtil {
     /**
      * 进行膨胀操作
      * 也可以理解为字体加粗操作
-     * @param inMat
+     * @param inMat 二值图像
      * @return
      */
     public static Mat dilate(Mat inMat, Boolean debug, String tempPath, int row, int col, Boolean correct) {
@@ -558,8 +558,8 @@ public class ImageUtil {
     }
 
     /**
-     * 进行腐蚀操作
-     * @param inMat
+     * 边缘腐蚀，
+     * @param inMat 二值图像
      * @return
      */
     public static Mat erode(Mat inMat, Boolean debug, String tempPath, int row, int col) {
@@ -602,7 +602,7 @@ public class ImageUtil {
 
 
     /**
-     * HSV色彩空间过滤
+     * HSV色彩空间过滤  返回过滤后的hsvMat
      * @param inMat rgb图像
      * @param debug
      * @param tempPath
@@ -655,7 +655,7 @@ public class ImageUtil {
 
 
     /**
-     * HSV色彩空间过滤
+     * HSV色彩空间过滤; 返回二值图像
      * @param inMat rgb图像
      * @param debug
      * @param tempPath
@@ -711,7 +711,7 @@ public class ImageUtil {
 
 
     /**
-     * 锁定横纵比，调整图片大小(缩小)
+     * 缩小图片，锁定横纵比
      * 防止图片像素太大，后续的计算太费时
      * 但是这样处理之后，图片可能会失真，影响车牌文字识别效果
      * 可以考虑，定位出车牌位置之后，计算出原图的车牌位置，从原图中区图块进行车牌文字识别
@@ -719,7 +719,7 @@ public class ImageUtil {
      * @param maxRows
      * @return
      */
-    public static Mat resizeMat(Mat inMat, Integer maxCols, Boolean debug, String tempPath) {
+    public static Mat narrow(Mat inMat, Integer maxCols, Boolean debug, String tempPath) {
         if(null == maxCols || maxCols <= 0) {
             maxCols = 600;
         }
@@ -734,13 +734,13 @@ public class ImageUtil {
         double fx = (double)resized.cols()/inMat.cols(); // 水平缩放比例，输入为0时，则默认当前计算方式
         double fy = (double)resized.rows()/inMat.rows(); // 垂直缩放比例，输入为0时，则默认当前计算方式
         Imgproc.resize(inMat, resized, resized.size(), fx, fy, Imgproc.INTER_LINEAR);
-        // debugImg(debug, tempPath, "resizeMat", resized); // 不再生成debug图片
+        // debugImg(debug, tempPath, "narrow", resized); // 不再生成debug图片
         return resized;
     }
 
 
     /**
-     * 还原图片的尺寸(放大)
+     * 放大图片尺寸
      * 放大二值图像到原始图片的尺寸，然后提取轮廓，再从原图裁剪图块
      * 防止直接在缩放后的图片上提取图块，因图片变形导致图块识别结果异常
      * @param inMat
@@ -749,14 +749,61 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static Mat restoreSize(Mat inMat, Size size, Boolean debug, String tempPath) {
+    public static Mat enlarge(Mat inMat, Size size, Boolean debug, String tempPath) {
         if(inMat.width() >= size.width) {
             return inMat;
         }
         Mat restore = new Mat();
         Imgproc.resize(inMat, restore, size, 0, 0, Imgproc.INTER_CUBIC);
-        debugImg(debug, tempPath, "restoreSize", restore);
+        // debugImg(debug, tempPath, "enlarge", restore);
         return restore;
+    }
+
+
+    /**
+     * 平移
+     * @param img
+     * @param offsetx
+     * @param offsety
+     * @return
+     */
+    public static void translateImg(Mat inMat, Mat dst, int offsetx, int offsety){
+        //定义平移矩阵
+        Mat trans_mat = Mat.zeros(2, 3, CvType.CV_32FC1);
+        trans_mat.put(0, 0, 1);
+        trans_mat.put(0, 2, offsetx);
+        trans_mat.put(1, 1, 1);
+        trans_mat.put(1, 2, offsety);
+        Imgproc.warpAffine(inMat, dst, trans_mat, inMat.size());
+    }
+
+
+    /**
+     * 旋转角度，angle>0顺时针旋转
+     * @param inMat
+     * @param dst
+     * @param angle
+     * @return
+     */
+    public static void rotateImg(Mat inMat, Mat dst, double angle, Boolean debug, String tempPath){
+        Point src_center = new Point(inMat.cols() / 2.0F, inMat.rows() / 2.0F);
+        rotateImg(inMat, dst, angle, src_center, debug, tempPath);
+    }
+
+
+    /**
+     * 旋转角度  ，angle>0顺时针旋转
+     * @param inMat
+     * @param dst
+     * @param angle
+     * @param center
+     * @param debug
+     * @param tempPath
+     */
+    public static void rotateImg(Mat inMat, Mat dst, double angle, Point center, Boolean debug, String tempPath){
+        Mat img_rotated = Imgproc.getRotationMatrix2D(center, angle, 1);
+        Imgproc.warpAffine(inMat, dst, img_rotated, inMat.size());    
+        debugImg(debug, tempPath, "img_rotated", img_rotated);
     }
 
 

@@ -170,8 +170,10 @@ public class CascadeTrain {
         String targetPath =  DEFAULT_PATH + "samples/result.jpg";
 
         Boolean debug = false;
-        Mat grey = ImageUtil.gray(inMat, debug, DEFAULT_PATH);
-        Mat gsBlur = ImageUtil.gaussianBlur(grey, debug, DEFAULT_PATH);
+        Mat grey = new Mat();
+        ImageUtil.gray(inMat, grey, debug, DEFAULT_PATH);
+        Mat gsBlur = new Mat();
+        ImageUtil.gaussianBlur(grey, gsBlur, debug, DEFAULT_PATH);
 
         MatOfRect faceDetections = new MatOfRect(); // 识别结果存储对象 // Rect矩形类
         faceDetector.detectMultiScale(gsBlur, faceDetections); // 识别人脸
@@ -203,7 +205,8 @@ public class CascadeTrain {
             if(inMat.empty()) {
                 continue;
             }
-            Mat gray = ImageUtil.gray(inMat, false, "");
+            Mat gray = new Mat();
+            ImageUtil.gray(inMat, gray, false, "");
             // Mat gsMat = ImageUtil.gaussianBlur(gray, false, "");
             MatOfRect faceDetections = new MatOfRect();
             faceDetector.detectMultiScale(gray, faceDetections);
@@ -245,8 +248,10 @@ public class CascadeTrain {
             if(inMat.empty()) {
                 continue;
             }
-            Mat gray = ImageUtil.gray(inMat, false, "");
-            Mat gsMat = ImageUtil.gaussianBlur(gray, false, "");
+            Mat gray = new Mat();
+            ImageUtil.gray(inMat, gray, false, "");
+            Mat gsMat = new Mat();
+            ImageUtil.gaussianBlur(gray, gsMat, false, "");
             // 随机截取指定大小的图片，用作负样本
             Mat negMat = new Mat();
             Size size = new Size(width, height);

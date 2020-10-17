@@ -30,30 +30,30 @@ import lombok.extern.slf4j.Slf4j;
 public class FaceUtil {
 
     private static final String TEMP_PATH = "D:/FaceDetect/temp/";
-    
+
     private CascadeClassifier faceDetector;
-    
+
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
-    
+
     /**
      * 构造函数，加载默认模型文件
      */
     FaceUtil(){
         faceDetector = new CascadeClassifier(Constant.DEFAULT_FACE_MODEL_PATH);
     }
-    
+
     /**
      * 加载自定义模型文件
      * @param modelPath
      */
     public void loadModel(String modelPath){
         if(!StringUtils.isEmpty(modelPath)) {
-           faceDetector = new CascadeClassifier(modelPath);
+            faceDetector = new CascadeClassifier(modelPath);
         }
     }
-    
+
     /**
      * 检测图片中的人脸
      * @param inMat
@@ -65,15 +65,18 @@ public class FaceUtil {
             System.out.println("加载模型文件失败: " + Constant.DEFAULT_FACE_MODEL_PATH);
             return null;
         }
-        
+
         Boolean debug = false;
-        Mat grey = ImageUtil.gray(inMat, debug, TEMP_PATH);
-        Mat gsBlur = ImageUtil.gaussianBlur(grey, debug, TEMP_PATH);
+        Mat grey = new Mat();
+        ImageUtil.gray(inMat, grey, debug, TEMP_PATH);
+
+        Mat gsBlur = new Mat();
+        ImageUtil.gaussianBlur(grey, gsBlur, debug, TEMP_PATH);
 
         MatOfRect faceDetections = new MatOfRect(); // 识别结果存储对象 // Rect矩形类
         faceDetector.detectMultiScale(gsBlur, faceDetections); // 识别人脸
         log.info(String.format("识别出 %s 张人脸", faceDetections.toArray().length));
-        
+
         // 在识别到的人脸部位，描框
         for (Rect rect : faceDetections.toArray()) {
             Imgproc.rectangle(inMat, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0));
@@ -81,8 +84,8 @@ public class FaceUtil {
         }
         return faceDetections;
     }
-    
-    
+
+
     /**
      * 识别图片中的人脸是谁
      * 未完待续
@@ -91,19 +94,19 @@ public class FaceUtil {
     public Object recogniseFace() {
         return null;
     }
-    
-    
+
+
     /**
      * 测试当前工具类
      * @param args
      */
     public static void main(String[] args) {
         Instant start = Instant.now();
-        
+
         FaceUtil fu = new FaceUtil();
         Mat inMat = Imgcodecs.imread("D:/FaceDetect/train/huge/huge.png");
         fu.detectFace(inMat, Constant.DEFAULT_FACE_TEMP_DIR + "result.jpg");
-        
+
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());
     }

@@ -18,7 +18,6 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -94,7 +93,7 @@ public class PlateUtil {
 
     public static Vector<Mat> findPlateByContours(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
         Mat src = Imgcodecs.imread(imagePath);
-        final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
+        final Mat resized = ImageUtil.narrow(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
         return findPlateByContours(src, resized, dst, debug, tempPath);
     }
 
@@ -109,16 +108,20 @@ public class PlateUtil {
      */
     public static Vector<Mat> findPlateByContours(Mat src, Mat inMat, Vector<Mat> dst, Boolean debug, String tempPath) {
         // 灰度图
-        Mat gray = ImageUtil.gray(inMat, debug, tempPath);
+        Mat gray = new Mat();
+        ImageUtil.gray(inMat, gray, debug, tempPath);
 
         // 高斯模糊
-        Mat gsMat = ImageUtil.gaussianBlur(gray, debug, tempPath);
+        Mat gsMat = new Mat();
+        ImageUtil.gaussianBlur(gray, gsMat, debug, tempPath);
 
         // Sobel 运算，得到图像的一阶水平方向导数
-        Mat sobel = ImageUtil.sobel(gsMat, debug, tempPath);
+        Mat sobel = new Mat();
+        ImageUtil.sobel(gsMat, sobel, debug, tempPath);
 
         // 图像进行二值化
-        Mat threshold = ImageUtil.threshold(sobel, debug, tempPath);
+        Mat threshold = new Mat();
+        ImageUtil.threshold(sobel, threshold, debug, tempPath);
 
         // 使用闭操作  同时处理一些干扰元素
         Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
@@ -128,7 +131,7 @@ public class PlateUtil {
         morphology = ImageUtil.dilate(morphology, debug, tempPath, 4, 4, true);
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
-        morphology = ImageUtil.restoreSize(morphology, src.size(), debug, tempPath);
+        morphology = ImageUtil.enlarge(morphology, src.size(), debug, tempPath);
         // 获取图中所有的轮廓
         List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
@@ -144,7 +147,7 @@ public class PlateUtil {
 
     public static Vector<Mat> findPlateByHsvFilter(String imagePath, Vector<Mat> dst, PlateHSV plateHSV, Boolean debug, String tempPath) {
         Mat src = Imgcodecs.imread(imagePath);
-        final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
+        final Mat resized = ImageUtil.narrow(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
         return findPlateByHsvFilter(src, resized, dst, plateHSV, debug, tempPath);
     }
 
@@ -163,26 +166,21 @@ public class PlateUtil {
         // 图像均衡化
         Imgproc.cvtColor(hsvMat, hsvMat, Imgproc.COLOR_HSV2BGR);
         Mat equalizeMat = ImageUtil.equalizeHist(hsvMat, debug, tempPath);
+        hsvMat.release();
 
         // 二次hsv过滤，二值化
         Mat threshold = ImageUtil.hsvThreshold(equalizeMat, debug, tempPath, plateHSV.equalizeMinH, plateHSV.equalizeMaxH);
-
-        // 使用闭操作
-        Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);
-
-        /*Mat erode = ImageUtil.erode(morphology, debug, tempPath, 2, 2);
-        Mat dilate = ImageUtil.dilate(erode, debug, tempPath, 2, 2);*/
+        Mat morphology = ImageUtil.morphology(threshold, debug, tempPath);  // 闭操作
+        threshold.release();
 
         Mat rgb = new Mat();
         Imgproc.cvtColor(morphology, rgb, Imgproc.COLOR_BGR2GRAY);
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
-        rgb = ImageUtil.restoreSize(rgb, src.size(), debug, tempPath);
-
-        // 提取轮廓     // 处理绿牌，需要往上方扩展一定比例像素--未完成yuxue
-        List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);
-
-        // 根据轮廓， 筛选出可能是车牌的图块
+        rgb = ImageUtil.enlarge(rgb, src.size(), debug, tempPath);
+        // 提取轮廓    
+        List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);   
+        // 根据轮廓， 筛选出可能是车牌的图块     // 切图的时候， 处理绿牌，需要往上方扩展一定比例像素
         Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, plateHSV.equals(PlateHSV.GREEN), debug, tempPath);
 
         // 找出可能是车牌的图块，存到dst中， 返回结果
@@ -332,14 +330,10 @@ public class PlateUtil {
         }
         // 输出二值图
         ImageUtil.debugImg(debug, tempPath, "plateThreshold", threshold);
-        
-        // 先腐蚀 后扩张，会存在一定的偏移
-        Mat erode = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
-        Mat dilate = ImageUtil.dilate(erode, debug, tempPath, 2, 2, true);
 
         // 提取外部轮廓
         List<MatOfPoint> contours = Lists.newArrayList();
-        Imgproc.findContours(dilate, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+        Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
         if (debug) {    // 输出轮廓图
             Mat result = new Mat();
             inMat.copyTo(result);
@@ -374,18 +368,17 @@ public class PlateUtil {
 
         String plate = "";
         plate = plate + predictChinese(chineseMat); // 预测中文字符
-        
+
         int charCount = 7;
         if(color.equals(PlateColor.GREEN)) {
             charCount = 8;
         }
         
-        // 预测中文之外的字符
-        for (int i = 0; i < sorted.size(); i++) {
+        for (int i = 0; i < sorted.size(); i++) {   // 预测中文之外的字符
             if(i < posi) {
                 continue;
             }
-            if(i >= charCount) {
+            if(i > charCount) {
                 continue;
             }
             Mat img_crop = new Mat(threshold, sorted.get(i));
@@ -393,7 +386,6 @@ public class PlateUtil {
             plate = plate + predict(img_crop);
             ImageUtil.debugImg(debug, tempPath, "specMat", img_crop);
         }
-        // System.err.println(plate);
         return plate;
     }
 
@@ -510,7 +502,7 @@ public class PlateUtil {
         float newwidth = rectSpe.width * 1.15f;
         int x = rectSpe.x;
         int y = rectSpe.y;
-        
+
         // 判断省份字符前面的位置，是否有宽度符合要求的中文字符
         if(rectPrev.width >= rectSpe.width && rectPrev.x <= rectSpe.x-rectSpe.width) {
             return rectPrev;
@@ -681,11 +673,13 @@ public class PlateUtil {
      */
     public static Mat randTranslate(Mat inMat) {
         Random rand = new Random();
-        Mat result = inMat.clone();
+        Mat dst = new Mat(inMat.size(), inMat.type());
         int ran_x = rand.nextInt(10000) % 5 - 2; // 控制在-2~3个像素范围内
         int ran_y = rand.nextInt(10000) % 5 - 2;
-        return translateImg(result, ran_x, ran_y);
+        ImageUtil.translateImg(inMat, dst, ran_x, ran_y);
+        return dst;
     }
+
 
 
     /**
@@ -693,46 +687,11 @@ public class PlateUtil {
      * @param inMat
      * @return
      */
-    public static Mat randRotate(Mat inMat) {
+    public static Mat randRotate(Mat inMat, Boolean debug, String tempPath) {
         Random rand = new Random();
-        Mat result = inMat.clone();
+        Mat dst = new Mat(inMat.size(), inMat.type());
         float angle = (float) (rand.nextInt(10000) % 15 - 7); // 旋转角度控制在-7~8°范围内
-        return rotateImg(result, angle);
-    }
-
-
-    /**
-     * 平移
-     * @param img
-     * @param offsetx
-     * @param offsety
-     * @return
-     */
-    public static Mat translateImg(Mat img, int offsetx, int offsety){
-        Mat dst = new Mat();
-        //定义平移矩阵
-        Mat trans_mat = Mat.zeros(2, 3, CvType.CV_32FC1);
-        trans_mat.put(0, 0, 1);
-        trans_mat.put(0, 2, offsetx);
-        trans_mat.put(1, 1, 1);
-        trans_mat.put(1, 2, offsety);
-        Imgproc.warpAffine(img, dst, trans_mat, img.size());    // 仿射变换
-        return dst;
-    }
-
-
-    /**
-     * 旋转角度
-     * @param source
-     * @param angle
-     * @return
-     */
-    public static Mat rotateImg(Mat source, float angle){
-        Point src_center = new Point(source.cols() / 2.0F, source.rows() / 2.0F);
-        Mat rot_mat = Imgproc.getRotationMatrix2D(src_center, angle, 1);
-        Mat dst = new Mat();
-        // 仿射变换 可以考虑使用投影变换; 这里使用放射变换进行旋转，对于实际效果来说感觉意义不大，反而会干扰结果预测
-        Imgproc.warpAffine(source, dst, rot_mat, source.size());    
+        ImageUtil.rotateImg(inMat, dst, angle, debug, tempPath);
         return dst;
     }
 
@@ -751,7 +710,7 @@ public class PlateUtil {
      */
     public static Vector<Mat> getPlateMat(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
         Mat src = Imgcodecs.imread(imagePath);
-        final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
+        final Mat resized = ImageUtil.narrow(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
 
         CompletableFuture<Vector<Mat>> f1 = CompletableFuture.supplyAsync(() -> {
             Vector<Mat> r = findPlateByContours(src, resized, dst, debug, tempPath);
@@ -789,13 +748,12 @@ public class PlateUtil {
         return null;
     }
 
-    
-    
+
+
     public static void main(String[] args) {
         Instant start = Instant.now();
-
-        String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "11.jpg";
+        String tempPath = Constant.DEFAULT_TEMP_DIR;
+        String filename = Constant.DEFAULT_DIR + "test/11.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));
