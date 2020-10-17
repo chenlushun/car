@@ -740,6 +740,10 @@ public class PlateUtil {
 
     /**
      * 根据图片，获取可能是车牌的图块集合
+     * 多种方法实现：
+     * 1、网上常见的轮廓提取车牌算法
+     * 2、hsv色彩分割算法
+     * 3、 参考人脸识别算法，实现特征识别算法 --未完成
      * @param src 输入原图
      * @param dst 可能是车牌的图块集合
      * @param debug 是否保留图片的处理过程
@@ -750,24 +754,34 @@ public class PlateUtil {
         final Mat resized = ImageUtil.resizeMat(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
 
         CompletableFuture<Vector<Mat>> f1 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = findPlateByContours(src, resized, dst, debug, tempPath); // 网上常见的轮廓提取车牌算法
+            Vector<Mat> r = findPlateByContours(src, resized, dst, debug, tempPath);
             return r;
         });
         CompletableFuture<Vector<Mat>> f2 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.BLUE, debug, tempPath); // hsv色彩分割提取车牌算法，当前仅实现蓝牌的
+            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.BLUE, debug, tempPath);
             return r;
         });
         CompletableFuture<Vector<Mat>> f3 = CompletableFuture.supplyAsync(() -> {
+            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.GREEN, debug, tempPath); 
+            return r;
+        });
+        CompletableFuture<Vector<Mat>> f4 = CompletableFuture.supplyAsync(() -> {
+            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.YELLOW, debug, tempPath); 
+            return r;
+        });
+        CompletableFuture<Vector<Mat>> f5 = CompletableFuture.supplyAsync(() -> {
             Vector<Mat> r = new Vector<Mat>(); // 参考人脸识别算法，实现特征识别算法，--未完成
             return r;
         });
 
         // 这里的 join() 将阻塞，直到所有的任务执行结束
-        CompletableFuture.allOf(f1, f2, f3).join();
+        CompletableFuture.allOf(f1, f2, f3, f4, f5).join();
         try {
             Vector<Mat> result = f1.get();
             result.addAll(f2.get());
             result.addAll(f3.get());
+            result.addAll(f4.get());
+            result.addAll(f5.get());
             return result;
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
