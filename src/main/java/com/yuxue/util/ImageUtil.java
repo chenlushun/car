@@ -274,8 +274,8 @@ public class ImageUtil {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
-                /*System.err.println("外接矩形倾斜角度：" +  mr.angle);
-                System.err.println("校正角度：" +  angle);*/
+                System.err.println("外接矩形倾斜角度：" +  mr.angle);
+                System.err.println("校正角度：" +  angle);
 
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();
@@ -288,7 +288,7 @@ public class ImageUtil {
                 // 仿射变换  对原图进行错切校正
                 // 轮廓的提取，直接影响校正的效果
                 Mat shear = img_rotated.clone();
-                // rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
+                rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
 
                 // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
@@ -300,7 +300,7 @@ public class ImageUtil {
                     Imgproc.getRectSubPix(shear, s, c, img_crop);
                 } else {
                     Point c = new Point(mr.center.x, mr.center.y -4);   // 偏移量修正
-                    Imgproc.getRectSubPix(img_rotated, rect_size, c, img_crop);
+                    Imgproc.getRectSubPix(shear, rect_size, c, img_crop);
                 }
 
                 // 处理切图，调整为指定大小

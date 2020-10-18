@@ -33,13 +33,14 @@ public class Constant {
     public static final String DEFAULT_ANN_PATH = "res/model/ann.xml";
     public static final String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
     public static final String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
+    public static final String DEFAULT_PLATE_MODEL_PATH = "res/model/harrcascade_frontplate.xml";
     
     // 图片中，车牌图块尺寸允许的像素值范围  (width * height * multiple)
-    public static final Integer DEFAULT_MIN_SIZE = 44 * 14 * 5;
-    public static final Integer DEFAULT_MAX_SIZE = 44 * 14 * 70;
+    public static final Integer DEFAULT_MIN_SIZE = 44 * 14 * 1;
+    public static final Integer DEFAULT_MAX_SIZE = 44 * 14 * 80;
     
     // 图片中，车牌图块尺寸允许的  width/height 比例
-    public static final Integer DEFAULT_MIN_RATIO =  2;
+    public static final Integer DEFAULT_MIN_RATIO =  1;
     public static final Integer DEFAULT_MAX_RATIO =  10;
     
     // 提取到车牌图块之后，调整图块的大小（像素值）

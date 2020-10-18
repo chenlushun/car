@@ -158,9 +158,10 @@ public class PlateCascadeTrain {
      */
     public static void predict() {
         // 训练结果文件路径
-        String trainedModel = MODEL_PATH + "/cascade.xml";
+        String trainedModel = Constant.DEFAULT_PLATE_MODEL_PATH;
+        // String trainedModel = MODEL_PATH + "/cascade.xml";
         CascadeClassifier faceDetector = new CascadeClassifier(trainedModel);
-        Mat inMat = Imgcodecs.imread(DEFAULT_PATH+ "test/9.png");
+        Mat inMat = Imgcodecs.imread(DEFAULT_PATH+ "test/1.jpg");
         String targetPath =  DEFAULT_PATH + "test/result.jpg";
 
         Boolean debug = false;
@@ -188,11 +189,11 @@ public class PlateCascadeTrain {
         String negative = DEFAULT_PATH + "negative/";
         String positive = DEFAULT_PATH + "positive/";
 
-        loadSamples(negative, positive);
+        // loadSamples(negative, positive);
 
         // train();
 
-        // predict();
+        predict();
     }
 
 }
