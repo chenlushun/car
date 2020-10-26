@@ -294,7 +294,6 @@ public class PlateUtil {
         Mat gray = hsvSplit.get(2);
 
         float percent = (float) Core.countNonZero(gray) / (gray.rows() * gray.cols());
-        ImageUtil.debugImg(debug, tempPath, "colorMatch", gray);
         return percent;
     }
 
@@ -756,37 +755,76 @@ public class PlateUtil {
     public static void prepareCharsSample() {
         // 读取车牌图片数据
         Vector<String> plateImgs = new Vector<String>();
-
         String path = "D:\\PlateDetect\\train\\plate_sample\\blue_new";
         FileUtil.getFiles(path, plateImgs); 
-
         path = "D:\\PlateDetect\\train\\plate_sample\\blue_old";
         FileUtil.getFiles(path, plateImgs); 
 
+        String samplePath = "D:\\PlateDetect\\train\\chars_sample\\chars_blue_new\\";
+        System.out.println(plateImgs.size());
         // 处理车牌文件
         for (String img : plateImgs) {
             Mat src = Imgcodecs.imread(img);
             Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2GRAY);
             
-            // 转到HSV空间，对H均衡化
-            // Mat hsvMat = ImageUtil.equalizeHist(inMat, debug, tempPath);
-            
-            // 颜色过滤
-            
             // 二值化
             Mat threshold = new Mat();
             Imgproc.threshold(src, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY); //蓝色
             
-            // 提取轮廓 // 不需要使用闭操作了
+            ImageUtil.debugImg(true, samplePath, "threshold", threshold);
             
+            // 提取轮廓 // 不需要使用闭操作了
+            List<MatOfPoint> contours = Lists.newArrayList();
+            Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+            
+            Vector<Rect> rt = new Vector<Rect>();
+            for (int i = 0; i < contours.size(); i++) {
+                MatOfPoint contour = contours.get(i);
+                Rect mr = Imgproc.boundingRect(contour);    //  boundingRect()得到包覆此轮廓的最小正矩形
+                if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
+                    rt.add(mr);
+                }
+            }
+            if(null == rt || rt.size() <= 0) {  // 未识别到字符
+                continue;
+            }
 
+            // 排序 
+            Vector<Rect> sorted = new Vector<Rect>();
+            sortRect(rt, sorted);
+            // 定位省份字母位置
+            Integer posi = getSpecificRect(sorted, PlateColor.BLUE);
+            Integer prev = posi - 1 <= 0 ? 0 : posi - 1;
+            // 定位中文字符 // 中文字符可能不是连续的轮廓，需要特殊处理
+            Rect chineseRect = getChineseRect(sorted.get(posi), sorted.get(prev));
+
+            Mat chineseMat = new Mat(threshold, chineseRect);
+            chineseMat = preprocessChar(chineseMat);
+
+            String plate = "";
+            plate = plate + predictChinese(chineseMat); // 预测中文字符
+
+            int charCount = 7;  // 蓝色 黄色7  绿色8
+            for (int i = 0; i < sorted.size(); i++) {   // 预测中文之外的字符
+                if(i < posi) {
+                    continue;
+                }
+                if(i > charCount) {
+                    continue;
+                }
+                Mat img_crop = new Mat(threshold, sorted.get(i));
+                img_crop = preprocessChar(img_crop);
+                plate = plate + predict(img_crop);
+                ImageUtil.debugImg(true, samplePath, "result", img_crop);
+            }
         }
     }
 
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        String tempPath = Constant.DEFAULT_TEMP_DIR;
+        prepareCharsSample();
+        /*String tempPath = Constant.DEFAULT_TEMP_DIR;
         String filename = Constant.DEFAULT_DIR + "test/8.jpg";
         File f = new File(filename);
         if(!f.exists()) {
@@ -810,7 +848,7 @@ public class PlateUtil {
             String plateNo = PlateUtil.charsSegment(inMat, color, debug, tempPath);
             result.add(plateNo + "\t" + color.desc);
         });
-        System.out.println(result.toString());
+        System.out.println(result.toString());*/
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());
