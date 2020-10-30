@@ -747,6 +747,37 @@ public class PlateUtil {
         return null;
     }
 
+    
+    /**
+     * 处理原有样本数据；丰富样本的多样性 --未完成yuxue
+     * 随机左、右错切；随机错切像素值
+     * 边缘扩张、边缘腐蚀
+     */
+    public static void processCharsSample() {
+        String path = "D:\\PlateDetect\\train\\chars_sample\\blue_old\\";
+        String target = "D:\\PlateDetect\\train\\chars_sample\\blue_old_shear\\";
+        
+        File baseDir = new File(path);
+        File[] subDir = baseDir.listFiles();
+        for (File dir : subDir) {
+            
+            Vector<String> plateImgs = new Vector<String>();
+            FileUtil.getFiles(dir.getAbsolutePath(), plateImgs); 
+            
+            for (String img : plateImgs) {
+                Mat src = Imgcodecs.imread(img);
+                
+                // 随机错切
+                
+                // 边缘腐蚀
+                
+                // 边缘扩张
+                
+                ImageUtil.debugImg(true, target + dir.getName(), "result", src);
+            }
+        }
+    }
+    
 
     /**
      * 处理车牌，提取字符样本，用于训练
@@ -755,13 +786,14 @@ public class PlateUtil {
     public static void prepareCharsSample() {
         // 读取车牌图片数据
         Vector<String> plateImgs = new Vector<String>();
-        String path = "D:\\PlateDetect\\train\\plate_sample\\blue_new";
-        FileUtil.getFiles(path, plateImgs); 
-        path = "D:\\PlateDetect\\train\\plate_sample\\blue_old";
-        FileUtil.getFiles(path, plateImgs); 
+        // String path = "D:\\PlateDetect\\train\\plate_sample\\blue_new";
+        String path = "D:\\PlateDetect\\train\\plate_sample\\green";
+        FileUtil.getFiles(path, plateImgs);
+        /*path = "D:\\PlateDetect\\train\\plate_sample\\blue_old";
+        FileUtil.getFiles(path, plateImgs);*/
 
-        String samplePath = "D:\\PlateDetect\\train\\chars_sample\\chars_blue_new\\";
-        System.out.println(plateImgs.size());
+        // String samplePath = "D:\\PlateDetect\\train\\chars_sample\\chars_blue_new\\";
+        String samplePath = "D:\\PlateDetect\\train\\chars_sample\\chars_green\\";
         // 处理车牌文件
         for (String img : plateImgs) {
             Mat src = Imgcodecs.imread(img);
@@ -769,11 +801,10 @@ public class PlateUtil {
             
             // 二值化
             Mat threshold = new Mat();
-            Imgproc.threshold(src, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY); //蓝色
+            // Imgproc.threshold(src, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY); //蓝色
+            Imgproc.threshold(src, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY_INV); //绿色
             
-            ImageUtil.debugImg(true, samplePath, "threshold", threshold);
-            
-            // 提取轮廓 // 不需要使用闭操作了
+            // 提取轮廓
             List<MatOfPoint> contours = Lists.newArrayList();
             Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
             
@@ -800,11 +831,13 @@ public class PlateUtil {
 
             Mat chineseMat = new Mat(threshold, chineseRect);
             chineseMat = preprocessChar(chineseMat);
+            
+            String p = samplePath + predictChinese(chineseMat);
+            FileUtil.createDir(p);
 
-            String plate = "";
-            plate = plate + predictChinese(chineseMat); // 预测中文字符
+            ImageUtil.debugImg(true, p + "/", "chineseMat", chineseMat);
 
-            int charCount = 7;  // 蓝色 黄色7  绿色8
+            int charCount = 8;  // 蓝色 黄色7  绿色8
             for (int i = 0; i < sorted.size(); i++) {   // 预测中文之外的字符
                 if(i < posi) {
                     continue;
@@ -814,8 +847,10 @@ public class PlateUtil {
                 }
                 Mat img_crop = new Mat(threshold, sorted.get(i));
                 img_crop = preprocessChar(img_crop);
-                plate = plate + predict(img_crop);
-                ImageUtil.debugImg(true, samplePath, "result", img_crop);
+                
+                p = samplePath + predict(img_crop);
+                FileUtil.createDir(p);
+                ImageUtil.debugImg(true, p + "/", "result", img_crop);
             }
         }
     }
@@ -849,12 +884,18 @@ public class PlateUtil {
             result.add(plateNo + "\t" + color.desc);
         });
         System.out.println(result.toString());*/
+        
+        /*File f = new File("D:\\PlateDetect\\train\\chars_sample\\chars_blue_new\\");
+        String str = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        for (int i = 0; i < str.length() -1 ; i++) {
+            String path = f.getAbsolutePath() + "/" + str.substring(i, i+1);
+            new File(path).mkdir();
+        }*/
+       
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());
     }
 
 }
-
-
 
