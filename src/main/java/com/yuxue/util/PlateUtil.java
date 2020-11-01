@@ -131,7 +131,8 @@ public class PlateUtil {
         morphology = ImageUtil.dilate(morphology, debug, tempPath, 4, 4, true);
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
-        morphology = ImageUtil.enlarge(morphology, src.size(), debug, tempPath);
+        ImageUtil.enlarge(morphology, morphology, src.size(), debug, tempPath);
+
         // 获取图中所有的轮廓
         List<MatOfPoint> contours = ImageUtil.contours(src, morphology, debug, tempPath);
         // 根据轮廓， 筛选出可能是车牌的图块
@@ -177,7 +178,7 @@ public class PlateUtil {
         Imgproc.cvtColor(morphology, rgb, Imgproc.COLOR_BGR2GRAY);
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
-        rgb = ImageUtil.enlarge(rgb, src.size(), debug, tempPath);
+        ImageUtil.enlarge(rgb, rgb, src.size(), debug, tempPath);
         // 提取轮廓    
         List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);   
         // 根据轮廓， 筛选出可能是车牌的图块     // 切图的时候， 处理绿牌，需要往上方扩展一定比例像素
@@ -747,119 +748,11 @@ public class PlateUtil {
         return null;
     }
 
-    
-    /**
-     * 处理原有样本数据；丰富样本的多样性 --未完成yuxue
-     * 随机左、右错切；随机错切像素值
-     * 边缘扩张、边缘腐蚀
-     */
-    public static void processCharsSample() {
-        String path = "D:\\PlateDetect\\train\\chars_sample\\blue_old\\";
-        String target = "D:\\PlateDetect\\train\\chars_sample\\blue_old_shear\\";
-        
-        File baseDir = new File(path);
-        File[] subDir = baseDir.listFiles();
-        for (File dir : subDir) {
-            
-            Vector<String> plateImgs = new Vector<String>();
-            FileUtil.getFiles(dir.getAbsolutePath(), plateImgs); 
-            
-            for (String img : plateImgs) {
-                Mat src = Imgcodecs.imread(img);
-                
-                // 随机错切
-                
-                // 边缘腐蚀
-                
-                // 边缘扩张
-                
-                ImageUtil.debugImg(true, target + dir.getName(), "result", src);
-            }
-        }
-    }
-    
-
-    /**
-     * 处理车牌，提取字符样本，用于训练
-     * 
-     */
-    public static void prepareCharsSample() {
-        // 读取车牌图片数据
-        Vector<String> plateImgs = new Vector<String>();
-        // String path = "D:\\PlateDetect\\train\\plate_sample\\blue_new";
-        String path = "D:\\PlateDetect\\train\\plate_sample\\green";
-        FileUtil.getFiles(path, plateImgs);
-        /*path = "D:\\PlateDetect\\train\\plate_sample\\blue_old";
-        FileUtil.getFiles(path, plateImgs);*/
-
-        // String samplePath = "D:\\PlateDetect\\train\\chars_sample\\chars_blue_new\\";
-        String samplePath = "D:\\PlateDetect\\train\\chars_sample\\chars_green\\";
-        // 处理车牌文件
-        for (String img : plateImgs) {
-            Mat src = Imgcodecs.imread(img);
-            Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2GRAY);
-            
-            // 二值化
-            Mat threshold = new Mat();
-            // Imgproc.threshold(src, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY); //蓝色
-            Imgproc.threshold(src, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY_INV); //绿色
-            
-            // 提取轮廓
-            List<MatOfPoint> contours = Lists.newArrayList();
-            Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
-            
-            Vector<Rect> rt = new Vector<Rect>();
-            for (int i = 0; i < contours.size(); i++) {
-                MatOfPoint contour = contours.get(i);
-                Rect mr = Imgproc.boundingRect(contour);    //  boundingRect()得到包覆此轮廓的最小正矩形
-                if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
-                    rt.add(mr);
-                }
-            }
-            if(null == rt || rt.size() <= 0) {  // 未识别到字符
-                continue;
-            }
-
-            // 排序 
-            Vector<Rect> sorted = new Vector<Rect>();
-            sortRect(rt, sorted);
-            // 定位省份字母位置
-            Integer posi = getSpecificRect(sorted, PlateColor.BLUE);
-            Integer prev = posi - 1 <= 0 ? 0 : posi - 1;
-            // 定位中文字符 // 中文字符可能不是连续的轮廓，需要特殊处理
-            Rect chineseRect = getChineseRect(sorted.get(posi), sorted.get(prev));
-
-            Mat chineseMat = new Mat(threshold, chineseRect);
-            chineseMat = preprocessChar(chineseMat);
-            
-            String p = samplePath + predictChinese(chineseMat);
-            FileUtil.createDir(p);
-
-            ImageUtil.debugImg(true, p + "/", "chineseMat", chineseMat);
-
-            int charCount = 8;  // 蓝色 黄色7  绿色8
-            for (int i = 0; i < sorted.size(); i++) {   // 预测中文之外的字符
-                if(i < posi) {
-                    continue;
-                }
-                if(i > charCount) {
-                    continue;
-                }
-                Mat img_crop = new Mat(threshold, sorted.get(i));
-                img_crop = preprocessChar(img_crop);
-                
-                p = samplePath + predict(img_crop);
-                FileUtil.createDir(p);
-                ImageUtil.debugImg(true, p + "/", "result", img_crop);
-            }
-        }
-    }
-
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        prepareCharsSample();
-        /*String tempPath = Constant.DEFAULT_TEMP_DIR;
+
+        String tempPath = Constant.DEFAULT_TEMP_DIR;
         String filename = Constant.DEFAULT_DIR + "test/8.jpg";
         File f = new File(filename);
         if(!f.exists()) {
@@ -883,15 +776,20 @@ public class PlateUtil {
             String plateNo = PlateUtil.charsSegment(inMat, color, debug, tempPath);
             result.add(plateNo + "\t" + color.desc);
         });
-        System.out.println(result.toString());*/
+        System.out.println(result.toString());
+
         
-        /*File f = new File("D:\\PlateDetect\\train\\chars_sample\\chars_blue_new\\");
-        String str = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        for (int i = 0; i < str.length() -1 ; i++) {
-            String path = f.getAbsolutePath() + "/" + str.substring(i, i+1);
-            new File(path).mkdir();
+        /*for (int i = 0; i <= 9; i++) {
+            String path = "D:\\PlateDetect\\train\\chars_sample\\chars_shear\\green\\";
+            FileUtil.createDir(path + i);
+        }
+        char c = 'A';
+        for (int i = 0; i < 26; i++) {
+            String path = "D:\\PlateDetect\\train\\chars_sample\\chars_shear\\green\\";
+            FileUtil.createDir(path + c);
+            c++;
         }*/
-       
+        
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());

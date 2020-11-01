@@ -461,20 +461,33 @@ public class ImageUtil {
         MatOfPoint2f dstPoints = new MatOfPoint2f();
         dstPoints.fromArray(new Point(0 + top, 0), new Point(0 - bottom, inMat.rows()), new Point(inMat.cols() + top, 0));
 
-        Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
-        Imgproc.warpAffine(inMat, dst, m3, inMat.size()); // 对整张图进行错切校正
-
-        // 投影变换举例; 对于车牌的处理效果来说，跟三点法差不多，但是效率慢
-        /*MatOfPoint2f srcPoints = new MatOfPoint2f();
-        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0), new Point(inMat.cols(), inMat.rows()));
-        MatOfPoint2f dstPoints = new MatOfPoint2f();
-        dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0) , new Point(inMat.cols() - 80, inMat.rows()));
-        Mat m3 = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
-        Imgproc.warpPerspective(inMat, dst, m3, inMat.size());*/
+        Mat trans_mat = Imgproc.getAffineTransform(srcPoints, dstPoints);
+        Imgproc.warpAffine(inMat, dst, trans_mat, inMat.size()); // 对整张图进行错切校正
 
         debugImg(debug, tempPath, "shearCorrection", dst);
         return rect_size;
     }
+    
+    
+    /**
+     * 投影变换 举例
+     * @param inMat
+     * @param dst
+     * @param debug
+     * @param tempPath
+     */
+    public static void warpPerspective(Mat inMat, Mat dst, Boolean debug, String tempPath){
+        // 原图四个顶点
+        MatOfPoint2f srcPoints = new MatOfPoint2f();
+        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0), new Point(inMat.cols(), inMat.rows()));
+        // 目标图四个顶点
+        MatOfPoint2f dstPoints = new MatOfPoint2f();
+        dstPoints.fromArray(new Point(0 + 80, 0), new Point(0 - 80, inMat.rows()), new Point(inMat.cols() + 80, 0) , new Point(inMat.cols() - 80, inMat.rows()));
+
+        Mat trans_mat  = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
+        Imgproc.warpPerspective(inMat, dst, trans_mat, inMat.size());
+        ImageUtil.debugImg(debug, tempPath, "warpPerspective", dst);
+    }   
 
 
     /**
@@ -749,16 +762,50 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static Mat enlarge(Mat inMat, Size size, Boolean debug, String tempPath) {
+    public static void enlarge(Mat inMat, Mat dst, Size size, Boolean debug, String tempPath) {
         if(inMat.width() >= size.width) {
-            return inMat;
+            dst = inMat;
+            return;
         }
-        Mat restore = new Mat();
-        Imgproc.resize(inMat, restore, size, 0, 0, Imgproc.INTER_CUBIC);
-        // debugImg(debug, tempPath, "enlarge", restore);
-        return restore;
+        Imgproc.resize(inMat, dst, size, 0, 0, Imgproc.INTER_CUBIC);
+        debugImg(debug, tempPath, "enlarge", dst);
     }
 
+    
+    /**
+     * 按最大宽度，计算放大/缩小比例
+     * 锁定纵横比
+     * @param inMat
+     * @param dst
+     * @param maxWidth
+     * @param debug
+     * @param tempPath
+     */
+    public static Mat zoom(Mat inMat, Integer maxWidth, Boolean debug, String tempPath){
+        Double ratio = maxWidth * 1.0 / inMat.width();
+        Integer maxHeight = (int)Math.round(ratio * inMat.height());
+        Mat dst = new Mat(maxHeight, maxWidth, inMat.type());
+        zoom(inMat, dst, ratio, ratio, debug, tempPath);
+        return dst;
+    }
+    
+    
+    /**
+     * 放大、缩小
+     * 不锁定纵横比
+     * @param inMat
+     * @param dst
+     * @param x 水平方向变换比例
+     * @param y 垂直方向变换比例
+     */
+    public static void zoom(Mat inMat, Mat dst, Double x, Double y, Boolean debug, String tempPath){
+        Mat trans_mat = Mat.zeros(2, 3, CvType.CV_32FC1);
+        trans_mat.put(0, 0, x);
+        trans_mat.put(1, 1, y);
+        Imgproc.warpAffine(inMat, dst, trans_mat, dst.size()); // 仿射变换
+        debugImg(debug, tempPath, "zoom", dst);
+    }
+    
 
     /**
      * 平移
