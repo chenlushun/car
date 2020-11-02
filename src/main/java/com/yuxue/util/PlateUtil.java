@@ -702,7 +702,7 @@ public class PlateUtil {
      * 多种方法实现：
      * 1、网上常见的轮廓提取车牌算法
      * 2、hsv色彩分割算法
-     * 3、 参考人脸识别算法，实现特征识别算法 --未完成
+     * 3、 参考人脸识别算法，实现特征识别算法 --参考 PlateCascadeTrain
      * @param src 输入原图
      * @param dst 可能是车牌的图块集合
      * @param debug 是否保留图片的处理过程
@@ -729,7 +729,7 @@ public class PlateUtil {
             return r;
         });
         CompletableFuture<Vector<Mat>> f5 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = new Vector<Mat>(); // 参考人脸识别算法，实现特征识别算法，--未完成
+            Vector<Mat> r = new Vector<Mat>(); // 参考人脸识别算法，实现特征识别算法，--未完成； 参考PlateCascadeTrain
             return r;
         });
 
