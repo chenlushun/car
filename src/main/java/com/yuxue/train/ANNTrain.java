@@ -1,6 +1,5 @@
 package com.yuxue.train;
 
-import java.util.Random;
 import java.util.Vector;
 
 import org.opencv.core.Core;
@@ -14,7 +13,6 @@ import org.opencv.ml.TrainData;
 
 import com.yuxue.constant.Constant;
 import com.yuxue.util.FileUtil;
-import com.yuxue.util.ImageUtil;
 import com.yuxue.util.PlateUtil;
 
 
@@ -34,53 +32,46 @@ public class ANNTrain {
     }
 
     // 默认的训练操作的根目录
-    private static final String DEFAULT_PATH = "D:/PlateDetect/train/chars_recognise_ann/";
+    private static final String DEFAULT_PATH = "D:/PlateDetect/train/chars_sample/";
 
     // 训练模型文件保存位置
-    private static final String MODEL_PATH = DEFAULT_PATH + "ann.xml";
-
+    private static final String MODEL_PATH = DEFAULT_PATH + "20201102_ann.xml";
+    
+    
+    
+    /**
+     * 加小编微信，可获取更多车牌字符样本文件
+     * 小编整理样本文件，差点没把眼睛看瞎了，整理相关算法整理更是不易，请小编喝杯18块咖啡提提神即可
+     * 微信号：localhost18888
+     * 样本文件包含：
+     *  1、从停车场图片提取的【蓝牌】字符样本，包含数字、字母、汉字； 19226个样本文件；可用于识别蓝牌、黄牌字符等
+     *  2、从停车场图片提取的【绿牌】字符样本，包含数字、字母、汉字；    3998个样本文件；可用于识别绿牌字符； // 绿牌的部分字符跟蓝牌字体不一样，导致模型要添加蓝牌、绿牌样本
+     *  3、旧项目上整理过的【蓝牌】字符样本，包含数字、字母、汉字；             16013个样本文件；可用于识别蓝牌、黄牌字符等
+     *  4、旋转、错切、膨胀、腐蚀处理的【蓝牌、绿牌】样本，包含数字、字母、汉字；     101400个样本文件；可用于识别蓝牌、黄牌、绿字符等
+     * @param _predictsize
+     * @param _neurons
+     */
     public void train(int _predictsize, int _neurons) {
         Mat samples = new Mat(); // 使用push_back，行数列数不能赋初始值
         Vector<Integer> trainingLabels = new Vector<Integer>();
-        Random rand = new Random();
         // 加载数字及字母字符
         for (int i = 0; i < Constant.numCharacter; i++) {
-            String str = DEFAULT_PATH + "learn/" + Constant.strCharacters[i];
             Vector<String> files = new Vector<String>();
-            FileUtil.getFiles(str, files);  // 文件名不能包含中文
 
-            // int count = 200; // 控制从训练样本中，抽取指定数量的样本
-            int count = files.size(); // 控制从训练样本中，抽取指定数量的样本
-            for (int j = 0; j < count; j++) {
-
-                String filename = "";
-                if(j < files.size()) {
-                    filename = files.get(j);
-                } else {
-                    filename = files.get(rand.nextInt(files.size() - 1));   // 样本不足，随机重复提取已有的样本
-                }
-
+            String str = DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i];
+            FileUtil.getFiles(str, files);
+            
+            str = DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i];
+            FileUtil.getFiles(str, files);
+            
+            str = DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i];
+            FileUtil.getFiles(str, files);
+            
+            for (String filename : files) {
                 Mat img = Imgcodecs.imread(filename, 0);
-
                 Mat f = PlateUtil.features(img, _predictsize);
                 samples.push_back(f);
                 trainingLabels.add(i); // 每一幅字符图片所对应的字符类别索引下标
-
-                // 增加随机平移样本
-                samples.push_back(PlateUtil.features(PlateUtil.randTranslate(img), _predictsize));
-                trainingLabels.add(i); 
-
-                // 增加随机旋转样本
-                samples.push_back(PlateUtil.features(PlateUtil.randRotate(img, false, null), _predictsize));
-                trainingLabels.add(i); 
-
-                // 增加膨胀样本
-                samples.push_back(PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2, false), _predictsize));
-                trainingLabels.add(i); 
-
-                // 增加腐蚀样本
-                /*samples.push_back(PlateUtil.features(PlateUtil.erode(img), _predictsize));
-                trainingLabels.add(i); */
             }
         }
 
@@ -130,7 +121,7 @@ public class ANNTrain {
         for (int i = 0; i < Constant.strCharacters.length; i++) {
 
             char c = Constant.strCharacters[i];
-            String path = DEFAULT_PATH + "learn/" + c;
+            String path = "D:/PlateDetect/train/chars_sample/chars_green/" + c;
 
             Vector<String> files = new Vector<String>();
             FileUtil.getFiles(path, files);
@@ -153,7 +144,7 @@ public class ANNTrain {
                 }
 
                 // 膨胀
-                f = PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2, false), Constant.predictSize);
+                /*f = PlateUtil.features(ImageUtil.dilate(img, false, null, 2, 2, false), Constant.predictSize);
                 ann.predict(f, output);  // 预测结果
                 for (int j = 0; j < Constant.strCharacters.length; j++) {
                     double val = output.get(0, j)[0];
@@ -161,7 +152,7 @@ public class ANNTrain {
                         maxVal = val;
                         index = j;
                     }
-                }
+                }*/
 
                 String result = String.valueOf(Constant.strCharacters[index]);
                 if(result.equals(String.valueOf(c))) {
@@ -171,21 +162,20 @@ public class ANNTrain {
                     /*File f1 = new File(filePath);
                     f1.delete();*/
 
-                    System.err.print(filePath);
-                    System.err.println("\t预测结果：" + result);
+                    
+                    System.err.print("原样本：" + String.valueOf(c));
+                    System.err.print("\t预测结果：" + result);
+                    System.err.println("\t" +filePath);
                 }
                 total++;
             }
-
         }
 
         System.out.print("total:" + total);
         System.out.print("\tcorrect:" + correct);
         System.out.print("\terror:" + (total - correct));
         System.out.println("\t计算准确率为：" + correct / (total * 1.0));
-
-        //牛逼，我操     total:13178  correct:13139   error:39    计算准确率为：0.9970405220822584
-
+        
         return;
     }
 
