@@ -238,7 +238,7 @@ public class PlateUtil {
      */
     public static PlateColor getPlateColor(Mat inMat, Boolean adaptive_minsv, Boolean debug, String tempPath) {
         // 判断阈值
-        final float thresh = 0.70f;
+        final float thresh = 0.60f;
         // 转到HSV空间，对H均衡化之后的结果
         Mat hsvMat = ImageUtil.equalizeHist(inMat, debug, tempPath);
 
@@ -366,7 +366,7 @@ public class PlateUtil {
         // 定位省份字母位置
         Integer posi = getSpecificRect(sorted, color);
         Integer prev = posi - 1 <= 0 ? 0 : posi - 1;
-
+        
         // 定位中文字符   // 中文字符可能不是连续的轮廓，需要特殊处理
         Rect chineseRect = getChineseRect(sorted.get(posi), sorted.get(prev));
 
@@ -374,17 +374,15 @@ public class PlateUtil {
         chineseMat = preprocessChar(chineseMat);
         ImageUtil.debugImg(debug, tempPath, "chineseMat", chineseMat);
 
-        String plate = predictChinese(chineseMat); // 预测中文字符
-
         int charCount = 7;  // 车牌字符个数
         if(color.equals(PlateColor.GREEN)) {
             charCount = 8;
         }
+        
+        String plate = predictChinese(chineseMat); // 预测中文字符
+        charCount--;
 
-        for (int i = posi; i < sorted.size(); i++) {   // 预测中文之外的字符
-            if(i > charCount - 1) { // 去掉多余的字符
-                continue;
-            }
+        for (int i = posi; i < sorted.size() && charCount > 0; i++, charCount--) {   // 预测中文之外的字符
             Mat img_crop = new Mat(threshold, sorted.get(i));
             img_crop = preprocessChar(img_crop);
             plate = plate + predict(img_crop);  // 预测数字、字符
