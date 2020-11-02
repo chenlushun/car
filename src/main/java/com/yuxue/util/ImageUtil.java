@@ -43,7 +43,7 @@ public class ImageUtil {
     public static void debugImg(Boolean debug, String tempPath, String methodName, Mat inMat) {
         if (debug) {
             // 通过getId生成文件名称，使得每个步骤生成的图片能够按照执行时间进行排序
-            Imgcodecs.imwrite(tempPath + GenerateIdUtil.getId() +"_" +methodName + ".jpg", inMat);
+            Imgcodecs.imwrite(tempPath + GenerateIdUtil.getStrId() +"_" +methodName + ".jpg", inMat);
         }
     }
 
@@ -274,8 +274,8 @@ public class ImageUtil {
                     angle = 90 + angle; // 处理车牌相对水平位置，旋转角度不超过90°的图片，超过之后，车牌相当于倒置，不予处理
                     rect_size = new Size(rect_size.height, rect_size.width);
                 }
-                System.err.println("外接矩形倾斜角度：" +  mr.angle);
-                System.err.println("校正角度：" +  angle);
+                /*System.err.println("外接矩形倾斜角度：" +  mr.angle);
+                System.err.println("校正角度：" +  angle);*/
 
                 // 旋转角度，根据需要是否进行角度旋转
                 Mat img_rotated = new Mat();

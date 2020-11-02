@@ -1,5 +1,6 @@
 package com.yuxue.train;
 
+import java.util.Set;
 import java.util.Vector;
 
 import org.opencv.core.Core;
@@ -11,6 +12,7 @@ import org.opencv.ml.ANN_MLP;
 import org.opencv.ml.Ml;
 import org.opencv.ml.TrainData;
 
+import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.util.FileUtil;
 import com.yuxue.util.PlateUtil;
@@ -54,19 +56,24 @@ public class ANNTrain {
     public void train(int _predictsize, int _neurons) {
         Mat samples = new Mat(); // 使用push_back，行数列数不能赋初始值
         Vector<Integer> trainingLabels = new Vector<Integer>();
+        
+        Set<String> sampleDir = null;
+        
         // 加载数字及字母字符
         for (int i = 0; i < Constant.numCharacter; i++) {
+            
+            
+            sampleDir = Sets.newHashSet();
+            sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i]);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + Constant.strCharacters[i]);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + Constant.strCharacters[i]);
+            
             Vector<String> files = new Vector<String>();
-
-            String str = DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i];
-            FileUtil.getFiles(str, files);
-            
-            str = DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i];
-            FileUtil.getFiles(str, files);
-            
-            str = DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i];
-            FileUtil.getFiles(str, files);
-            
+            for (String str : sampleDir) {
+                FileUtil.getFiles(str, files);
+            }
             for (String filename : files) {
                 Mat img = Imgcodecs.imread(filename, 0);
                 Mat f = PlateUtil.features(img, _predictsize);
@@ -117,14 +124,21 @@ public class ANNTrain {
         int total = 0;
         int correct = 0;
 
+        Set<String> sampleDir = null;
         // 遍历测试样本下的所有文件，计算预测准确率
         for (int i = 0; i < Constant.strCharacters.length; i++) {
-
             char c = Constant.strCharacters[i];
-            String path = "D:/PlateDetect/train/chars_sample/chars_green/" + c;
-
+            sampleDir = Sets.newHashSet();
+            sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + c);
+            // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + c);
+            // sampleDir.add(DEFAULT_PATH + "chars_green/" + c);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + c);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + c);
+            
             Vector<String> files = new Vector<String>();
-            FileUtil.getFiles(path, files);
+            for (String str : sampleDir) {
+                FileUtil.getFiles(str, files);
+            }
 
             for (String filePath : files) {
 
@@ -158,11 +172,12 @@ public class ANNTrain {
                 if(result.equals(String.valueOf(c))) {
                     correct++;
                 } else {
-                    // 删除异常样本
-                    /*File f1 = new File(filePath);
-                    f1.delete();*/
-
-                    
+                    /*for (int j = 0; j < Constant.strCharacters.length; j++) {
+                        double val = output.get(0, j)[0];
+                        if(val > 0.1) {
+                            System.out.println( j + "===>" + val);
+                        }
+                    }*/
                     System.err.print("原样本：" + String.valueOf(c));
                     System.err.print("\t预测结果：" + result);
                     System.err.println("\t" +filePath);
@@ -176,17 +191,18 @@ public class ANNTrain {
         System.out.print("\terror:" + (total - correct));
         System.out.println("\t计算准确率为：" + correct / (total * 1.0));
         
+        
         return;
     }
 
     public static void main(String[] args) {
 
         ANNTrain annT = new ANNTrain();
-        // 这里演示只训练model文件夹下的ann.xml，此模型是一个predictSize=10,neurons=40的ANN模型
+        // 这里只训练model文件夹下的ann.xml，此模型是一个predictSize=10,neurons=40的ANN模型
         // 可根据需要训练不同的predictSize或者neurons的ANN模型
         // 根据机器的不同，训练时间不一样，但一般需要10分钟左右，所以慢慢等一会吧
         // 可以考虑中文，数字字母分开训练跟识别，提高准确性
-        annT.train(Constant.predictSize, Constant.neurons);
+        // annT.train(Constant.predictSize, Constant.neurons);
 
         annT.predict();
 

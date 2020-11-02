@@ -68,14 +68,6 @@ public class CnANNTrain {
                 samples.push_back(PlateUtil.features(img, _predictsize));
                 trainingLabels.add(i);
 
-                // 增加随机平移样本
-                samples.push_back(PlateUtil.features(PlateUtil.randTranslate(img), _predictsize));
-                trainingLabels.add(i);
-
-                // 增加随机旋转样本
-                samples.push_back(PlateUtil.features(PlateUtil.randRotate(img, false, null), _predictsize));
-                trainingLabels.add(i);
-
                 // 增加腐蚀样本
                 samples.push_back(PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), _predictsize));
                 trainingLabels.add(i);
