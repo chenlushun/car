@@ -10,6 +10,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -262,7 +263,7 @@ public class ImageUtil {
                 if (debug) {
                     Mat result = src.clone();
                     // 将斜矩形轮廓描绘到原图
-                    drawRectangle(result, result, mr);
+                    drawRectangle(result, mr);
                     // 将轮廓描绘到原图   
                     Imgproc.drawContours(result, Lists.newArrayList(m1), -1, new Scalar(0, 0, 255, 255));
                     // 输出带轮廓的原图
@@ -320,27 +321,38 @@ public class ImageUtil {
      * @param inMat
      * @param dst
      */
-    public static void drawRectangle(Mat inMat, Mat dst, RotatedRect mr) {
+    public static void drawRectangle(Mat inMat, RotatedRect mr) {
         Mat points = new Mat();
         Imgproc.boxPoints(mr, points);
         Scalar scalar = new Scalar(0, 255, 0, 255); //蓝色
         if(points.rows() == 4) {
             Point start = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
             Point end = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
-            Imgproc.line(dst, start, end, scalar);
+            Imgproc.line(inMat, start, end, scalar);
             
             start = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
             end = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
-            Imgproc.line(dst, start, end, scalar);
+            Imgproc.line(inMat, start, end, scalar);
             
             start = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
             end = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
-            Imgproc.line(dst, start, end, scalar);
+            Imgproc.line(inMat, start, end, scalar);
             
             start = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
             end = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
-            Imgproc.line(dst, start, end, scalar);
+            Imgproc.line(inMat, start, end, scalar);
         }
+    }
+    
+    
+    /**
+     * 
+     * @param inMat
+     * @param dst
+     * @param rect 正矩形
+     */
+    public static void drawRectangle(Mat inMat, Rect rect) {
+        Imgproc.rectangle(inMat, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0));
     }
 
 
@@ -468,6 +480,23 @@ public class ImageUtil {
         return rect_size;
     }
     
+    /**
+     * 错切校正
+     * @param inMat
+     * @param dst
+     * @param px  校正像素值   >0上边向右  <0上边向左
+     * @param debug
+     * @param tempPath
+     */
+    public static void shearCorrection(Mat inMat, Mat dst, Integer px, Boolean debug, String tempPath){
+        MatOfPoint2f srcPoints = new MatOfPoint2f();
+        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0));
+        MatOfPoint2f dstPoints = new MatOfPoint2f();
+        dstPoints.fromArray(new Point(0 + px/2.0, 0), new Point(0 - px/2.0, inMat.rows()), new Point(inMat.cols() + px/2.0, 0));
+        Mat trans_mat = Imgproc.getAffineTransform(srcPoints, dstPoints);
+        Imgproc.warpAffine(inMat, dst, trans_mat, inMat.size()); 
+        ImageUtil.debugImg(debug, tempPath, "shear", dst);
+    }
     
     /**
      * 投影变换 举例

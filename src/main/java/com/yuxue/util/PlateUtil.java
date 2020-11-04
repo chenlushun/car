@@ -17,7 +17,10 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -54,8 +57,8 @@ public class PlateUtil {
         ann=ANN_MLP.create();
         ann_cn=ANN_MLP.create();
         loadSvmModel(Constant.DEFAULT_SVM_PATH);
-        loadAnnModel(Constant.DEFAULT_ANN_PATH);
-        // loadAnnModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
+        // loadAnnModel(Constant.DEFAULT_ANN_PATH);
+        loadAnnModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
         loadAnnCnModel(Constant.DEFAULT_ANN_CN_PATH);
     }
 
@@ -315,7 +318,6 @@ public class PlateUtil {
      * @param debug
      * @param tempPath
      */
-    public static final int DEFAULT_ANGLE = 30; // 角度判断所用常量
     public static String charsSegment(Mat inMat, PlateColor color, Boolean debug, String tempPath) {
         // 切换到灰度图 
         Mat gray = new Mat();
@@ -334,6 +336,10 @@ public class PlateUtil {
         }
         ImageUtil.debugImg(debug, tempPath, "plateThreshold", threshold);   // 输出二值图
 
+        Integer px = 0;
+        Vector<Rect> charRect = new Vector<Rect>();   // 字符轮廓集合
+        Vector<RotatedRect> angleRect = new Vector<RotatedRect>();   // 最小外接矩形集合
+
         // 边缘腐蚀  // 边缘膨胀
         threshold = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
         threshold = ImageUtil.dilate(threshold, debug, tempPath, 2, 2, true);
@@ -341,33 +347,41 @@ public class PlateUtil {
         // 提取外部轮廓
         List<MatOfPoint> contours = Lists.newArrayList();
         Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
-        if (debug) {    // 输出轮廓图
-            Mat result = new Mat();
-            inMat.copyTo(result);
-            Imgproc.drawContours(result, contours, -1, new Scalar(0, 0, 255, 255));
-            ImageUtil.debugImg(debug, tempPath, "plateContours", result);
-        }
 
-        Vector<Rect> rt = new Vector<Rect>();
-        for (int i = 0; i < contours.size(); i++) {
+        Mat dst = inMat.clone();
+        for (int i = 0; i < contours.size(); i++) { // 遍历轮廓
             MatOfPoint contour = contours.get(i);
-            Rect mr = Imgproc.boundingRect(contour);    //  boundingRect()得到包覆此轮廓的最小正矩形
+            Rect mr = Imgproc.boundingRect(contour);    //  得到包覆此轮廓的最小正矩形
             if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
-                rt.add(mr);
+                charRect.add(mr);
+
+                RotatedRect mr1 = Imgproc.minAreaRect(new MatOfPoint2f(contour.toArray())); // 得到最小外接矩形
+                angleRect.add(mr1);
+                ImageUtil.drawRectangle(dst, mr1);
+                ImageUtil.debugImg(debug, tempPath, "boundingRect", dst);
             }
         }
-        if(null == rt || rt.size() <= 0) {  // 未识别到字符
+        if(null == charRect || charRect.size() <= 0) {  // 未识别到字符
             return null;
         }
 
+        // 遍历所有外接矩形，根据角度，获取其错切校正方向; 同时计算错切像素值
+        px = getShearPx(angleRect);
+
         // 排序 
         Vector<Rect> sorted = new Vector<Rect>();
-        sortRect(rt, sorted);
+        sortRect(charRect, sorted);
+
+        // 遍历轮廓，计算height 均值，修正超高的字符，去掉柳钉的干扰
+        
+        
+        
+
         // 定位省份字母位置
         Integer posi = getSpecificRect(sorted, color);
         Integer prev = posi - 1 <= 0 ? 0 : posi - 1;
-        
-        // 定位中文字符   // 中文字符可能不是连续的轮廓，需要特殊处理
+
+        // 定位中文字符   // 中文字符可能不是连续的轮廓，需要特殊处理 --需要优化 --未完成yuxue
         Rect chineseRect = getChineseRect(sorted.get(posi), sorted.get(prev));
 
         Mat chineseMat = new Mat(threshold, chineseRect);
@@ -378,17 +392,46 @@ public class PlateUtil {
         if(color.equals(PlateColor.GREEN)) {
             charCount = 8;
         }
-        
+
         String plate = predictChinese(chineseMat); // 预测中文字符
         charCount--;
 
         for (int i = posi; i < sorted.size() && charCount > 0; i++, charCount--) {   // 预测中文之外的字符
             Mat img_crop = new Mat(threshold, sorted.get(i));
+            if(px != 0) {
+                ImageUtil.shearCorrection(img_crop, img_crop, px, debug, tempPath);
+            }
             img_crop = preprocessChar(img_crop);
             plate = plate + predict(img_crop);  // 预测数字、字符
-            ImageUtil.debugImg(debug, tempPath, "charMat", img_crop);
+            // ImageUtil.debugImg(debug, tempPath, "charMat", img_crop);
         }
         return plate;
+    }
+
+    public static Integer getShearPx(Vector<RotatedRect> angleRect) {
+        Integer posCount = 0 ;
+        Integer negCount = 0 ;
+        Float posAngle = 0F;
+        Float negAngle = 0F;
+        for (RotatedRect r : angleRect) {
+            if(Math.abs(r.angle) >= 45) {   //向右倾斜 需要向左校正
+                posCount++;
+                posAngle = posAngle + 90F + (float)r.angle;
+            } else {
+                negCount++;
+                negAngle = negAngle - (float)r.angle;
+            }
+        }
+        Integer px = 0;
+        if(posCount > negCount ) {
+            px = - posAngle.intValue() / posCount / 2;
+        } else {
+            px = negAngle.intValue() / negCount / 2;
+        }
+        if(Math.abs(px) > 10) {
+            px = px % 10;
+        }
+        return px;
     }
 
 
@@ -688,7 +731,7 @@ public class PlateUtil {
         Instant start = Instant.now();
 
         String tempPath = Constant.DEFAULT_TEMP_DIR;
-        String filename = Constant.DEFAULT_DIR + "test/8.jpg";
+        String filename = Constant.DEFAULT_DIR + "test/4.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));

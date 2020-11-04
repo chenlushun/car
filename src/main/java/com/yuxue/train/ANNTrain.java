@@ -42,7 +42,7 @@ public class ANNTrain {
     
     
     /**
-     * 加小编微信，可获取更多车牌字符样本文件
+     * 加小编微信，可获取更多车牌字符样本文件，还可以获取更多帮助哟
      * 小编整理样本文件，差点没把眼睛看瞎了，整理相关算法整理更是不易，请小编喝杯18块咖啡提提神即可
      * 微信号：localhost18888
      * 样本文件包含：
@@ -64,11 +64,11 @@ public class ANNTrain {
             
             
             sampleDir = Sets.newHashSet();
-            sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i]);
-            sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i]);
-            sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i]);
-            // sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + Constant.strCharacters[i]);
-            // sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + Constant.strCharacters[i]);
+            // sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i]);
+            // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i]);
+            // sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + Constant.strCharacters[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + Constant.strCharacters[i]);
             
             Vector<String> files = new Vector<String>();
             for (String str : sampleDir) {
@@ -191,6 +191,29 @@ public class ANNTrain {
         System.out.print("\terror:" + (total - correct));
         System.out.println("\t计算准确率为：" + correct / (total * 1.0));
         
+        // 旧蓝 识别  旧蓝
+        // total:13079  correct:13037   error:42    计算准确率为：0.9967887453169203
+        // total:13057 correct:12937   error:120   计算准确率为：0.9908095274565367
+        // total:13057  correct:13046   error:11    计算准确率为：0.9991575400168492
+        // total:13044  correct:13026   error:18    计算准确率为：0.9986200551977921
+        // total:13032  correct:13017   error:15    计算准确率为：0.9988489871086557
+        
+        // 旧蓝 识别  新蓝
+        //total:16952   correct:15400   error:1552  计算准确率为：0.9084473808400189
+        
+        // -- 使用错切、旋转、膨胀、腐蚀，蓝牌、绿牌样本训练，识别旧蓝牌样本
+        // total:13079 correct:11631   error:1448  计算准确率为：0.889288171878584
+        // total:3692   correct:3209    error:483   计算准确率为：0.8691765980498375
+        
+        // 新蓝 识别  新蓝
+        // total:16952  correct:16857   error:95    计算准确率为：0.9943959414818311
+        // 新蓝 识别  旧蓝
+        // total:13079  correct:12528   error:551   计算准确率为：0.9578713968957872
+        
+        // 旧蓝 + 新蓝 + 绿  识别 绿 
+        // total:3702   correct:3675    error:27    计算准确率为：0.9927066450567261
+        
+        // 旧蓝 + 新蓝 + 绿 + 错切等 
         
         return;
     }
@@ -202,11 +225,11 @@ public class ANNTrain {
         // 可根据需要训练不同的predictSize或者neurons的ANN模型
         // 根据机器的不同，训练时间不一样，但一般需要10分钟左右，所以慢慢等一会吧
         // 可以考虑中文，数字字母分开训练跟识别，提高准确性
-        // annT.train(Constant.predictSize, Constant.neurons);
+        annT.train(Constant.predictSize, Constant.neurons);
 
-        annT.predict();
+        // annT.predict();
 
-        System.out.println("The end.");
+        System.err.println("The end.");
         return;
     }
 
