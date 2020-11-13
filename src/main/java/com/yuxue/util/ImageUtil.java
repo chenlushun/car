@@ -186,22 +186,40 @@ public class ImageUtil {
 
 
     /**
-     * 使用闭操作。对图像进行闭操作以后，可以看到车牌区域被连接成一个矩形的区域
-     * @param inMat
+     * 闭操作
+     * 对图像进行闭操作以后，可以看到车牌区域被连接成一个矩形的区域
+     * @param inMat  二值图像
      * @param debug
      * @param tempPath
      * @return
      */
     public static final int DEFAULT_MORPH_SIZE_WIDTH = 10;
     public static final int DEFAULT_MORPH_SIZE_HEIGHT = 10; // 大于1
-    public static Mat morphology(Mat inMat, Boolean debug, String tempPath) {
-        Mat dst = new Mat(inMat.size(), CvType.CV_8UC1);
+    public static Mat morphologyClose(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Size size = new Size(DEFAULT_MORPH_SIZE_WIDTH, DEFAULT_MORPH_SIZE_HEIGHT);
-        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, size);
-        Imgproc.morphologyEx(inMat, dst, Imgproc.MORPH_CLOSE, element);
-        debugImg(debug, tempPath, "morphology", dst);
+        Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, size);
+        Imgproc.morphologyEx(inMat, dst, Imgproc.MORPH_CLOSE, kernel);
+        debugImg(debug, tempPath, "morphologyClose", dst);
         return dst;
     }
+
+
+    /**
+     * 开操作
+     * 干掉一些细小的白点
+     * @param inMat 二值图像
+     * @param debug
+     * @param tempPath
+     * @return
+     */
+    public static Mat morphologyOpen(Mat inMat, Mat dst, Boolean debug, String tempPath) {
+        Size size = new Size(2, 2);
+        Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, size);
+        Imgproc.morphologyEx(inMat, dst, Imgproc.MORPH_OPEN, kernel);
+        debugImg(debug, tempPath, "morphologyOpen", dst);
+        return dst;
+    }
+
 
 
     /**
@@ -288,8 +306,8 @@ public class ImageUtil {
                 // 如果相机在车牌的左前、右前、上方等，拍摄角度较大时，则需要考虑使用投影变换
                 // 仿射变换  对原图进行错切校正
                 // 轮廓的提取，直接影响校正的效果
-                Mat shear = img_rotated.clone();
-                rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
+                // Mat shear = img_rotated.clone();
+                // rect_size = shearCorrection(m2, mr, img_rotated, shear, rect_size, debug, tempPath);
 
                 // 切图   按给定的尺寸、给定的中心点
                 Mat img_crop = new Mat();
@@ -298,10 +316,10 @@ public class ImageUtil {
                     // 如果是新能源牌照，需要向上扩展一定的尺寸--未完成yuxue
                     Size s = new Size(rect_size.width, rect_size.height + (rect_size.height/8));
                     Point c = new Point(mr.center.x, mr.center.y - (rect_size.height/16) -8);   // 偏移量修正
-                    Imgproc.getRectSubPix(shear, s, c, img_crop);
+                    Imgproc.getRectSubPix(img_rotated, s, c, img_crop);
                 } else {
                     Point c = new Point(mr.center.x, mr.center.y -4);   // 偏移量修正
-                    Imgproc.getRectSubPix(shear, rect_size, c, img_crop);
+                    Imgproc.getRectSubPix(img_rotated, rect_size, c, img_crop);
                 }
 
                 // 处理切图，调整为指定大小
@@ -329,22 +347,22 @@ public class ImageUtil {
             Point start = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
             Point end = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
             Imgproc.line(inMat, start, end, scalar);
-            
+
             start = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);
             end = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
             Imgproc.line(inMat, start, end, scalar);
-            
+
             start = new Point(points.get(2, 0)[0], points.get(2, 1)[0]);
             end = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
             Imgproc.line(inMat, start, end, scalar);
-            
+
             start = new Point(points.get(3, 0)[0], points.get(3, 1)[0]);
             end = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
             Imgproc.line(inMat, start, end, scalar);
         }
     }
-    
-    
+
+
     /**
      * 
      * @param inMat
@@ -361,7 +379,9 @@ public class ImageUtil {
      * 根据轮廓、以及最小斜矩形矩形错切校正，用于处理变形(不是倾斜)的车牌图片  即【平行四边形】的车牌校正为【长方形】
      * 该算法，容易受到到轮廓的影响，要求轮廓定位得比较精确 
      * 其他方案: 
-     *  1、在处理字符的时候，进行错切校正，根据字符的外接矩形倾斜角度来校正字符即可
+     *  1、在处理字符的时候，进行错切校正，
+     *      a、根据字符的外接矩形倾斜角度来校正字符 --已经实现
+     *      b、计算字符垂直方向投影，分别左右倾斜一定角度，获取最优错切校正像素值(推荐)--已经实现
      *  2、在训练字符识别模型的时候，加入错切的样本数据
      * @param m2 轮廓
      * @param mr 包覆轮廓的最小斜矩形
@@ -372,6 +392,7 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
+    @SuppressWarnings("unused")
     private static Size shearCorrection(MatOfPoint2f m2, RotatedRect mr, Mat inMat, Mat dst, Size rect_size, Boolean debug, String tempPath){
         Mat vertex = new Mat(); 
         Imgproc.boxPoints(mr, vertex);  // 最小外接矩形，四个顶点 Mat(4, 2)
@@ -479,7 +500,7 @@ public class ImageUtil {
         debugImg(debug, tempPath, "shearCorrection", dst);
         return rect_size;
     }
-    
+
     /**
      * 错切校正
      * @param inMat
@@ -497,7 +518,7 @@ public class ImageUtil {
         Imgproc.warpAffine(inMat, dst, trans_mat, inMat.size()); 
         ImageUtil.debugImg(debug, tempPath, "shear", dst);
     }
-    
+
     /**
      * 投影变换 举例
      * @param inMat
@@ -800,7 +821,7 @@ public class ImageUtil {
         debugImg(debug, tempPath, "enlarge", dst);
     }
 
-    
+
     /**
      * 按最大宽度，计算放大/缩小比例
      * 锁定纵横比
@@ -817,8 +838,8 @@ public class ImageUtil {
         zoom(inMat, dst, ratio, ratio, debug, tempPath);
         return dst;
     }
-    
-    
+
+
     /**
      * 放大、缩小
      * 不锁定纵横比
@@ -834,7 +855,7 @@ public class ImageUtil {
         Imgproc.warpAffine(inMat, dst, trans_mat, dst.size()); // 仿射变换
         debugImg(debug, tempPath, "zoom", dst);
     }
-    
+
 
     /**
      * 平移
@@ -884,29 +905,19 @@ public class ImageUtil {
 
 
     public static void main(String[] args) {
-        Mat shear = new Mat();  // 校正后的图片
-
-        String tempPath = Constant.DEFAULT_TEMP_DIR + "test/";
-        String filename = tempPath + "15.jpg";
+        String tempPath = Constant.DEFAULT_TEST_DIR;
+        String filename = tempPath + "26.jpg";
         File f = new File(filename);
         if(!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));
             File f2 = new File(filename.replace("png", "bmp"));
             filename = f1.exists() ? f1.getPath() : f2.getPath();
         }
-
         Mat inMat = Imgcodecs.imread(filename);
-        // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
-        MatOfPoint2f srcPoints = new MatOfPoint2f();
-        srcPoints.fromArray(new Point(0, 0), new Point(0, inMat.rows()), new Point(inMat.cols(), 0));
-        MatOfPoint2f dstPoints = new MatOfPoint2f();
-        dstPoints.fromArray(new Point(0 - 180, 0), new Point(0 + 180, inMat.rows()), new Point(inMat.cols() - 180, 0)); // 上边线向左，下边线向右拉伸
-
-        // 对整张图进行错切校正
-        Mat m3 = Imgproc.getAffineTransform(srcPoints, dstPoints);
-        Imgproc.warpAffine(inMat, shear, m3, inMat.size());
-        debugImg(true, tempPath, "shearCorrection", shear);
+        Mat dst = inMat.clone();
+        morphologyOpen(inMat, dst, true, Constant.DEFAULT_TEMP_DIR);
     }
 
+    
 
 }

@@ -20,6 +20,7 @@ public class Constant {
     public static final String DEFAULT_DIR = BASE_DIR + "PlateDetect/";
     // 车牌识别， 默认图片处理过程temp路径
     public static final String DEFAULT_TEMP_DIR = BASE_DIR + "PlateDetect/temp/";
+    public static final String DEFAULT_TEST_DIR = BASE_DIR + "PlateDetect/test/";
     
     // 人脸识别相关路径
     public static final String DEFAULT_FACE_DIR = BASE_DIR + "FaceDetect/";
