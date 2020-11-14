@@ -61,13 +61,11 @@ public class ANNTrain {
         
         // 加载数字及字母字符
         for (int i = 0; i < Constant.numCharacter; i++) {
-            
-            
             sampleDir = Sets.newHashSet();
             // sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i]);
             // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i]);
-            // sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i]);
-            sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + Constant.strCharacters[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i]);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + Constant.strCharacters[i]);
             sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + Constant.strCharacters[i]);
             
             Vector<String> files = new Vector<String>();

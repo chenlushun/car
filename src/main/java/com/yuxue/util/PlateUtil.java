@@ -30,44 +30,50 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
+import com.yuxue.entity.PlateRecoResult;
 import com.yuxue.enumtype.Direction;
 import com.yuxue.enumtype.PlateColor;
 import com.yuxue.enumtype.PlateHSV;
 import com.yuxue.train.SVMTrain;
 
-
 /**
- * 车牌处理工具类
- * 车牌切图按字符分割
- * 字符识别
+ * 车牌处理工具类 车牌切图按字符分割 字符识别
  * @author yuxue
  * @date 2020-05-28 15:11
  */
 public class PlateUtil {
 
     private static SVM svm = null;
-    private static ANN_MLP ann= null;
-    private static ANN_MLP ann_cn= null;
+    // 简单测试了一下，发现绿牌跟蓝牌分开识别，准确率更高
+    private static ANN_MLP ann_blue = null;
+    private static ANN_MLP ann_green = null;
+    private static ANN_MLP ann_cn = null;
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         svm = SVM.create();
-        ann=ANN_MLP.create();
-        ann_cn=ANN_MLP.create();
+        ann_blue = ANN_MLP.create();
+        ann_green = ANN_MLP.create();
+        ann_cn = ANN_MLP.create();
         loadSvmModel(Constant.DEFAULT_SVM_PATH);
-        loadAnnModel(Constant.DEFAULT_ANN_PATH);
-        // loadAnnModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
+        loadAnnBlueModel(Constant.DEFAULT_ANN_PATH);
+        loadAnnGreenModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
         loadAnnCnModel(Constant.DEFAULT_ANN_CN_PATH);
     }
 
     public static void loadSvmModel(String path) {
         svm.clear();
-        svm=SVM.load(path);
+        svm = SVM.load(path);
     }
 
-    public static void loadAnnModel(String path) {
-        ann.clear();
-        ann = ANN_MLP.load(path);
+    public static void loadAnnBlueModel(String path) {
+        ann_blue.clear();
+        ann_blue = ANN_MLP.load(path);
+    }
+
+    public static void loadAnnGreenModel(String path) {
+        ann_green.clear();
+        ann_green = ANN_MLP.load(path);
     }
 
     public static void loadAnnCnModel(String path) {
@@ -75,9 +81,9 @@ public class PlateUtil {
         ann_cn = ANN_MLP.load(path);
     }
 
-
     /**
      * 根据正则表达式判断字符串是否是车牌
+     * 
      * @param str
      * @return
      */
@@ -85,14 +91,12 @@ public class PlateUtil {
         Pattern p = Pattern.compile(Constant.plateReg);
         Boolean bl = false;
         Matcher m = p.matcher(str);
-        while(m.find()) {
+        while (m.find()) {
             bl = true;
             break;
         }
         return bl;
     }
-
-
 
     /**
      * 
@@ -108,9 +112,9 @@ public class PlateUtil {
         return findPlateByContours(src, resized, dst, debug, tempPath);
     }
 
-
     /**
      * 根据图片，获取可能是车牌的图块集合
+     * 
      * @param src 输入原图
      * @param inMat 调整尺寸后的图
      * @param dst 可能是车牌的图块集合
@@ -134,9 +138,9 @@ public class PlateUtil {
         Mat threshold = new Mat();
         ImageUtil.threshold(sobel, threshold, debug, tempPath);
 
-        // 使用闭操作  同时处理一些干扰元素
+        // 使用闭操作 同时处理一些干扰元素
         Mat morphology = threshold.clone();
-        ImageUtil.morphologyClose(threshold, morphology, debug, tempPath);  // 闭操作
+        ImageUtil.morphologyClose(threshold, morphology, debug, tempPath); // 闭操作
 
         // 边缘腐蚀，边缘膨胀，可以多执行两次
         morphology = ImageUtil.erode(morphology, debug, tempPath, 4, 4);
@@ -155,8 +159,6 @@ public class PlateUtil {
 
         return dst;
     }
-
-
 
     /**
      * 
@@ -179,7 +181,7 @@ public class PlateUtil {
      * @param inMat 调整尺寸后的图
      * @param dst 可能是车牌的图块集合
      * @param debug 是否保留图片的处理过程
-     * @param tempPath 图片处理过程的缓存目录   
+     * @param tempPath 图片处理过程的缓存目录
      * @return
      */
     public static Vector<Mat> findPlateByHsvFilter(Mat src, Mat inMat, Vector<Mat> dst, PlateHSV plateHSV, Boolean debug, String tempPath) {
@@ -193,7 +195,7 @@ public class PlateUtil {
         // 二次hsv过滤，二值化
         Mat threshold = ImageUtil.hsvThreshold(equalizeMat, debug, tempPath, plateHSV.equalizeMinH, plateHSV.equalizeMaxH);
         Mat morphology = threshold.clone();
-        ImageUtil.morphologyClose(threshold, morphology, debug, tempPath);  // 闭操作
+        ImageUtil.morphologyClose(threshold, morphology, debug, tempPath); // 闭操作
         threshold.release();
 
         Mat rgb = new Mat();
@@ -201,9 +203,9 @@ public class PlateUtil {
 
         // 将二值图像，resize到原图的尺寸； 如果使用缩小后的图片提取图块，可能会出现变形，影响后续识别结果
         ImageUtil.enlarge(rgb, rgb, src.size(), debug, tempPath);
-        // 提取轮廓    
-        List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);   
-        // 根据轮廓， 筛选出可能是车牌的图块     // 切图的时候， 处理绿牌，需要往上方扩展一定比例像素
+        // 提取轮廓
+        List<MatOfPoint> contours = ImageUtil.contours(src, rgb, debug, tempPath);
+        // 根据轮廓， 筛选出可能是车牌的图块 // 切图的时候， 处理绿牌，需要往上方扩展一定比例像素
         Vector<Mat> blockMat = ImageUtil.screenBlock(src, contours, plateHSV.equals(PlateHSV.GREEN), debug, tempPath);
 
         // 找出可能是车牌的图块，存到dst中， 返回结果
@@ -211,20 +213,19 @@ public class PlateUtil {
         return dst;
     }
 
-
-
-
     /**
      * 输入车牌切图集合，判断是否包含车牌
+     * 
      * @param inMat
-     * @param dst 包含车牌的图块
+     * @param dst
+     *            包含车牌的图块
      */
     public static void hasPlate(Vector<Mat> inMat, Vector<Mat> dst, Boolean debug, String tempPath) {
         for (Mat src : inMat) {
-            if(src.rows() == Constant.DEFAULT_HEIGHT && src.cols() == Constant.DEFAULT_WIDTH) { // 尺寸限制; 已经结果resize了，此处判断一下
+            if (src.rows() == Constant.DEFAULT_HEIGHT && src.cols() == Constant.DEFAULT_WIDTH) { // 尺寸限制; 已经结果resize了，此处判断一下
                 Mat samples = SVMTrain.getFeature(src);
                 float flag = svm.predict(samples);
-                if (flag == 0) {    // 目标符合
+                if (flag == 0) { // 目标符合
                     dst.add(src);
                     ImageUtil.debugImg(true, tempPath, "platePredict", src);
                 }
@@ -233,33 +234,33 @@ public class PlateUtil {
         return;
     }
 
-
     /**
      * 判断车牌切图颜色
+     * 
      * @param inMat
      * @return
      */
     public static PlateColor getPlateColor(Mat inMat, Boolean adaptive_minsv, Boolean debug, String tempPath) {
         // 判断阈值
-        final float thresh = 0.60f;
+        final float thresh = 0.5f;
         // 转到HSV空间，对H均衡化之后的结果
         Mat hsvMat = ImageUtil.equalizeHist(inMat, debug, tempPath);
 
-        if(colorMatch(hsvMat, PlateColor.GREEN, adaptive_minsv, debug, tempPath) > thresh) {
+        if (colorMatch(hsvMat, PlateColor.GREEN, adaptive_minsv, debug, tempPath) > thresh) {
             return PlateColor.GREEN;
         }
-        if(colorMatch(hsvMat, PlateColor.YELLOW, adaptive_minsv, debug, tempPath) > thresh) {
+        if (colorMatch(hsvMat, PlateColor.YELLOW, adaptive_minsv, debug, tempPath) > thresh) {
             return PlateColor.YELLOW;
         }
-        if(colorMatch(hsvMat, PlateColor.BLUE, adaptive_minsv, debug, tempPath) > thresh) {
+        if (colorMatch(hsvMat, PlateColor.BLUE, adaptive_minsv, debug, tempPath) > thresh) {
             return PlateColor.BLUE;
         }
         return PlateColor.UNKNOWN;
     }
 
-
     /**
      * 颜色匹配计算
+     * 
      * @param inMat
      * @param r
      * @param adaptive_minsv
@@ -282,13 +283,13 @@ public class PlateUtil {
         int avg_h = (int) (min_h + diff_h);
 
         for (int i = 0; i < hsvMat.rows(); i++) {
-            for (int j = 0; j < hsvMat.cols(); j ++) {
-                int H = (int)hsvMat.get(i, j)[0];
-                int S = (int)hsvMat.get(i, j)[1];
-                int V = (int)hsvMat.get(i, j)[2];
+            for (int j = 0; j < hsvMat.cols(); j++) {
+                int H = (int) hsvMat.get(i, j)[0];
+                int S = (int) hsvMat.get(i, j)[1];
+                int V = (int) hsvMat.get(i, j)[2];
 
                 boolean colorMatched = false;
-                if ( min_h < H && H <= max_h) {
+                if (min_h < H && H <= max_h) {
                     int Hdiff = Math.abs(H - avg_h);
                     float Hdiff_p = Hdiff / diff_h;
                     float min_sv = 0;
@@ -309,8 +310,6 @@ public class PlateUtil {
         return countMatched * 1F / countTotal;
     }
 
-
-
     /**
      * 车牌切图，分割成单个字符切图
      * @param inMat 输入原始图像
@@ -319,38 +318,38 @@ public class PlateUtil {
      * @param tempPath
      */
     public static String charsSegment(Mat inMat, PlateColor color, Boolean debug, String tempPath) {
-        
-        int charCount = 7;  // 车牌字符个数
-        if(color.equals(PlateColor.GREEN)) {
+
+        int charCount = 7; // 车牌字符个数
+        if (color.equals(PlateColor.GREEN)) {
             charCount = 8;
         }
-        
-        // 切换到灰度图 
+
+        // 切换到灰度图
         Mat gray = new Mat();
         Imgproc.cvtColor(inMat, gray, Imgproc.COLOR_BGR2GRAY);
         ImageUtil.gaussianBlur(gray, gray, debug, tempPath);
 
-        // 图像进行二值化   // 图像二值化阈值选取--未完成yuxue
+        // 图像进行二值化 // 图像二值化阈值选取--未完成yuxue
         Mat threshold = new Mat();
         switch (color) {
         case BLUE:
             Imgproc.threshold(gray, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
             break;
-        default:    // GREEN  YELLOW 
+        default: // GREEN YELLOW
             Imgproc.threshold(gray, threshold, 10, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY_INV);
             break;
         }
-        ImageUtil.debugImg(debug, tempPath, "plateThreshold", threshold);   // 输出二值图
+        ImageUtil.debugImg(debug, tempPath, "plateThreshold", threshold); // 输出二值图
 
-        // 边缘腐蚀  
+        // 边缘腐蚀
         threshold = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
 
         // 垂直方向投影，错切校正 // 理论上，还可以用于分割字符
         Integer px = getShearPx(threshold);
         ImageUtil.shearCorrection(threshold, threshold, px, debug, tempPath);
-        
+
         // 前面已经结果错切校正了，可以按照垂直、水平方向投影进行精确定位
-        // 垂直投影 + 垂直分割线，分割字符  // 水平投影，去掉上下边框、铆钉干扰
+        // 垂直投影 + 垂直分割线，分割字符 // 水平投影，去掉上下边框、铆钉干扰
         threshold = sepAndClear(threshold, px, charCount, debug, tempPath);
 
         // 边缘膨胀 // 还原腐蚀操作产生的影响 // 会影响中文字符的精确度
@@ -361,23 +360,25 @@ public class PlateUtil {
 
         Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 
-        Vector<Rect> charRect = new Vector<Rect>();   // 字符轮廓集合
+        Vector<Rect> charRect = new Vector<Rect>(); // 字符轮廓集合
 
-        Mat dst = inMat.clone();
-        Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
-
+        Mat dst = null;
+        if (debug) {
+            dst = inMat.clone();
+            Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
+        }
         for (int i = 0; i < contours.size(); i++) { // 遍历轮廓
             MatOfPoint contour = contours.get(i);
-            Rect mr = Imgproc.boundingRect(contour);    //  得到包覆此轮廓的最小正矩形
-            if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
+            Rect mr = Imgproc.boundingRect(contour); // 得到包覆此轮廓的最小正矩形
+            if (checkCharSizes(mr)) { // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
                 charRect.add(mr);
-
-                ImageUtil.drawRectangle(dst, mr);
-                ImageUtil.debugImg(debug, tempPath, "boundingRect", dst);
-                dst.release();
+                if (debug) {
+                    ImageUtil.drawRectangle(dst, mr);
+                    ImageUtil.debugImg(debug, tempPath, "boundingRect", dst);
+                }
             }
         }
-        if(null == charRect || charRect.size() <= 0) {  // 未识别到字符
+        if (null == charRect || charRect.size() <= 0) { // 未识别到字符
             return null;
         }
         // 字符个数不足，要按照分割的区域补齐 // 同时处理中文字符
@@ -391,7 +392,7 @@ public class PlateUtil {
         Integer posi = getSpecificRect(sorted, color);
         Integer prev = posi - 1 <= 0 ? 0 : posi - 1;
 
-        // 定位中文字符   // 中文字符可能不是连续的轮廓，需要特殊处理
+        // 定位中文字符 // 中文字符可能不是连续的轮廓，需要特殊处理
         Rect chineseRect = getChineseRect(sorted.get(posi), sorted.get(prev));
 
         Mat chineseMat = new Mat(threshold, chineseRect);
@@ -399,23 +400,35 @@ public class PlateUtil {
         ImageUtil.debugImg(debug, tempPath, "chineseMat", chineseMat);
 
         // 识别字符，计算置信度
-
+        List<PlateRecoResult> result = Lists.newArrayList();
 
         // 一般来说，中文字符预测比较不准确，所以参考业界的做法，设置默认所在的省份字符，如果置信度较低， 则默认该字符
-        String plate = predictChinese(chineseMat); // 预测中文字符
+        PlateRecoResult chinese = new PlateRecoResult();
+        chinese.setSort(0);
+        chinese.setRect(chineseRect);
+        predictChinese(chineseMat, chinese); // 预测中文字符
+        result.add(chinese);
         charCount--;
 
-        for (int i = posi; i < sorted.size() && charCount > 0; i++, charCount--) {   // 预测中文之外的字符
+        for (int i = posi; i < sorted.size() && charCount > 0; i++, charCount--) { // 预测中文之外的字符
             Mat img_crop = new Mat(threshold, sorted.get(i));
+            img_crop = preprocessChar(img_crop);    
+            PlateRecoResult chars = new PlateRecoResult();
+            chars.setSort(i+1);
+            chars.setRect(chineseRect);
+            predict(img_crop, color, chars); // 预测数字、字符
+            result.add(chars);
             ImageUtil.debugImg(debug, tempPath, "charMat", img_crop);
-            img_crop = preprocessChar(img_crop);
-            plate = plate + predict(img_crop);  // 预测数字、字符
-            // ImageUtil.debugImg(debug, tempPath, "charMat", img_crop);
         }
+        String plate = "";  // 车牌识别结果
+        Double fonfidence = 0.0D; // 置信度
+        for (PlateRecoResult p : result) {
+            plate += p.getChars();
+            fonfidence += p.getConfi();
+        }
+        System.out.println(plate + "===>" + fonfidence);
         return plate;
     }
-
-
 
     /**
      * 
@@ -426,23 +439,23 @@ public class PlateUtil {
      * @param debug
      * @param tempPath
      */
-    public static Mat sepAndClear(Mat threshold, Integer px, Integer charCount, Boolean debug, String tempPath){
+    public static Mat sepAndClear(Mat threshold, Integer px, Integer charCount, Boolean debug, String tempPath) {
         Mat dst = threshold.clone();
         Set<Integer> rows = Sets.newHashSet();
-        int ignore = 10; 
-        // 水平方向投影 // 按rows清除干扰  // 去掉上下边框干扰像素
+        int ignore = 10;
+        // 水平方向投影 // 按rows清除干扰 // 去掉上下边框干扰像素
         // 垂直方向投影; 按cols清楚干扰; 意义不大; 直接分割，提取字符更简单
         for (int i = 0; i < threshold.rows(); i++) {
             int count = Core.countNonZero(threshold.row(i));
-            if(count <= 15) {
+            if (count <= 15) {
                 rows.add(i);
-                if(i < ignore) {
+                if (i < ignore) {
                     for (int j = 0; j < i; j++) {
                         rows.add(j);
                     }
                 }
-                if(i > threshold.rows() - ignore) {
-                    for (int j = i+1; j < threshold.rows(); j++) {
+                if (i > threshold.rows() - ignore) {
+                    for (int j = i + 1; j < threshold.rows(); j++) {
                         rows.add(j);
                     }
                 }
@@ -451,22 +464,22 @@ public class PlateUtil {
 
         Integer minY = 0;
         for (int i = 0; i < threshold.rows(); i++) {
-            if(rows.contains(i)) {
-                if(i <= threshold.rows()/2) {
+            if (rows.contains(i)) {
+                if (i <= threshold.rows() / 2) {
                     minY = i;
                 }
                 for (int j = 0; j < threshold.cols(); j++) {
                     dst.put(i, j, 0);
                 }
             }
-        }   
-        
+        }
+
         threshold.release();
         ImageUtil.debugImg(debug, tempPath, "sepAndClear", dst);
 
-        // 分割字符，返回所有字符的边框，Rect(x, y, width, height) 
+        // 分割字符，返回所有字符的边框，Rect(x, y, width, height)
         // 在这里提取，估计比轮廓提取方式更准确，尤其在提取中文字符方面
-       /* Integer height = dst.rows() - rows.size();
+        /*Integer height = dst.rows() - rows.size();
         Integer y = minY + 1;   // 修正一个像素
         Integer x = 0;
         Integer width = 0;
@@ -485,30 +498,26 @@ public class PlateUtil {
             }
             if(bl && width > 0) {   // 切割图块
                 Rect r = new Rect(x, y, width, height); // 提取到的轮廓
-                
-                 // 按轮廓切图
+                // 按轮廓切图
                 Mat img_crop = new Mat(dst, r);
                 ImageUtil.debugImg(debug, tempPath, "sepAndClear-crop", img_crop);
                 rects.add(r);
                 width = 0;
             }
         }*/
-        
         return dst;
     }
 
-
     /**
-     * 基于字符垂直方向投影，计算错切值，用于错切校正
-     * 上下均去掉6个像素； 去掉上下边框的干扰
-     * 最大处理25px的错切校； 左右去掉25像素，保证每列都能取到完整的数据
-     * 相当于实现任意角度的投影计算；
+     * 基于字符垂直方向投影，计算错切值，用于错切校正 上下均去掉6个像素；
+     * 去掉上下边框的干扰 最大处理25px的错切校； 
+     * 左右去掉25像素，保证每列都能取到完整的数据 相当于实现任意角度的投影计算；
      * @param threshold 二值图像， 0黑色 255白色； 136 * 36
      * @return sep 可以用于字符分割的列
      * @return 错切像素值
      */
     public static Integer getShearPx(Mat threshold) {
-        int px = 25;    // 最大处理25像素的错切
+        int px = 25; // 最大处理25像素的错切
         int ignore = 6; // 去掉上下边框干扰像素
 
         int maxCount = 0; // 取count值最大
@@ -519,82 +528,85 @@ public class PlateUtil {
             int colCount = 0; // 计数满足条件的列
             // 计算按像素值倾斜的投影
             for (int j = px; j < threshold.cols() - px; j++) {
-                int cellCount = 0; //计数每列为0的值
+                int cellCount = 0; // 计数每列为0的值
                 float c = i * 1F / threshold.rows();
                 for (int k = ignore; k < threshold.rows() - ignore; k++) {
                     double d = threshold.get(k, Math.round(j + k * c))[0];
-                    if(d <= 10) {
+                    if (d <= 10) {
                         cellCount++;
                     }
                 }
-                if(cellCount>=24) {
+                if (cellCount >= 24) {
                     colCount++;
                 }
             }
             // System.out.println(i + "===>" + minPx + "===>" + colCount + "===>" + maxCount);
-            if(colCount == maxCount ) {
-                if(Math.abs(i) <= minPx) {
+            if (colCount == maxCount) {
+                if (Math.abs(i) <= minPx) {
                     minPx = Math.abs(i);
                     result = i;
                 }
             }
-            if(colCount > maxCount ) {
+            if (colCount > maxCount) {
                 maxCount = colCount;
                 minPx = Math.abs(i);
                 result = i;
             }
-        } 
+        }
         System.err.println("错切校正像素值===>" + result);
         return result;
     }
 
-
     /**
-     * 根据字符的外接矩形倾斜角度计算错切值，用于错切校正
-     *  提取最小正矩形的时候，同时提取最小外接斜矩形；计算错切像素值
-     *  在切割字符之后，进行预测之前，对每个字符进行校正
+     * 根据字符的外接矩形倾斜角度计算错切值，
+     * 用于错切校正 提取最小正矩形的时候，同时提取最小外接斜矩形；
+     * 计算错切像素值 在切割字符之后，进行预测之前，对每个字符进行校正
      * @param angleRect 字符最小外接矩形 集合
      * @return
      */
     public static Integer getShearPx(Vector<RotatedRect> angleRect) {
-        Integer posCount = 0 ;
-        Integer negCount = 0 ;
+        Integer posCount = 0;
+        Integer negCount = 0;
         Float posAngle = 0F;
         Float negAngle = 0F;
         for (RotatedRect r : angleRect) {
-            if(Math.abs(r.angle) >= 45) {   //向右倾斜 需要向左校正
+            if (Math.abs(r.angle) >= 45) { // 向右倾斜 需要向左校正
                 posCount++;
-                posAngle = posAngle + 90F + (float)r.angle;
+                posAngle = posAngle + 90F + (float) r.angle;
             } else {
                 negCount++;
-                negAngle = negAngle - (float)r.angle;
+                negAngle = negAngle - (float) r.angle;
             }
         }
         Integer px = 0;
-        if(posCount > negCount ) {
-            px = - posAngle.intValue() / posCount / 2;
+        if (posCount > negCount) {
+            px = -posAngle.intValue() / posCount / 2;
         } else {
             px = negAngle.intValue() / negCount / 2;
         }
-        if(Math.abs(px) > 10) {
+        if (Math.abs(px) > 10) {
             px = px % 10;
         }
         return px;
     }
 
-
     /**
      * 预测数字、字母 字符
+     * 
      * @param img
      * @return
      */
-    public static String predict(Mat img) {
+    public static void predict(Mat img, PlateColor color, PlateRecoResult chars) {
         Mat f = PlateUtil.features(img, Constant.predictSize);
 
         int index = 0;
-        double maxVal = -2;
+        Double maxVal = -2D;
         Mat output = new Mat(1, Constant.strCharacters.length, CvType.CV_32F);
-        ann.predict(f, output);  // 预测结果
+        if(color.equals(PlateColor.GREEN)) {
+            ann_green.predict(f, output); // 预测结果
+        } else {
+            ann_blue.predict(f, output); // 预测结果
+        }
         for (int j = 0; j < Constant.strCharacters.length; j++) {
             double val = output.get(0, j)[0];
             if (val > maxVal) {
@@ -603,22 +615,23 @@ public class PlateUtil {
             }
         }
         String result = String.valueOf(Constant.strCharacters[index]);
-        return result;
+        chars.setChars(result);
+        chars.setConfi(maxVal);
     }
-
 
     /**
      * 预测中文字符
+     * 
      * @param img
      * @return
      */
-    public static String predictChinese(Mat img) {
+    public static void predictChinese(Mat img, PlateRecoResult chinese) {
         Mat f = PlateUtil.features(img, Constant.predictSize);
         int index = 0;
-        double maxVal = -2;
+        Double maxVal = -2D;
 
         Mat output = new Mat(1, Constant.strChinese.length, CvType.CV_32F);
-        ann_cn.predict(f, output);  // 预测结果
+        ann_cn.predict(f, output); // 预测结果
         for (int j = 0; j < Constant.strChinese.length; j++) {
             double val = output.get(0, j)[0];
             if (val > maxVal) {
@@ -626,14 +639,14 @@ public class PlateUtil {
                 index = j;
             }
         }
-
         String result = Constant.strChinese[index];
-        return Constant.KEY_CHINESE_MAP.get(result);
+        chinese.setChars(Constant.KEY_CHINESE_MAP.get(result));
+        chinese.setConfi(maxVal);
     }
 
-
     /**
-     * 找出指示城市的字符的Rect，例如 苏A7003X，就是A的位置
+     * 找出指示城市的字符的Rect，
+     * 例如 苏A7003X，就是A的位置 
      * 之所以选择城市的字符位置，是因为该位置不管什么字母，占用的宽度跟高度的差不多，而且字符笔画是连续的，能大大提高位置的准确性
      * @param vecRect
      * @return
@@ -657,22 +670,19 @@ public class PlateUtil {
             Rect mr = vecRect.get(i);
             int midx = mr.x + mr.width / 2;
 
-            if(PlateColor.GREEN.equals(color)) {
-                if ((mr.width > maxWidth * 0.8 || mr.height > maxHeight * 0.8)
-                        && (midx < Constant.DEFAULT_WIDTH * 2 / 8 && midx > Constant.DEFAULT_WIDTH / 8)) {
+            if (PlateColor.GREEN.equals(color)) {
+                if ((mr.width > maxWidth * 0.8 || mr.height > maxHeight * 0.8) && (midx < Constant.DEFAULT_WIDTH * 2 / 8 && midx > Constant.DEFAULT_WIDTH / 8)) {
                     specIndex = i;
                 }
             } else {
                 // 如果一个字符有一定的大小，并且在整个车牌的1/7到2/7之间，则是我们要找的特殊车牌
-                if ((mr.width > maxWidth * 0.8 || mr.height > maxHeight * 0.8)
-                        && (midx < Constant.DEFAULT_WIDTH * 2 / 7 && midx > Constant.DEFAULT_WIDTH / 7)) {
+                if ((mr.width > maxWidth * 0.8 || mr.height > maxHeight * 0.8) && (midx < Constant.DEFAULT_WIDTH * 2 / 7 && midx > Constant.DEFAULT_WIDTH / 7)) {
                     specIndex = i;
-                } 
+                }
             }
         }
         return specIndex;
     }
-
 
     /**
      * 根据特殊车牌来构造猜测中文字符的位置和大小
@@ -687,7 +697,7 @@ public class PlateUtil {
         int y = rectSpe.y;
 
         // 判断省份字符前面的位置，是否有宽度符合要求的中文字符
-        if(rectPrev.width >= rectSpe.width && rectPrev.x <= rectSpe.x-rectSpe.width) {
+        if (rectPrev.width >= rectSpe.width && rectPrev.x <= rectSpe.x - rectSpe.width) {
             return rectPrev;
         }
         // 如果没有，则按照车牌尺寸来切割
@@ -697,13 +707,14 @@ public class PlateUtil {
         return a;
     }
 
-
     /**
      * 字符预处理: 统一每个字符的大小
+     * 
      * @param in
      * @return
      */
     final static int CHAR_SIZE = 20;
+
     private static Mat preprocessChar(Mat in) {
         int h = in.rows();
         int w = in.cols();
@@ -722,10 +733,9 @@ public class PlateUtil {
         return resized;
     }
 
-
     /**
-     * 字符尺寸验证；去掉尺寸不符合的图块
-     * 此处计算宽高比意义不大，因为字符 1 的宽高比干扰就已经很大了
+     * 字符尺寸验证；
+     * 去掉尺寸不符合的图块 此处计算宽高比意义不大，因为字符 1 的宽高比干扰就已经很大了
      * @param r
      * @return
      */
@@ -733,13 +743,12 @@ public class PlateUtil {
         float minHeight = 15f;
         float maxHeight = 35f;
         double charAspect = r.size().width / r.size().height;
-        return charAspect <1 && minHeight <= r.size().height && r.size().height < maxHeight;
+        return charAspect < 1 && minHeight <= r.size().height && r.size().height < maxHeight;
     }
 
-
     /**
-     * 将Rect按位置从左到右进行排序
-     * 遍历轮廓，修正超高的字符，去掉铆钉的干扰, 并排序
+     * 将Rect按位置从左到右进行排序 遍历轮廓，修正超高的字符，去掉铆钉的干扰, 并排序
+     * 
      * @param vecRect
      * @param out
      * @return
@@ -750,28 +759,28 @@ public class PlateUtil {
         Integer avgHeight = 0; // 所有字符的平均身高 //大于平均值的，剁脚
         Integer avgWidth = 0; // 计算所有大于8像素(去掉【1】字符的干扰)轮廓的均值 // 大于平均值的，进行瘦身操作
         Integer wCount = 0;
-        
+
         for (int i = 0; i < vecRect.size(); ++i) {
             map.put(vecRect.get(i).x, vecRect.indexOf(vecRect.get(i)));
             avgY += vecRect.get(i).y;
             avgHeight += vecRect.get(i).height;
-            if(vecRect.get(i).width >= 10) {
+            if (vecRect.get(i).width >= 10) {
                 wCount++;
                 avgWidth += vecRect.get(i).width;
             }
         }
-        avgY = avgY / vecRect.size(); 
-        avgHeight = avgHeight / vecRect.size(); 
+        avgY = avgY / vecRect.size();
+        avgHeight = avgHeight / vecRect.size();
         avgWidth = avgWidth / wCount;
         Set<Integer> set = map.keySet();
         Object[] arr = set.toArray();
         Arrays.sort(arr);
         for (Object key : arr) {
             Rect r = vecRect.get(map.get(key));
-            if(avgY - r.y >= 2 || r.height - avgHeight >= 2 ) { // 轮廓起点位置偏高、或者轮廓高度偏高
-                r = new Rect(r.x, avgY+1, r.width, avgHeight); // 削脑袋 & 剁脚
+            if (Math.abs(avgY - r.y) >= 2 || Math.abs(r.height - avgHeight) >= 2) {
+                r = new Rect(r.x, avgY - 1, r.width, avgHeight); // 身材超高或者超矮的，修正一下
             }
-            if(r.width > avgWidth) { // 轮廓偏宽
+            if (r.width > avgWidth) { // 轮廓偏宽
                 r = new Rect(r.x, r.y, avgWidth, r.height); // 瘦身
             }
             out.add(r);
@@ -779,10 +788,9 @@ public class PlateUtil {
         return;
     }
 
-
     public static float[] projectedHistogram(final Mat img, Direction direction) {
         int sz = img.rows();
-        if(direction.equals(Direction.VERTICAL)) {
+        if (direction.equals(Direction.VERTICAL)) {
             sz = img.cols();
         }
 
@@ -805,7 +813,6 @@ public class PlateUtil {
         }
         return nonZeroMat;
     }
-
 
     public static Mat features(Mat in, int sizeData) {
         float[] vhist = projectedHistogram(in, Direction.VERTICAL);
@@ -833,14 +840,11 @@ public class PlateUtil {
         return out;
     }
 
-
-
     /**
-     * 根据图片，获取可能是车牌的图块集合
-     * 多种方法实现：
-     * 1、网上常见的轮廓提取车牌算法
-     * 2、hsv色彩分割算法
-     * 3、 参考人脸识别算法，实现特征识别算法 --参考 PlateCascadeTrain
+     * 根据图片，获取可能是车牌的图块集合 多种方法实现：
+     *   1、网上常见的轮廓提取车牌算法 
+     *   2、hsv色彩分割算法 
+     *   3、 参考人脸识别算法，实现特征识别算法 --参考 PlateCascadeTrain
      * @param src 输入原图
      * @param dst 可能是车牌的图块集合
      * @param debug 是否保留图片的处理过程
@@ -859,11 +863,11 @@ public class PlateUtil {
             return r;
         });
         CompletableFuture<Vector<Mat>> f3 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.GREEN, debug, tempPath); 
+            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.GREEN, debug, tempPath);
             return r;
         });
         CompletableFuture<Vector<Mat>> f4 = CompletableFuture.supplyAsync(() -> {
-            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.YELLOW, debug, tempPath); 
+            Vector<Mat> r = findPlateByHsvFilter(src, resized, dst, PlateHSV.YELLOW, debug, tempPath);
             return r;
         });
         CompletableFuture<Vector<Mat>> f5 = CompletableFuture.supplyAsync(() -> {
@@ -886,15 +890,13 @@ public class PlateUtil {
         return null;
     }
 
-
-
     public static void main(String[] args) {
         Instant start = Instant.now();
 
         String tempPath = Constant.DEFAULT_TEMP_DIR;
         String filename = Constant.DEFAULT_DIR + "test/3.jpg";
         File f = new File(filename);
-        if(!f.exists()) {
+        if (!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));
             File f2 = new File(filename.replace("png", "bmp"));
             filename = f1.exists() ? f1.getPath() : f2.getPath();
@@ -905,7 +907,7 @@ public class PlateUtil {
         // 提取车牌图块
         // getPlateMat(filename, dst, debug, tempPath);
         findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
-        //findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
+        // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
@@ -922,4 +924,3 @@ public class PlateUtil {
     }
 
 }
-
