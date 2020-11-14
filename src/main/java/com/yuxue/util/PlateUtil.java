@@ -17,7 +17,6 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
@@ -320,12 +319,16 @@ public class PlateUtil {
      * @param tempPath
      */
     public static String charsSegment(Mat inMat, PlateColor color, Boolean debug, String tempPath) {
+        
+        int charCount = 7;  // 车牌字符个数
+        if(color.equals(PlateColor.GREEN)) {
+            charCount = 8;
+        }
+        
         // 切换到灰度图 
         Mat gray = new Mat();
         Imgproc.cvtColor(inMat, gray, Imgproc.COLOR_BGR2GRAY);
         ImageUtil.gaussianBlur(gray, gray, debug, tempPath);
-
-        // 增强对比度
 
         // 图像进行二值化   // 图像二值化阈值选取--未完成yuxue
         Mat threshold = new Mat();
@@ -345,42 +348,33 @@ public class PlateUtil {
         // 垂直方向投影，错切校正 // 理论上，还可以用于分割字符
         Integer px = getShearPx(threshold);
         ImageUtil.shearCorrection(threshold, threshold, px, debug, tempPath);
-
+        
         // 前面已经结果错切校正了，可以按照垂直、水平方向投影进行精确定位
         // 垂直投影 + 垂直分割线，分割字符  // 水平投影，去掉上下边框、铆钉干扰
-        threshold = sepAndClear(threshold, px, debug, tempPath);
+        threshold = sepAndClear(threshold, px, charCount, debug, tempPath);
 
         // 边缘膨胀 // 还原腐蚀操作产生的影响 // 会影响中文字符的精确度
         threshold = ImageUtil.dilate(threshold, debug, tempPath, 2, 2, true);
 
         // 提取外部轮廓
         List<MatOfPoint> contours = Lists.newArrayList();
-        
+
         Imgproc.findContours(threshold, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 
-        int charCount = 7;  // 车牌字符个数
-        if(color.equals(PlateColor.GREEN)) {
-            charCount = 8;
-        }
-
         Vector<Rect> charRect = new Vector<Rect>();   // 字符轮廓集合
-        // Vector<RotatedRect> angleRect = new Vector<RotatedRect>();   // 最小外接矩形集合
 
         Mat dst = inMat.clone();
         Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
-        /*Imgproc.drawContours(dst, contours, -1, new Scalar(0, 0, 255, 255));
-        ImageUtil.debugImg(debug, tempPath, "boundingRect", dst);*/
-        
+
         for (int i = 0; i < contours.size(); i++) { // 遍历轮廓
             MatOfPoint contour = contours.get(i);
             Rect mr = Imgproc.boundingRect(contour);    //  得到包覆此轮廓的最小正矩形
             if (checkCharSizes(mr)) {   // 验证尺寸，主要验证高度是否满足要求，去掉不符合规格的字符，中文字符后续处理
                 charRect.add(mr);
-                /*RotatedRect mr1 = Imgproc.minAreaRect(new MatOfPoint2f(contour.toArray())); // 得到最小外接斜矩形， 用于计算错切校正
-                angleRect.add(mr1);*/
 
                 ImageUtil.drawRectangle(dst, mr);
                 ImageUtil.debugImg(debug, tempPath, "boundingRect", dst);
+                dst.release();
             }
         }
         if(null == charRect || charRect.size() <= 0) {  // 未识别到字符
@@ -389,10 +383,7 @@ public class PlateUtil {
         // 字符个数不足，要按照分割的区域补齐 // 同时处理中文字符
         // System.out.println("字符个数===>" + charRect.size());
 
-        // 遍历所有外接矩形，根据角度，获取其错切校正方向; 同时计算错切像素值（不推荐）
-        // px = getShearPx(angleRect);
-
-        // 遍历轮廓，修正超高的字符，去掉铆钉的干扰, 并排序
+        // 遍历轮廓，修正超高超宽的字符，去掉铆钉的干扰, 并排序
         Vector<Rect> sorted = new Vector<Rect>();
         sortRect(charRect, sorted);
 
@@ -416,9 +407,6 @@ public class PlateUtil {
 
         for (int i = posi; i < sorted.size() && charCount > 0; i++, charCount--) {   // 预测中文之外的字符
             Mat img_crop = new Mat(threshold, sorted.get(i));
-            /*if(px != 0) { // 字符错切校正（不推荐）
-                ImageUtil.shearCorrection(img_crop, img_crop, px, debug, tempPath);
-            }*/
             ImageUtil.debugImg(debug, tempPath, "charMat", img_crop);
             img_crop = preprocessChar(img_crop);
             plate = plate + predict(img_crop);  // 预测数字、字符
@@ -438,11 +426,12 @@ public class PlateUtil {
      * @param debug
      * @param tempPath
      */
-    public static Mat sepAndClear(Mat threshold, Integer px, Boolean debug, String tempPath){
+    public static Mat sepAndClear(Mat threshold, Integer px, Integer charCount, Boolean debug, String tempPath){
         Mat dst = threshold.clone();
         Set<Integer> rows = Sets.newHashSet();
         int ignore = 10; 
-        // 水平方向投影
+        // 水平方向投影 // 按rows清除干扰  // 去掉上下边框干扰像素
+        // 垂直方向投影; 按cols清楚干扰; 意义不大; 直接分割，提取字符更简单
         for (int i = 0; i < threshold.rows(); i++) {
             int count = Core.countNonZero(threshold.row(i));
             if(count <= 15) {
@@ -459,69 +448,52 @@ public class PlateUtil {
                 }
             }
         }
-        // 按rows清除干扰  // 去掉上下边框干扰像素
+
+        Integer minY = 0;
         for (int i = 0; i < threshold.rows(); i++) {
             if(rows.contains(i)) {
+                if(i <= threshold.rows()/2) {
+                    minY = i;
+                }
                 for (int j = 0; j < threshold.cols(); j++) {
                     dst.put(i, j, 0);
                 }
             }
-        }
-
-        // 垂直方向投影  // 貌似意义不大; 直接分割，提取字符更简单
-        /*for (int i = 0; i < threshold.cols(); i++) {
-            int count = Core.countNonZero(threshold.col(i));
-            if(count >0 && count <= 2) {
-                cols.add(0);
-                if(i < ignore) {
-                    for (int j = 0; j < i; j++) {
-                        cols.add(j);
-                    }
-                }
-                if(i > threshold.cols() - ignore) {
-                    for (int j = i+1; j < threshold.rows(); j++) {
-                        cols.add(j);
-                    }
-                }
-            }
-        }
-        // 按cols清楚干扰  // 去掉边框干扰 
-        for (int i = 0; i < threshold.cols(); i++) {
-            if(cols.contains(i)) {
-                for (int j = 0; j < threshold.rows(); j++) {
-                    dst.put(j, i, 0);
-                }
-            }
-        }*/
-
+        }   
+        
+        threshold.release();
+        ImageUtil.debugImg(debug, tempPath, "sepAndClear", dst);
 
         // 分割字符，返回所有字符的边框，Rect(x, y, width, height) 
         // 在这里提取，估计比轮廓提取方式更准确，尤其在提取中文字符方面
-        Integer height = threshold.rows() - rows.size();
-        Integer y = rows.stream().reduce(Integer::min).get();//得到最小值
+       /* Integer height = dst.rows() - rows.size();
+        Integer y = minY + 1;   // 修正一个像素
         Integer x = 0;
         Integer width = 0;
         Boolean bl = false; // 是否是全0的列
-        Vector<Rect> rects = new Vector<Rect>();
-        for (int i = 0; i < threshold.cols(); i++) {
-            int count = Core.countNonZero(threshold.col(i));
-            if(count <=2) {
+        Vector<Rect> rects = new Vector<Rect>();    // 提取到的轮廓集合，可用于后续的字符识别，也可用于去除垂直方向的干扰
+        for (int i = 0; i < dst.cols(); i++) {
+            int count = Core.countNonZero(dst.col(i));
+            if(count <= 0) { // 黑色的列; 因为前面就行了边缘腐蚀，这里选择全黑色的列作为分割
+                bl = true;
+            } else {
+                if(bl) {
+                    x = i;
+                }
+                bl =false;
                 width++;
             }
-            if(bl) { // 未完成yuxue
+            if(bl && width > 0) {   // 切割图块
+                Rect r = new Rect(x, y, width, height); // 提取到的轮廓
                 
-                width = 0;
-                Rect r = new Rect(x, y, width, height);
-                // 切割图块
-                Mat img_crop = new Mat(threshold, r);
-                ImageUtil.debugImg(debug, tempPath, "sepAndClear-crop", dst);
-                
+                 // 按轮廓切图
+                Mat img_crop = new Mat(dst, r);
+                ImageUtil.debugImg(debug, tempPath, "sepAndClear-crop", img_crop);
                 rects.add(r);
+                width = 0;
             }
-        }
-
-        threshold.release();
-        ImageUtil.debugImg(debug, tempPath, "sepAndClear", dst);
+        }*/
+        
         return dst;
     }
 
@@ -775,23 +747,32 @@ public class PlateUtil {
     public static void sortRect(Vector<Rect> vecRect, Vector<Rect> out) {
         Map<Integer, Integer> map = Maps.newHashMap();
         Integer avgY = 0; // 所有字符的平均起点Y值 // 小于平均值的，削脑袋
-        Integer avgHeight = 0; // 所有字符的平均身高 //大于平均值的，跺脚
-
+        Integer avgHeight = 0; // 所有字符的平均身高 //大于平均值的，剁脚
+        Integer avgWidth = 0; // 计算所有大于8像素(去掉【1】字符的干扰)轮廓的均值 // 大于平均值的，进行瘦身操作
+        Integer wCount = 0;
+        
         for (int i = 0; i < vecRect.size(); ++i) {
             map.put(vecRect.get(i).x, vecRect.indexOf(vecRect.get(i)));
             avgY += vecRect.get(i).y;
             avgHeight += vecRect.get(i).height;
+            if(vecRect.get(i).width >= 10) {
+                wCount++;
+                avgWidth += vecRect.get(i).width;
+            }
         }
         avgY = avgY / vecRect.size(); 
         avgHeight = avgHeight / vecRect.size(); 
-
+        avgWidth = avgWidth / wCount;
         Set<Integer> set = map.keySet();
         Object[] arr = set.toArray();
         Arrays.sort(arr);
         for (Object key : arr) {
             Rect r = vecRect.get(map.get(key));
-            if(avgY - r.y >= 2 || r.height - avgHeight >= 2 ) {
-                r = new Rect(r.x, avgY+1, r.width, avgHeight);
+            if(avgY - r.y >= 2 || r.height - avgHeight >= 2 ) { // 轮廓起点位置偏高、或者轮廓高度偏高
+                r = new Rect(r.x, avgY+1, r.width, avgHeight); // 削脑袋 & 剁脚
+            }
+            if(r.width > avgWidth) { // 轮廓偏宽
+                r = new Rect(r.x, r.y, avgWidth, r.height); // 瘦身
             }
             out.add(r);
         }
