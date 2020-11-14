@@ -30,11 +30,11 @@ public class Constant {
     // 默认处理图片类型
     public static final String DEFAULT_TYPE = "png,jpg,jpeg,bmp";
 
-    public static final String DEFAULT_SVM_PATH = "res/model/1602828039163_svm.xml";
-    public static final String DEFAULT_ANN_PATH = "res/model/ann.xml";
-    public static final String DEFAULT_ANN_CN_PATH = "res/model/ann_cn.xml";
-    public static final String DEFAULT_FACE_MODEL_PATH = "res/model/haarcascade_frontalface_default.xml";
-    public static final String DEFAULT_PLATE_MODEL_PATH = "res/model/harrcascade_frontplate.xml";
+    public static final String DEFAULT_SVM_PATH = "model/1602828039163_svm.xml";
+    public static final String DEFAULT_ANN_PATH = "model/ann.xml";
+    public static final String DEFAULT_ANN_CN_PATH = "model/ann_cn.xml";
+    public static final String DEFAULT_FACE_MODEL_PATH = "model/haarcascade_frontalface_default.xml";
+    public static final String DEFAULT_PLATE_MODEL_PATH = "model/harrcascade_frontplate.xml";
     
     // 图片中，车牌图块尺寸允许的像素值范围  (width * height * multiple)
     public static final Integer DEFAULT_MIN_SIZE = 44 * 14 * 1;
