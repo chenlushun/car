@@ -7,15 +7,7 @@ define({
     },
     'SYSTEM': {
         // key代表城市 value代表该城市公众号对应的appId
-        "china": 'wx95112c5c2ed8bca0', // 默认城市交通大脑
-        "xuancheng": 'wxd599e99b0ac87622', // 宣城
-        "test": 'wx4062a9ae141c5268' // 演示环境公众号
-    },
-    'PLACE':{
-        'CITY':'XUANCHENG'
-    },
-    "ONLY":{
-        "STYSTEM":"SHESHI", // 只用于设施系统
+        "china": 'wx95112c5c2ed8bca0'
     },
     'DATATABLE_LANGUAGE':{
         'sProcessing': '处理中...',

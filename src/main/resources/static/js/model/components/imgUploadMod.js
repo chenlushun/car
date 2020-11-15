@@ -1,8 +1,3 @@
-/**
- * @author M.C
- * @date 2018/6/1
- * @Description:  图片上传
- */
 define(['api'], function (api) {
 
     function init() {

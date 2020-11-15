@@ -24,11 +24,6 @@ define(['utils', 'api'], function (utils, api) {
         utils.ajax(option);
     }
 
-    /**
-     * 初始化图表实例
-     * @author [刘耀填]
-     * @date 2018/10/08
-     */
     function initCharts() {
         modVars.chart = {
             "barChart": echarts.init($('#barChart')[0], 'shine'),
@@ -45,11 +40,6 @@ define(['utils', 'api'], function (utils, api) {
         getChartsData(); // 获取所有图表的数据
     }
 
-    /**
-     * 获取所有图表的数据
-     * @author [刘耀填]
-     * @date 2018/10/08
-     */
     function getChartsData() {
         function successFun(ret) {
             if (ret.code === 200) {
@@ -68,11 +58,6 @@ define(['utils', 'api'], function (utils, api) {
         $.getJSON("../../js/model/home/content.json", "", successFun);
     }
 
-    /**
-     * 渲染图表
-     * @author [刘耀填]
-     * @date 2018/10/08
-     */
     function renderCharts(data) {
 
         $('#userCount').html(data.userCount); // 总用户数
@@ -95,11 +80,6 @@ define(['utils', 'api'], function (utils, api) {
 
     }
 
-    /**
-     * 渲染柱状图(活跃用户排行榜)
-     * @author [刘耀填]
-     * @date 2018/10/08
-     */
     function renderBar(barData) {
         var one = barData[0].loginCount,
             two = barData[1].userCount,
@@ -215,11 +195,6 @@ define(['utils', 'api'], function (utils, api) {
 
     }
 
-    /**
-     * 渲染堆叠折线图(系统使用频率分析)
-     * @author [刘耀填]
-     * @date 2018/10/08
-     */
     function renderStackedLine(lineData) {
 
         var xAxisData = [], // x轴上的类别
@@ -298,11 +273,6 @@ define(['utils', 'api'], function (utils, api) {
         modVars.chart.stackedLineChart.setOption(option);
     }
 
-    /**
-     * 渲染圆饼图(每个应用登录次数)
-     * @author [刘耀填]
-     * @date 2018/10/08
-     */
     function renderPie(pieData) {
         var option = {
             tooltip: {

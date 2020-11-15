@@ -81,8 +81,6 @@ define(['utils', 'api', 'constant', 'common', 'jquery_app'], function(utils, api
 
     /**
      * 构建菜单html，并获取登录进来时默认要打开的第一个菜单
-     * @author [刘耀填]
-     * @date 2018-09-30
      */
     function buildMenuHtml(menusData) {
 

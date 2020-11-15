@@ -1,17 +1,5 @@
-/**
- * 工具函数
- * @author yuxue
- * @date 2018-05-11
- */
 define(['constant'], function (constant) {
 
-    /**
-     * 解析url返回对应参数
-     * @author [刘耀填]
-     * @date 2018/09/11
-     * @param url 页面url
-     * @returns {Object} url后参数
-     */
     function getUrlParams(url) {
         var params = {};
         if (url.indexOf("?") !== -1) {
@@ -23,13 +11,6 @@ define(['constant'], function (constant) {
         }
         return params;
     }
-    /**
-     * @desc 页面路径跳转
-     * @param [url] 跳转路径
-     * @param [parameterList] 参数对象集合 {name value}
-     * @author [张君培]
-     * @date 2018/08/13
-     */
     function goUrlModule(url, parameterList) {
         var parameter = '';
         for (var i = 0; i < parameterList.length; i++) {
@@ -42,11 +23,6 @@ define(['constant'], function (constant) {
             url: url + parameter
        });
     }
-    /**
-     * @author 徐尚华
-     * @date 2018/5/14
-     * @Description: ajax请求 支持get和post,异步和同步
-     */
     function ajax(option) {
         var type = option.type || 'get';
         var url = option.url;
@@ -134,17 +110,6 @@ define(['constant'], function (constant) {
             str = str.replace(re, arguments[i]);
         }
         return str;
-        /*
-        调用方式：
-            var info = "我喜欢吃{0}，也喜欢吃{1}，但是最喜欢的还是{0},偶尔再买点{2}。";
-            var msg=String.format(info , "苹果","香蕉","香梨")
-            alert(msg);
-            输出:我喜欢吃苹果，也喜欢吃香蕉，但是最喜欢的还是苹果,偶尔再买点香梨。
-        */
-    };
-
-    // 下横线 转 驼峰
-    /*console.log(toCamel('test_to_camel')); //testToCamel*/
     function toCamel(str) {
         str = str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
             return $1 + $2.toUpperCase();

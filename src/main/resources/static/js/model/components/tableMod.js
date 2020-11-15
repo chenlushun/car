@@ -1,7 +1,5 @@
 /**
  * DataTable二次封装
- * @author [刘耀填]
- * @date 2018-10-08
  */
 define(['constant', 'utils'], function(constant, utils){
 

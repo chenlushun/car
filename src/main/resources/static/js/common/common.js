@@ -1,8 +1,3 @@
-/**
- * 公共函数
- * @author [MC]
- * @date 2018-05-11
- */
 define(['constant'], function(constant) {
 
     //跨域调用父级方法
@@ -37,13 +32,6 @@ define(['constant'], function(constant) {
         }
     }
 
-    /**
-     * @desc 页面路径跳转
-     * @param [url] 跳转路径
-     * @param [parameterList] 参数对象集合 {name value}
-     * @author [张君培]
-     * @date 2018/08/13
-     */
     function goUrlModule(url, parameterList) {
         var parameter = '';
         for (var i = 0; i < parameterList.length; i++) {
