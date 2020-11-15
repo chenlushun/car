@@ -906,7 +906,8 @@ public class PlateUtil {
         Vector<Mat> dst = new Vector<Mat>();
         // 提取车牌图块
         // getPlateMat(filename, dst, debug, tempPath);
-        findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
+        // findPlateByContours(filename, dst, debug, tempPath);
+         findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
         // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
