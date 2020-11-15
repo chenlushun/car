@@ -57,7 +57,8 @@ public class PlateUtil {
         ann_cn = ANN_MLP.create();
         loadSvmModel(Constant.DEFAULT_SVM_PATH);
         loadAnnBlueModel(Constant.DEFAULT_ANN_PATH);
-        loadAnnGreenModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
+        loadAnnGreenModel(Constant.DEFAULT_ANN_PATH);
+        // loadAnnGreenModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
         loadAnnCnModel(Constant.DEFAULT_ANN_CN_PATH);
     }
 
