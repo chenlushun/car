@@ -37,7 +37,9 @@ public class ANNTrain {
     private static final String DEFAULT_PATH = "D:/PlateDetect/train/chars_sample/";
 
     // 训练模型文件保存位置
-    private static final String MODEL_PATH = DEFAULT_PATH + "20201102_ann.xml";
+    private static final String MODEL_PATH = DEFAULT_PATH + "ann_blue.xml";
+    // private static final String MODEL_PATH = DEFAULT_PATH + "ann_green.xml";
+    // private static final String MODEL_PATH = DEFAULT_PATH + "ann_all.xml";
     
     
     
@@ -80,6 +82,7 @@ public class ANNTrain {
             }
         }
 
+        
         samples.convertTo(samples, CvType.CV_32F);
 
         //440   vhist.length + hhist.length + lowData.cols() * lowData.rows();

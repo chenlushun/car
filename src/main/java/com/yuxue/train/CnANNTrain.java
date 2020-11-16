@@ -1,6 +1,6 @@
 package com.yuxue.train;
 
-import java.util.Random;
+import java.util.Set;
 import java.util.Vector;
 
 import org.opencv.core.Core;
@@ -12,9 +12,9 @@ import org.opencv.ml.ANN_MLP;
 import org.opencv.ml.Ml;
 import org.opencv.ml.TrainData;
 
+import com.google.common.collect.Sets;
 import com.yuxue.constant.Constant;
 import com.yuxue.util.FileUtil;
-import com.yuxue.util.ImageUtil;
 import com.yuxue.util.PlateUtil;
 
 
@@ -34,7 +34,7 @@ public class CnANNTrain {
     }
 
     // 默认的训练操作的根目录
-    private static final String DEFAULT_PATH = "D:/PlateDetect/train/chars_recognise_ann/";
+    private static final String DEFAULT_PATH = "D:/PlateDetect/train/chars_sample/";
 
     // 训练模型文件保存位置
     private static final String MODEL_PATH = DEFAULT_PATH + "ann_cn.xml";
@@ -43,33 +43,27 @@ public class CnANNTrain {
     public void train(int _predictsize, int _neurons) {
         Mat samples = new Mat(); // 使用push_back，行数列数不能赋初始值
         Vector<Integer> trainingLabels = new Vector<Integer>();
-        Random rand = new Random();
+        
+        Set<String> sampleDir = null;
 
         // 加载汉字字符
         for (int i = 0; i < Constant.strChinese.length; i++) {
-            String str = DEFAULT_PATH + "learn/" + Constant.strChinese[i];
+            
+            sampleDir = Sets.newHashSet();
+            sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strChinese[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strChinese[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strChinese[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + Constant.strChinese[i]);
+            sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + Constant.strChinese[i]);
+            
             Vector<String> files = new Vector<String>();
-            FileUtil.getFiles(str, files);
-
-            // int count = 300; // 控制从训练样本中，抽取指定数量的样本
-            int count = files.size(); // 不添加随机样本
-            for (int j = 0; j < count; j++) {
-
-                String filename = "";
-                if(j < files.size()) {
-                    filename = files.get(j);
-                } else {
-                    filename = files.get(rand.nextInt(files.size() - 1));   // 样本不足，随机重复提取已有的样本
-                }
-
+            for (String str : sampleDir) {
+                FileUtil.getFiles(str, files);
+            }
+            for (String filename : files) {
                 Mat img = Imgcodecs.imread(filename, 0);
-
                 // 原图样本
                 samples.push_back(PlateUtil.features(img, _predictsize));
-                trainingLabels.add(i);
-
-                // 增加腐蚀样本
-                samples.push_back(PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), _predictsize));
                 trainingLabels.add(i);
             }
         }
@@ -116,13 +110,23 @@ public class CnANNTrain {
         int total = 0;
         int correct = 0;
 
+        Set<String> sampleDir = null;
+        
         // 遍历测试样本下的所有文件，计算预测准确率
         for (int i = 0; i < Constant.strChinese.length; i++) {
 
             String strChinese = Constant.strChinese[i];
-            String path = DEFAULT_PATH + "learn/" + strChinese;
+            sampleDir = Sets.newHashSet();
+            sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + strChinese);
+            // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + strChinese);
+            // sampleDir.add(DEFAULT_PATH + "chars_green/" + strChinese);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/blue/" + strChinese);
+            // sampleDir.add(DEFAULT_PATH + "chars_shear/green/" + strChinese);
+            
             Vector<String> files = new Vector<String>();
-            FileUtil.getFiles(path, files);
+            for (String str : sampleDir) {
+                FileUtil.getFiles(str, files);
+            }
 
             for (String filePath : files) {
                 Mat img = Imgcodecs.imread(filePath, 0);
@@ -142,7 +146,7 @@ public class CnANNTrain {
                 }
 
                 // 腐蚀  -- 识别中文字符效果会好一点，识别数字及字母效果会更差
-                f = PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), Constant.predictSize);
+                /*f = PlateUtil.features(ImageUtil.erode(img, false, null, 2, 2), Constant.predictSize);
                 ann.predict(f, output);  // 预测结果
                 for (int j = 0; j < Constant.strChinese.length; j++) {
                     double val = output.get(0, j)[0];
@@ -150,17 +154,13 @@ public class CnANNTrain {
                         maxVal = val;
                         index = j;
                     }
-                }
+                }*/
 
                 String result = Constant.strChinese[index];
 
                 if(result.equals(strChinese)) {
                     correct++;
                 } else {
-                    // 删除异常样本
-                    /*File f1 = new File(filePath);
-                    f1.delete();*/
-                    
                     System.err.print(filePath);
                     System.err.println("\t预测结果：" + Constant.KEY_CHINESE_MAP.get(result));
                 }
@@ -205,7 +205,7 @@ public class CnANNTrain {
         // 可根据需要训练不同的predictSize或者neurons的ANN模型
         // 根据机器的不同，训练时间不一样，但一般需要10分钟左右，所以慢慢等一会吧
         // 可以考虑中文，数字字母分开训练跟识别，提高准确性
-        annT.train(Constant.predictSize, Constant.neurons);
+        // annT.train(Constant.predictSize, Constant.neurons);
 
         annT.predict();
 
