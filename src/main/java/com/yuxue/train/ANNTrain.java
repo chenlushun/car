@@ -59,11 +59,11 @@ public class ANNTrain {
         Mat samples = new Mat(); // 使用push_back，行数列数不能赋初始值
         Vector<Integer> trainingLabels = new Vector<Integer>();
         
-        Set<String> sampleDir = null;
+        Set<String> sampleDir = Sets.newHashSet();
         
         // 加载数字及字母字符
         for (int i = 0; i < Constant.numCharacter; i++) {
-            sampleDir = Sets.newHashSet();
+            sampleDir.clear();
             // sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strCharacters[i]);
             // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strCharacters[i]);
             sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strCharacters[i]);
@@ -125,11 +125,11 @@ public class ANNTrain {
         int total = 0;
         int correct = 0;
 
-        Set<String> sampleDir = null;
+        Set<String> sampleDir = Sets.newHashSet();
         // 遍历测试样本下的所有文件，计算预测准确率
         for (int i = 0; i < Constant.strCharacters.length; i++) {
             char c = Constant.strCharacters[i];
-            sampleDir = Sets.newHashSet();
+            sampleDir.clear();
             sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + c);
             // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + c);
             // sampleDir.add(DEFAULT_PATH + "chars_green/" + c);

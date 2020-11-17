@@ -44,12 +44,12 @@ public class CnANNTrain {
         Mat samples = new Mat(); // 使用push_back，行数列数不能赋初始值
         Vector<Integer> trainingLabels = new Vector<Integer>();
         
-        Set<String> sampleDir = null;
+        Set<String> sampleDir = Sets.newHashSet();;
 
         // 加载汉字字符
         for (int i = 0; i < Constant.strChinese.length; i++) {
             
-            sampleDir = Sets.newHashSet();
+            sampleDir.clear();
             sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + Constant.strChinese[i]);
             sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + Constant.strChinese[i]);
             sampleDir.add(DEFAULT_PATH + "chars_green/" + Constant.strChinese[i]);
@@ -110,13 +110,13 @@ public class CnANNTrain {
         int total = 0;
         int correct = 0;
 
-        Set<String> sampleDir = null;
+        Set<String> sampleDir = Sets.newHashSet();
         
         // 遍历测试样本下的所有文件，计算预测准确率
         for (int i = 0; i < Constant.strChinese.length; i++) {
 
             String strChinese = Constant.strChinese[i];
-            sampleDir = Sets.newHashSet();
+            sampleDir.clear();
             sampleDir.add(DEFAULT_PATH + "chars_blue_old/" + strChinese);
             // sampleDir.add(DEFAULT_PATH + "chars_blue_new/" + strChinese);
             // sampleDir.add(DEFAULT_PATH + "chars_green/" + strChinese);

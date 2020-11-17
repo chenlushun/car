@@ -33,6 +33,7 @@ public class Constant {
     public static final String DEFAULT_SVM_PATH = "model/1602828039163_svm.xml";
     public static final String DEFAULT_ANN_PATH = "model/ann.xml";
     public static final String DEFAULT_ANN_CN_PATH = "model/ann_cn.xml";
+    public static final String DEFAULT_ANN_GREEN_PATH = "model/ann_green.xml";
     public static final String DEFAULT_FACE_MODEL_PATH = "model/haarcascade_frontalface_default.xml";
     public static final String DEFAULT_PLATE_MODEL_PATH = "model/harrcascade_frontplate.xml";
     

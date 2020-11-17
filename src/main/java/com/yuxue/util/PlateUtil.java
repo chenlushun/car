@@ -57,8 +57,7 @@ public class PlateUtil {
         ann_cn = ANN_MLP.create();
         loadSvmModel(Constant.DEFAULT_SVM_PATH);
         loadAnnBlueModel(Constant.DEFAULT_ANN_PATH);
-        loadAnnGreenModel(Constant.DEFAULT_ANN_PATH);
-        // loadAnnGreenModel("D:\\PlateDetect\\train\\chars_sample\\20201102_ann.xml");
+        loadAnnGreenModel(Constant.DEFAULT_ANN_GREEN_PATH);
         loadAnnCnModel(Constant.DEFAULT_ANN_CN_PATH);
     }
 
@@ -895,7 +894,7 @@ public class PlateUtil {
         Instant start = Instant.now();
 
         String tempPath = Constant.DEFAULT_TEMP_DIR;
-        String filename = Constant.DEFAULT_DIR + "test/3.jpg";
+        String filename = Constant.DEFAULT_DIR + "test/11.jpg";
         File f = new File(filename);
         if (!f.exists()) {
             File f1 = new File(filename.replace("jpg", "png"));
@@ -908,8 +907,8 @@ public class PlateUtil {
         // 提取车牌图块
         // getPlateMat(filename, dst, debug, tempPath);
         // findPlateByContours(filename, dst, debug, tempPath);
-         findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
-        // findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
+        // findPlateByHsvFilter(filename, dst, PlateHSV.BLUE, debug, tempPath);
+        findPlateByHsvFilter(filename, dst, PlateHSV.GREEN, debug, tempPath);
 
         Set<String> result = Sets.newHashSet();
         dst.stream().forEach(inMat -> {
