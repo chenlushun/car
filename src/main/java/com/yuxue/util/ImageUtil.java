@@ -169,7 +169,20 @@ public class ImageUtil {
         debugImg(debug, tempPath, "scharr", dst);
     }
 
+    
+    /**
+     * 
+     * @param inMat
+     * @param dst
+     * @param debug
+     * @param tempPath
+     */
+    public static void canny(Mat inMat, Mat dst, Boolean debug, String tempPath) {
+        Imgproc.Canny(inMat, dst, 50, 150);
+        debugImg(debug, tempPath, "canny", dst);
+    }
 
+    
     /**
      * 对图像进行二值化。将灰度图像（每个像素点有256个取值可能， 0代表黑色，255代表白色）  
      * 转化为二值图像（每个像素点仅有1和0两个取值可能）
