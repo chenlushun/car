@@ -1,8 +1,14 @@
 package com.yuxue.util;
 
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -21,6 +27,10 @@ import org.springframework.util.StringUtils;
 
 import com.yuxue.constant.Constant;
 
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+import net.sourceforge.tess4j.util.LoadLibs;
+
 
 /**
  * 证件识别工具类
@@ -30,17 +40,26 @@ import com.yuxue.constant.Constant;
  */
 public class IdCardUtil {
 
-    private static final String TEMP_PATH = "D:/FaceDetect/temp/";
+    private static final String TEMP_PATH = "D:/CardDetect/temp/";
 
     private static CascadeClassifier faceDetector;
+    private static Tesseract instance = new Tesseract();
+
+
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+
+        //设置tess4j配置的路径
+        File testDataFolderFile = LoadLibs.extractTessResources("tessdata");
+        // instance.setLanguage("eng");    // 加载语言模型 英文、数字
+        instance.setLanguage("chi_sim"); // 加载语言模型 中文、英文、数字
+        instance.setDatapath(testDataFolderFile.getAbsolutePath());
     }
 
     // 构造函数，加载默认模型文件
     IdCardUtil(){
         // faceDetector = new CascadeClassifier(Constant.DEFAULT_FACE_MODEL_PATH);
-        faceDetector = new CascadeClassifier("D:\\FaceDetect\\haarcascade_frontalface_default.xml");
+        faceDetector = new CascadeClassifier("D:\\CardDetect\\haarcascade_frontalface_default.xml");
     }
 
     // 加载自定义模型文件
@@ -116,15 +135,14 @@ public class IdCardUtil {
      * @param debug
      * @param tempPath
      */
-    public static void getCard(Mat inMat, Mat dst, Rect face, List<MatOfPoint> contours, Boolean debug, String tempPath) {
+    public static void getCard(Mat inMat, Mat dst, List<MatOfPoint> contours, Boolean debug, String tempPath) {
         // 根据人脸，预估证件的大小 // 非必须
-        Double maxArea = (face.width * 6.0 )* (face.height * 4.0);
-        Double minArea = (face.width * 3.0 )* (face.height * 3.0);
+        Double maxArea = inMat.width() * inMat.height() * 1.0;
+        Double minArea =  inMat.width() * inMat.height() * 0.3; // 证件图像，至少占页面大小的1/3
         for (MatOfPoint c : contours) {
             // 获取最小外接矩形
             MatOfPoint2f mop2 = new MatOfPoint2f(c.toArray());
             RotatedRect rect = Imgproc.minAreaRect(mop2);
-            // 判断人脸位置在矩形内的位置 // 不一定需要
 
             // 验证尺寸
             if (minArea <= rect.size.area() && rect.size.area() <= maxArea) {
@@ -248,23 +266,52 @@ public class IdCardUtil {
 
 
     /**
+     * 使用tess4j识别字符
+     * @param file 灰度图
+     * @param r 字符区域
+     * @return
+     */
+    public  static String recoChars(File file, Rect r) {
+
+        /*Rectangle rect = new Rectangle();
+        rect.setRect(r.x, r.y, r.width, r.height);*/
+
+        // 将验证码图片的内容识别为字符串
+        String result = "";
+        try {
+            // result = instance.doOCR(file, rect); // 根据文件、框选的区域进行定向识别
+            BufferedImage image = ImageIO.read(file); // 识别图片上所有文字
+
+            // 识别图片上的所有文字
+            result = instance.doOCR(image).replaceAll("%", "X").replaceAll(" ", "").replaceAll("\n", ""); 
+            System.err.println("===>" + result);
+        } catch (IOException | TesseractException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
+
+    /**
      * 带人脸照片的证件文字识别
      * @param src
      * @param debug
      * @param tempPath
      */
     public static void cardDetect(Mat src, Boolean debug, String tempPath) {
-        
+
         Mat gsMat = new Mat();
         ImageUtil.gaussianBlur(src, gsMat, false, tempPath);
-        
+
         Mat grey = new Mat();
         ImageUtil.gray(gsMat, grey, false, tempPath);
 
-        // 检测到人脸位置 // 要求人脸检测算法比较精确
-        Rect face = getFace(grey, debug, tempPath);
+        // 检测到人脸位置 // 要求人脸检测算法比较精确 // 包含人脸的证件图片，可以用于提高精确度
+        // Rect face = getFace(grey, debug, tempPath);
         // System.out.println("人脸中心点坐标===>" + face.x + "," + face.y);
 
+        // 使用轮廓提取的方式获取证件位置，这里起决定性作用
         Mat canny = new Mat();
         ImageUtil.canny(grey, canny, debug, tempPath);
 
@@ -272,7 +319,7 @@ public class IdCardUtil {
         Mat threshold = new Mat();
         ImageUtil.threshold(canny, threshold, debug, tempPath);
 
-        // 获取最长的直线轮廓；用于图像校正// 效果并不理想
+        // 获取最长的直线轮廓；用于定位证件位置，校正图像   // 效果不理想
         // getMaxLine(threshold, debug, tempPath);
 
         // 提取轮廓
@@ -280,23 +327,28 @@ public class IdCardUtil {
 
         //轮廓筛选, 获取最大的类矩形的轮廓 // 即证件边框
         Mat card = new Mat();
-        getCard(gsMat, card, face, contours, debug, tempPath);
+        getCard(gsMat, card, contours, debug, tempPath);
 
         // 图像均衡化，增强文字部分的对比度
         // ImageUtil.equalizeHist(card, debug, tempPath);
-        
-        // 再次提取轮廓，主要提取文字所在位置的轮廓
-        
-        // 定向识别文字; 矩形框的起点、终点作为参数
 
+        // 再次提取轮廓，主要提取文字所在位置的轮廓
+        Rect rect = null;
+
+        // 定向识别文字; 矩形框的起点、终点作为参数
+        recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\name.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\gender.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\address.jpg"), rect);
     }
 
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        Mat src = Imgcodecs.imread("D:/FaceDetect/sfz.jpg");
+        Mat src = Imgcodecs.imread("D:/CardDetect/sfz.jpg");
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
+
         new IdCardUtil(); // 加载模型文件
 
         cardDetect(src, debug, tempPath);

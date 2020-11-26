@@ -178,7 +178,9 @@ public class ImageUtil {
      * @param tempPath
      */
     public static void canny(Mat inMat, Mat dst, Boolean debug, String tempPath) {
-        Imgproc.Canny(inMat, dst, 50, 150);
+        // 低于阈值1的像素点会被认为不是边缘；
+        // 高于阈值2的像素点会被认为是边缘；
+        Imgproc.Canny(inMat, dst, 100, 150); 
         debugImg(debug, tempPath, "canny", dst);
     }
 
