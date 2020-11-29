@@ -1,6 +1,5 @@
 package com.yuxue.util;
 
-import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -273,7 +272,7 @@ public class IdCardUtil {
      */
     public  static String recoChars(File file, Rect r) {
 
-        /*Rectangle rect = new Rectangle();
+        /*java.awt.Rectangle rect = new Rectangle();
         rect.setRect(r.x, r.y, r.width, r.height);*/
 
         // 将验证码图片的内容识别为字符串
@@ -300,24 +299,29 @@ public class IdCardUtil {
      * @param tempPath
      */
     public static void cardDetect(Mat src, Boolean debug, String tempPath) {
-
+        ImageUtil.debugImg(debug, tempPath, "src", src);
         Mat gsMat = new Mat();
-        ImageUtil.gaussianBlur(src, gsMat, false, tempPath);
-
+        
+        ImageUtil.GS_BLUR_KERNEL = 7;
+        ImageUtil.gaussianBlur(src, gsMat, debug, tempPath);
+        
         Mat grey = new Mat();
-        ImageUtil.gray(gsMat, grey, false, tempPath);
+        ImageUtil.gray(gsMat, grey, debug, tempPath);
 
         // 检测到人脸位置 // 要求人脸检测算法比较精确 // 包含人脸的证件图片，可以用于提高精确度
         // Rect face = getFace(grey, debug, tempPath);
         // System.out.println("人脸中心点坐标===>" + face.x + "," + face.y);
 
         // 使用轮廓提取的方式获取证件位置，这里起决定性作用
-        Mat canny = new Mat();
-        ImageUtil.canny(grey, canny, debug, tempPath);
-
+        Mat scharr = new Mat();
+        ImageUtil.scharr(grey, scharr, debug, tempPath);
+        
         // 图像进行二值化
         Mat threshold = new Mat();
-        ImageUtil.threshold(canny, threshold, debug, tempPath);
+        ImageUtil.threshold(scharr, threshold, debug, tempPath);
+        
+        // 边缘腐蚀
+        threshold = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
 
         // 获取最长的直线轮廓；用于定位证件位置，校正图像   // 效果不理想
         // getMaxLine(threshold, debug, tempPath);
@@ -336,16 +340,16 @@ public class IdCardUtil {
         Rect rect = null;
 
         // 定向识别文字; 矩形框的起点、终点作为参数
-        recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
+        /*recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
         recoChars(new File("D:\\CardDetect\\test\\name.jpg"), rect);
         recoChars(new File("D:\\CardDetect\\test\\gender.jpg"), rect);
-        recoChars(new File("D:\\CardDetect\\test\\address.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\address.jpg"), rect);*/
     }
 
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        Mat src = Imgcodecs.imread("D:/CardDetect/sfz.jpg");
+        Mat src = Imgcodecs.imread("D:/CardDetect/zm.jpg");
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
 

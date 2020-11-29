@@ -58,7 +58,7 @@ public class ImageUtil {
      */
     public static void gray(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GRAY);
-        debugImg(false, tempPath, "gray", dst);
+        debugImg(debug, tempPath, "gray", dst);
     }
 
 
@@ -72,7 +72,7 @@ public class ImageUtil {
      * @param tempPath 结果图片输出路径
      * @return
      */
-    public static final int GS_BLUR_KERNEL = 3;  // 滤波内核大小必须是 正奇数
+    public static int GS_BLUR_KERNEL = 3;  // 滤波内核大小必须是 正奇数
     public static void gaussianBlur(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Size ksize = new Size(GS_BLUR_KERNEL, GS_BLUR_KERNEL);
         Imgproc.GaussianBlur(inMat, dst, ksize, 0, 0, Core.BORDER_DEFAULT);
@@ -87,7 +87,7 @@ public class ImageUtil {
      * @param tempPath 结果图片输出路径
      * @return
      */
-    public static final int BLUR_KERNEL = 5;  // 滤波内核大小必须是 正奇数
+    public static int BLUR_KERNEL = 12;  // 滤波内核大小必须是 正奇数
     public static void blur(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Point anchor = new Point(-1,-1);
         Size ksize = new Size(BLUR_KERNEL, BLUR_KERNEL);
@@ -107,13 +107,13 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static final int SOBEL_SCALE = 1;
-    public static final int SOBEL_DELTA = 0;
-    public static final int SOBEL_X_WEIGHT = 1;
-    public static final int SOBEL_Y_WEIGHT = 0;
-    public static final int SOBEL_KERNEL = 3;// 内核大小必须为奇数且不大于31
-    public static final double alpha = 1.5; // 乘数因子
-    public static final double beta = 10.0; // 偏移量
+    public static int SOBEL_SCALE = 1;
+    public static int SOBEL_DELTA = 0;
+    public static int SOBEL_X_WEIGHT = 1;
+    public static int SOBEL_Y_WEIGHT = 0;
+    public static int SOBEL_KERNEL = 3;// 内核大小必须为奇数且不大于31
+    public static double alpha = 1.5; // 乘数因子
+    public static double beta = 10.0; // 偏移量
     public static void sobel(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Mat grad_x = new Mat();
         Mat grad_y = new Mat();
@@ -169,7 +169,7 @@ public class ImageUtil {
         debugImg(debug, tempPath, "scharr", dst);
     }
 
-    
+
     /**
      * 
      * @param inMat
@@ -184,7 +184,7 @@ public class ImageUtil {
         debugImg(debug, tempPath, "canny", dst);
     }
 
-    
+
     /**
      * 对图像进行二值化。将灰度图像（每个像素点有256个取值可能， 0代表黑色，255代表白色）  
      * 转化为二值图像（每个像素点仅有1和0两个取值可能）
@@ -208,8 +208,8 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static final int DEFAULT_MORPH_SIZE_WIDTH = 10;
-    public static final int DEFAULT_MORPH_SIZE_HEIGHT = 10; // 大于1
+    public static int DEFAULT_MORPH_SIZE_WIDTH = 10;
+    public static int DEFAULT_MORPH_SIZE_HEIGHT = 10; // 大于1
     public static Mat morphologyClose(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         Size size = new Size(DEFAULT_MORPH_SIZE_WIDTH, DEFAULT_MORPH_SIZE_HEIGHT);
         Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, size);
@@ -276,8 +276,6 @@ public class ImageUtil {
      * @param tempPath
      * @return
      */
-    public static final int DEFAULT_ANGLE = 90; // 角度判断所用常量
-    public static final int TYPE = CvType.CV_8UC3;
     public static Vector<Mat> screenBlock(Mat src, List<MatOfPoint> contours, Boolean isGreen,Boolean debug, String tempPath){
         Vector<Mat> dst = new Vector<Mat>();
 
@@ -338,7 +336,7 @@ public class ImageUtil {
                 }
 
                 // 处理切图，调整为指定大小
-                Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, TYPE);
+                Mat resized = new Mat(Constant.DEFAULT_HEIGHT, Constant.DEFAULT_WIDTH, CvType.CV_8UC3);
                 Imgproc.resize(img_crop, resized, resized.size(), 0, 0, Imgproc.INTER_CUBIC); // INTER_AREA 缩小图像的时候使用 ; INTER_CUBIC 放大图像的时候使用
                 debugImg(debug, tempPath, "crop_resize", resized);
                 dst.add(resized);
@@ -677,6 +675,26 @@ public class ImageUtil {
         return dst;
     }
 
+    /**
+     * 直方图均衡化
+     * @param inMat
+     * @param dst
+     * @param debug
+     * @param tempPath
+     * @return
+     */
+    public static Mat equalizeHist1(Mat inMat, Mat dst,Boolean debug, String tempPath) {
+        List<Mat> matList = Lists.newArrayList();
+        Core.split(inMat, matList);
+        for (Mat mat : matList) {
+            Imgproc.equalizeHist(mat, mat);
+        }
+        Core.merge(matList, dst);
+        debugImg(debug, tempPath, "equalizeHist", dst);
+        return dst;
+    }
+
+
 
 
     /**
@@ -919,6 +937,77 @@ public class ImageUtil {
     }
 
 
+    /**
+     * 边缘增强
+     * 拉普拉斯算子增强
+     * @param inMat
+     * @param dst
+     * @param debug
+     * @param tempPath
+     */
+    public static void edgeEnhance(Mat inMat, Mat dst, Boolean debug, String tempPath) {
+        List<Mat> matList = Lists.newArrayList();
+        Core.split(inMat, matList);
+        for (Mat mat : matList) {
+            Mat sharpMat8U = new Mat();
+            Mat sharpMat = new Mat();
+            Imgproc.Laplacian(mat, sharpMat, CvType.CV_16S);    // 拉普拉斯算子增强
+            sharpMat.convertTo(sharpMat8U, CvType.CV_8U);
+            Core.add(mat, sharpMat8U, mat);
+        }
+        Core.merge(matList, dst);
+        debugImg(debug, tempPath, "edgeEnhance", dst);
+    }
+
+
+    /**
+     * https://blog.csdn.net/u011276025/article/details/89790190
+     * https://blog.csdn.net/qq_29540745/article/details/74681853
+     * @param inMat
+     * @param dst
+     * @param debug
+     * @param tempPath
+     */
+    public static void unevenLightCompensate(Mat grey, Mat dst, Integer blockSize, Boolean debug, String tempPath) {
+        double average = Core.mean(grey).val[0];
+        Integer rows_new = (int) Math.ceil(grey.rows() * 1.0 / blockSize);
+        Integer cols_new = (int) Math.ceil(grey.cols() * 1.0 / blockSize);
+        Mat blockImage = Mat.zeros(rows_new, cols_new, CvType.CV_32FC1);
+        
+        // 均值算法？？
+        for (int i = 0; i < rows_new; i++) {
+            for (int j = 0; j < cols_new; j++) {
+                int rowmin = i * blockSize;
+                int rowmax = (i + 1) * blockSize;
+                if (rowmax > grey.rows()) {
+                    rowmax = grey.rows();
+                }
+
+                int colmin = j * blockSize;
+                int colmax = (j + 1) * blockSize;
+                if (colmax > grey.cols()) {
+                    colmax = grey.cols();
+                }
+
+                Mat imageROI = grey.rowRange(rowmin, rowmax);
+                double temaver =  Core.mean(imageROI.colRange(colmin, colmax)).val[0];
+                
+                blockImage.put(i, j, temaver - average);
+            }
+        }
+        Mat grey2 = new Mat();
+        grey.convertTo(grey2, CvType.CV_32FC1);
+        
+        
+        Mat blockImage2 = new Mat();
+        Imgproc.resize(blockImage, blockImage2, grey.size(), 0, 0, Imgproc.INTER_CUBIC); 
+        Core.subtract(grey2, blockImage2, dst);
+        dst.convertTo(dst, CvType.CV_8UC1);
+        debugImg(debug, tempPath, "unevenLightCompensate", dst);
+        
+    }
+
+
     public static void main(String[] args) {
         String tempPath = Constant.DEFAULT_TEST_DIR;
         String filename = tempPath + "26.jpg";
@@ -933,6 +1022,6 @@ public class ImageUtil {
         morphologyOpen(inMat, dst, true, Constant.DEFAULT_TEMP_DIR);
     }
 
-    
+
 
 }
