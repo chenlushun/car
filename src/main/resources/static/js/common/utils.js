@@ -110,6 +110,8 @@ define(['constant'], function (constant) {
             str = str.replace(re, arguments[i]);
         }
         return str;
+	}
+	
     function toCamel(str) {
         str = str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
             return $1 + $2.toUpperCase();
