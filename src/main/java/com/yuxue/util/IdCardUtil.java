@@ -101,20 +101,24 @@ public class IdCardUtil {
 
 
     /**
-     * 获取最长的边框直线
-     * @param inMat
+     * 统计概率霍夫线变换；输出线段两个点的坐标
+     * 保留所有直线的点， 用于定位证件的边框轮廓
+     * 需要考虑，确定的边<=2条的情况; 可以结合人脸位置进行定位
+     * 返回一张二值图像
+     * @param inMat 边缘二值图像
      * @param debug
      * @param tempPath
      */
     public static void getMaxLine(Mat inMat, Boolean debug, String tempPath) {
-        Mat lines = new Mat(); // 4通道，没一行代表一条直线的坐标
+        Mat lines = new Mat(); // 4通道，每一行代表一条直线的坐标
         // rho:就是一个半径的分辨率。 theta:角度分辨率。 threshold:判断直线点数的阈值。
         // minLineLength：线段长度阈值。 minLineGap:线段上最近两点之间的阈值。
-        Imgproc.HoughLinesP(inMat, lines, 1, Math.PI/180, 50, 100, 10);
+        Imgproc.HoughLinesP(inMat, lines, 1, Math.PI/180, 50, 100, 1);
         if(debug) {
             Mat dst = inMat.clone();
             Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_GRAY2BGR);
             Scalar scalar = new Scalar(0, 255, 0, 255); //蓝色
+            System.err.println("lines===>" + lines.rows());
             for (int i = 0; i < lines.rows(); i++) {
                 Mat row = lines.row(i);
                 Point start = new Point(row.get(0, 0)[0], row.get(0, 0)[1]);
@@ -323,8 +327,8 @@ public class IdCardUtil {
         // 边缘腐蚀
         threshold = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
 
-        // 获取最长的直线轮廓；用于定位证件位置，校正图像   // 效果不理想
-        // getMaxLine(threshold, debug, tempPath);
+        // 获取直线轮廓；用于定位证件位置, 提取证件边框
+        getMaxLine(threshold, debug, tempPath);
 
         // 提取轮廓
         List<MatOfPoint> contours = ImageUtil.contours(src, threshold, false, tempPath);
