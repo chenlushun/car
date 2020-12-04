@@ -1,8 +1,13 @@
 package com.yuxue.util;
 
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -11,6 +16,7 @@ import javax.imageio.ImageIO;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
@@ -52,6 +58,7 @@ public class IdCardUtil {
         File testDataFolderFile = LoadLibs.extractTessResources("tessdata");
         // instance.setLanguage("eng");    // 加载语言模型 英文、数字
         instance.setLanguage("chi_sim"); // 加载语言模型 中文、英文、数字
+        // instance.setTessVariable("digits", "0123456789X");
         instance.setDatapath(testDataFolderFile.getAbsolutePath());
     }
 
@@ -267,6 +274,39 @@ public class IdCardUtil {
         return dst;
     }
 
+    
+    public static BufferedImage Mat2BufImg(Mat matrix, String fileExtension) {
+        MatOfByte  mob = new MatOfByte();
+        Imgcodecs.imencode(fileExtension, matrix, mob);
+        byte[] byteArray = mob.toArray();
+        BufferedImage bufImage = null;
+        try{
+            InputStream in = new ByteArrayInputStream(byteArray);
+            bufImage = ImageIO.read(in);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bufImage;
+    }
+    
+    
+    public static Mat BufImg2Mat (BufferedImage original, int imgType, int matType) {
+        if (original.getType() != imgType) {
+            BufferedImage image = new BufferedImage(original.getWidth(), original.getHeight(), imgType);
+            Graphics2D g = image.createGraphics();
+            try {
+                g.setComposite(AlphaComposite.Src);
+                g.drawImage(original, 0, 0, null);
+            } finally {
+                g.dispose();
+            }
+        }
+        byte[] pixels = ((DataBufferByte) original.getRaster().getDataBuffer()).getData();
+        Mat mat = Mat.eye(original.getHeight(), original.getWidth(), matType);
+        mat.put(0, 0, pixels);
+        return mat;
+    }
+    
 
     /**
      * 使用tess4j识别字符
@@ -344,8 +384,8 @@ public class IdCardUtil {
         Rect rect = null;
 
         // 定向识别文字; 矩形框的起点、终点作为参数
-        /*recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
-        recoChars(new File("D:\\CardDetect\\test\\name.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
+        /*recoChars(new File("D:\\CardDetect\\test\\name.jpg"), rect);
         recoChars(new File("D:\\CardDetect\\test\\gender.jpg"), rect);
         recoChars(new File("D:\\CardDetect\\test\\address.jpg"), rect);*/
     }
