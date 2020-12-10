@@ -22,7 +22,7 @@ import io.swagger.annotations.ApiOperation;
 public class FaceController {
     
     @Autowired
-    private FaceService service;
+    private FaceService faceService;
 
     @ApiOperation(value = "图片人脸识别", notes = "在识别到的人脸描绘矩形框，返回识别结果图片路径")
     @ApiImplicitParams({
@@ -41,7 +41,7 @@ public class FaceController {
         } catch (UnsupportedEncodingException e) {
             throw new ResultReturnException("filePath参数异常");
         }
-        return service.recognise(filePath, reRecognise);
+        return faceService.recognise(filePath, reRecognise);
     }
     
     

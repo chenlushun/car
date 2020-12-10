@@ -166,6 +166,15 @@
 		</dependency> -->
 		<!-- 使用javacpp的，基于jar包的方式调用opencv框架 ===== end -->
 		
+		<!-- 加载lib目录下的opencv包，java调用dll的桥梁包 -->
+		<dependency>
+            <groupId>org.opencv</groupId>
+            <artifactId>opencv</artifactId>
+            <version>4.0.1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/opencv-401.jar</systemPath>
+        </dependency>
+		
 		
 		<dependency>
             <groupId>net.sourceforge.tess4j</groupId>
@@ -194,6 +203,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>com.yuxue.Application</mainClass>
+                    <includeSystemScope>true</includeSystemScope>
                     <layout>ZIP</layout>
                 </configuration>
                 <executions>

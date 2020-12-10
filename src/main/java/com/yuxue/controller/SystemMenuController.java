@@ -26,7 +26,7 @@ import io.swagger.annotations.ApiOperation;
 public class SystemMenuController {
 
     @Autowired
-    private SystemMenuService service;
+    private SystemMenuService systemMenuService;
 
     /**
      * 分页查询
@@ -42,7 +42,7 @@ public class SystemMenuController {
     })
     @RequestMapping(value = "/queryByPage", method = RequestMethod.POST)
     public Object queryByPage(@RequestParam Integer pageNo, @RequestParam Integer pageSize, @RequestBody Map<String, Object> map) {
-        return service.queryByPage(pageNo, pageSize, map);
+        return systemMenuService.queryByPage(pageNo, pageSize, map);
     }
     
     @ApiOperation(value = "按条件查询", notes = "不分页", response = SystemMenuEntity.class)
@@ -51,7 +51,7 @@ public class SystemMenuController {
     })
     @RequestMapping(value = "/queryByCondition", method = RequestMethod.POST)
     public Object queryByCondition(@RequestBody Map<String, Object> map) {
-        return service.queryByCondition(map);
+        return systemMenuService.queryByCondition(map);
     }
     
     
@@ -63,7 +63,7 @@ public class SystemMenuController {
     @ApiImplicitParam(name = "entity", value = "举例：{} or {\"name\":\"张三\"}", required = true, dataType = "entity")
     @RequestMapping(value = "", method = RequestMethod.POST)
     public Object save(@RequestBody SystemMenuEntity entity) {
-        return service.save(entity);
+        return systemMenuService.save(entity);
     }
     
     
@@ -74,7 +74,7 @@ public class SystemMenuController {
     @ApiOperation(value = "获取登录用户菜单", notes = "")
     @GetMapping("/getUserMenu")
     public Object getUserMenu() {
-        return service.getUserMenu();
+        return systemMenuService.getUserMenu();
     }
     
 

@@ -24,7 +24,7 @@ import io.swagger.annotations.ApiOperation;
 public class PlateController {
 
     @Autowired
-    private PlateService service;
+    private PlateService plateService;
 
      
     /**
@@ -35,7 +35,7 @@ public class PlateController {
     @ApiOperation(value = "更新IMG文件基础信息", notes = "")
     @RequestMapping(value = "/refreshFileInfo", method = RequestMethod.GET)
     public void refreshFileInfo() {
-        service.refreshFileInfo();
+        plateService.refreshFileInfo();
     }
 
     
@@ -47,7 +47,7 @@ public class PlateController {
     @ApiOperation(value = "图片车牌识别", notes = "路径不能包含中文，opencv路径转码过程乱码会报异常")
     @RequestMapping(value = "/recogniseAll", method = RequestMethod.GET)
     public Object recogniseAll() {
-        return service.recogniseAll();
+        return plateService.recogniseAll();
     }
     
     
@@ -76,7 +76,7 @@ public class PlateController {
         } catch (UnsupportedEncodingException e) {
             throw new ResultReturnException("filePath参数异常");
         }
-        return service.recognise(filePath, reRecognise);
+        return plateService.recognise(filePath, reRecognise);
     }
     
     
@@ -90,7 +90,7 @@ public class PlateController {
                 throw new ResultReturnException("imgPath参数异常");
             }
         }
-        return service.getImgInfo(imgPath);
+        return plateService.getImgInfo(imgPath);
     }
     
     
@@ -104,7 +104,7 @@ public class PlateController {
                 throw new ResultReturnException("imgPath参数异常");
             }
         }
-        return service.getHSVValue(imgPath, row, col);
+        return plateService.getHSVValue(imgPath, row, col);
     }
     
     

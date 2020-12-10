@@ -35,7 +35,7 @@ import io.swagger.annotations.ApiOperation;
 public class FileController {
 
     @Autowired
-    private FileService service;
+    private FileService fileService;
 
     
     /**
@@ -56,7 +56,7 @@ public class FileController {
         } catch (UnsupportedEncodingException e) {
             throw new ResultReturnException("dir参数异常");
         }
-        return service.getFileTreeByDir(rootPath, dir, typeFilter);
+        return fileService.getFileTreeByDir(rootPath, dir, typeFilter);
     }
     
     
@@ -77,7 +77,7 @@ public class FileController {
             throw new ResultReturnException("filePath参数异常");
         }
         //文件输出流，输出到客户端
-        File file = service.readFile(filePath);
+        File file = fileService.readFile(filePath);
         InputStreamResource isr = new InputStreamResource(new FileInputStream(file));
         HttpHeaders headers = new HttpHeaders();
         return new ResponseEntity<InputStreamResource>(isr, headers, HttpStatus.OK);
