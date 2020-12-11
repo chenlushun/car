@@ -52,6 +52,13 @@ public class Line {
         return Math.sqrt(Math.pow((start.x - end.x), 2) + Math.pow((start.y - end.y), 2));
     }
     
+    /**
+     * 计算线段的中间点
+     * @return
+     */
+    public Point getMidPoint() {
+        return new Point((start.x + end.x)/2, (start.y + end.y)/2);
+    }
     
     /**
      * 计算原点(0,0)到当前线段所在直线的距离
@@ -68,10 +75,12 @@ public class Line {
      */
     public double getK() {
         if(end.x == start.x) {
-            return 0; // 跟x轴平行
+            return Double.MAX_VALUE; // 跟Y轴平行
         }
+        /*if(end.y == start.y) {
+            return 0; // 跟X轴平行
+        }*/
         return  (end.y - start.y) / (end.x - start.x);
     }
-    
 
 }

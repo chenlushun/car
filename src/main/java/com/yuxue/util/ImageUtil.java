@@ -355,7 +355,7 @@ public class ImageUtil {
     public static void drawRectangle(Mat inMat, RotatedRect mr) {
         Mat points = new Mat();
         Imgproc.boxPoints(mr, points);
-        Scalar scalar = new Scalar(0, 255, 0, 255); //蓝色
+        Scalar scalar = new Scalar(0, 255, 0, 255); //绿色
         if(points.rows() == 4) {
             Point start = new Point(points.get(0, 0)[0], points.get(0, 1)[0]);
             Point end = new Point(points.get(1, 0)[0], points.get(1, 1)[0]);

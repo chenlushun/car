@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 
@@ -31,6 +32,7 @@ import org.opencv.objdetect.CascadeClassifier;
 import org.springframework.util.StringUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.yuxue.constant.Constant;
 import com.yuxue.entity.Line;
 import com.yuxue.entity.LineClass;
@@ -129,7 +131,6 @@ public class IdCardUtil {
         // rho:就是一个半径的分辨率；theta:角度分辨率； threshold:判断直线点数的阈值
         // minLineLength：线段长度阈值；minLineGap:线段上最近两点之间的阈值
         Imgproc.HoughLinesP(threshold, lines, 1, Math.PI/180, 50, 100, 1); 
-        System.err.println("lines===>" + lines.rows());
 
         if(lines.rows() <= 0) { // 没有扫描到直线
             return null;
@@ -146,34 +147,110 @@ public class IdCardUtil {
             ImageUtil.debugImg(debug, tempPath, "drawLines", dst);
         }
 
-        // 将线段归类
+        // HoughLinesP可能会将一条边框，扫描出来很多线段，而且还可能中间是断开的 
+        // 将线段过滤并归归类合并；将重叠靠近的线段合并保留一条，并将中间断开的连接起来
         List<Line> ls = filterLines(threshold, lines, debug, tempPath);
-        System.err.println("filterLines===>" + ls.size());
+        System.err.println("lines===>" + ls.size());
 
-        //      Mat m = Mat.zeros(threshold.size(), threshold.type()); // 二值图像
-        //      Scalar scalar = new Scalar(255, 255, 255, 255); // 白色
-
-        // 用剩下的线段，围成矩形框; 得到4个顶点 // 如果是包含人脸的证件，可以使用人脸中心点的位置辅助计算
-        List<Point> p = Lists.newArrayList(); // 左上角为起点，顺时针顺序的四个顶点位置
+        // 用剩下的线段，围成矩形框; 
+        // 如果是包含人脸的证件，可以使用人脸中心点的位置辅助计算
+        // ？？是否还有必要提取顶点，进行投影校正？？
+        List<Point> p = null;
+        RotatedRect r = null;
         switch (ls.size()) {
-        case 1: // 如果只有1条线段，则默认是卡片的底边或者右边，按比例计算高度，围成矩形
-
-            break;
-        case 2: // 如果只有2条线段，则默认都是卡片的边框，判断是垂直还是平行，计算出宽度高度，围成矩形
-
-            // 平行的边，还要判断是否是人像的下边线
-            break;
-
-        default: // 如果2条以上，按斜率再次分为两类；多余的不要
+        case 0: // 如果没有提取到有效的直线，则默认为整个图都是证件
             
             break;
+        case 1: // 如果只有1条线段，默认就是边框线，按比例计算宽度或者高度，围成矩形
+            r = getRectPoint(threshold, ls.get(0), debug, tempPath);
+            break;
+        case 2: // 如果只有2条线段，
+            // 判断是垂直的，以交点为顶点，描绘矩形框，从而确定卡片矩形框 
+            // ？？可以考虑是否进行角度校正；即：两条线段角度实际没有90°，校正到90°
+            
+            // 判断是平行的，提取四个顶点？
+
+            r = getRectPoint(threshold, ls.get(0), debug, tempPath);
+            break;
+
+        default: 
+            // 如果2条以上，按斜率再次分为两类， 得到较优的两条线段；多余的不要
+            // 可以考虑， 计算线段延长线交点的位置，是否还在pic内部， 如果在的话，可以粗略判定都是卡片的边框
+            r = getRectPoint(threshold, ls.get(0), debug, tempPath);
+            break;
         }
-        
-        // 根据4个顶点，投影变换裁剪灰度图，得到卡片的固定大小的Mat
+
+        // 提取卡片切图   未完成 
         Mat card = new Mat(151 * 2, 254 * 2, grey.type());
-        // 未完成 
+        
+        //
         
         return card;
+    }
+
+
+    /**
+     * 根据斜率判断线段是卡片的底边还是侧边; 从而计算出卡片的宽度跟高度
+     * 以线段的任一点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是卡片的中心点
+     * 如果有人脸位置信息，还可以继续确定具体是卡片的哪条边
+     * @param line
+     */
+    public static RotatedRect getRectPoint(Mat threshold, Line line, Boolean debug, String tempPath) {
+        double width = 0;
+        double height = 0;
+        double k = line.getK();
+        Size size = null;
+        if(Math.abs(k) < 1) { // 判定为底边
+            width = line.getLength(); // 可以考虑弧度的影响，也可以不用考虑；因为弧度范围内没有需要识别的文字内容
+            height = width / 1.58; // 身份证长宽比例约为1.58:1
+            size = new Size(width, height);
+        } else { // 判定为侧边
+            height = line.getLength();
+            width =  height * 1.58;
+            size = new Size(height, width);
+        }
+
+        // 计算边相对X轴的角度
+        double angle = Math.atan(k) / Math.PI * 180;
+        /*System.out.println("width===>" + width);
+        System.out.println("height===>" + height);
+        System.out.println("k===>" + k);
+        System.out.println("angle===>" + angle);*/
+
+        // 以线段的任一点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是卡片的中心点
+        RotatedRect r0 = new RotatedRect(line.getStart(), size, angle);
+        /*if(debug) { // 将检测到的线段描绘出来
+            Mat dst = threshold.clone();
+            Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
+            ImageUtil.drawRectangle(dst, r0);
+            ImageUtil.debugImg(debug, tempPath, "drawRect", dst);
+        }*/
+        Point[] pt = new Point[4];
+        r0.points(pt); // 获取到四个顶点
+
+        Point center = null;
+        double min = Double.MAX_VALUE;
+        Point picCenter = new Point(threshold.width()/2, threshold.height()/2);
+        for (Point p : pt) {
+            // 直接计算距离图片中心点最近的顶点，即为卡片矩形中心点
+            double d = ImageUtil.getDistance(p, picCenter);
+            if(d < min) {
+                min = d;
+                center = p;
+            }
+        }
+        RotatedRect r = new RotatedRect(center, size, angle);
+
+        if(debug) {
+            Mat dst = threshold.clone();
+            Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
+            ImageUtil.drawRectangle(dst, r);
+            Scalar scalar = new Scalar(0, 0, 255, 255); // 红色
+            Imgproc.line(dst, line.getStart(), line.getEnd(), scalar);
+            ImageUtil.debugImg(debug, tempPath, "drawRect", dst);
+        }
+
+        return r;
     }
 
 
@@ -455,19 +532,20 @@ public class IdCardUtil {
 
         // 边缘腐蚀
         threshold = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
-        
+
         // 提取卡片Mat，方法一：
         // 提取二值图像的所有轮廓
         // List<MatOfPoint> contours = ImageUtil.contours(src, threshold, false, tempPath);
         //轮廓筛选, 获取最大的类矩形的轮廓;  即证件边框
         // Mat card = new Mat();
         // getCard(gsMat, card, contours, debug, tempPath);
-        
+
         // 提取卡片Mat，方法二：
-        // 霍夫线方法，提取线段轮廓，计算卡片位置，提取并校正到指定大小
+        // 霍夫线方法，提取线段轮廓，计算卡片位置，提取卡片图块并校正到指定大小
         Mat card = getCard(grey, threshold, debug, tempPath);
-        
-        
+
+        // 将卡片切图，由起点到中轴线(忽略人像的影响)，计算水平方向投影，从而确定文字所在的行
+
         // 再次提取轮廓，主要提取文字所在位置的轮廓
         Rect rect = null;
 
@@ -481,16 +559,15 @@ public class IdCardUtil {
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        Mat src = Imgcodecs.imread("D:/CardDetect/7.jpg");
+        Mat src = Imgcodecs.imread("D:/CardDetect/4.jpg");
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
 
         new IdCardUtil(); // 调用构造方法，加载模型文件
-
         cardDetect(src, debug, tempPath); // 检测并识别卡片文字
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());
     }
-    
+
 }
