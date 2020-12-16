@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -123,15 +124,13 @@ public class IdCardUtil {
      * @param debug
      * @param tempPath
      */
-    public static Mat getCard(Mat grey, Mat threshold, Boolean debug, String tempPath) {
-        // 检测结果 线段  // 4通道Mat，用于存储线段两个点的坐标，每一行一个像素点，代表一条线段
+    public static List<MatOfPoint> getCardContours(Mat grey, Mat threshold, Boolean debug, String tempPath) {
+        // 4通道Mat，用于存储线段两个点的坐标，每一行一个像素点，代表一条线段
         Mat lines = new Mat();
-
         // 统计概率霍夫线变换；输出线段两个点的坐标
         // rho:就是一个半径的分辨率；theta:角度分辨率； threshold:判断直线点数的阈值
         // minLineLength：线段长度阈值；minLineGap:线段上最近两点之间的阈值
-        Imgproc.HoughLinesP(threshold, lines, 1, Math.PI/180, 50, 100, 1); 
-
+        Imgproc.HoughLinesP(threshold, lines, 1, Math.PI/180, 50, 100, 2); 
         if(lines.rows() <= 0) { // 没有扫描到直线
             return null;
         }
@@ -150,52 +149,242 @@ public class IdCardUtil {
         // HoughLinesP可能会将一条边框，扫描出来很多线段，而且还可能中间是断开的 
         // 将线段过滤并归归类合并；将重叠靠近的线段合并保留一条，并将中间断开的连接起来
         List<Line> ls = filterLines(threshold, lines, debug, tempPath);
-        System.err.println("lines===>" + ls.size());
 
-        // 用剩下的线段，围成矩形框; 
+        // 用剩下的线段，提取矩形框
         // 如果是包含人脸的证件，可以使用人脸中心点的位置辅助计算
-        // ？？是否还有必要提取顶点，进行投影校正？？
-        List<Point> p = null;
-        RotatedRect r = null;
+        
+        Mat m = Mat.zeros(threshold.size(), threshold.type());
+        Scalar scalar = new Scalar(255, 255, 255, 255); // 白色
+        List<Point> pList = null;   // 针对四个顶点，提取轮廓
+
+        System.err.println("lines===>" + ls.size());
         switch (ls.size()) {
         case 0: // 如果没有提取到有效的直线，则默认为整个图都是证件
-            
+            m = threshold.clone();
             break;
-        case 1: // 如果只有1条线段，默认就是边框线，按比例计算宽度或者高度，围成矩形
-            r = getRectPoint(threshold, ls.get(0), debug, tempPath);
+        case 1: // 如果只有1条线段
+            pList = getRectByLine(threshold, ls.get(0), debug, tempPath);
             break;
-        case 2: // 如果只有2条线段，
-            // 判断是垂直的，以交点为顶点，描绘矩形框，从而确定卡片矩形框 
-            // ？？可以考虑是否进行角度校正；即：两条线段角度实际没有90°，校正到90°
-            
-            // 判断是平行的，提取四个顶点？
+        case 2: // 如果只有2条线段
+            pList = getRectByLine(threshold, ls.get(0), ls.get(1), debug, tempPath);
+            break;
 
-            r = getRectPoint(threshold, ls.get(0), debug, tempPath);
+        case 3: // 如果只有3条线段
+            pList = getRectByLine(threshold, ls.get(0), ls.get(1), ls.get(2), debug, tempPath);
             break;
 
         default: 
-            // 如果2条以上，按斜率再次分为两类， 得到较优的两条线段；多余的不要
-            // 可以考虑， 计算线段延长线交点的位置，是否还在pic内部， 如果在的话，可以粗略判定都是卡片的边框
-            r = getRectPoint(threshold, ls.get(0), debug, tempPath);
+            // 超过3条线段
+            pList = getRectByLine(threshold, ls, debug, tempPath);
             break;
         }
 
-        // 提取卡片切图   未完成 
-        Mat card = new Mat(151 * 2, 254 * 2, grey.type());
-        
-        //
-        
-        return card;
+        if(null != pList && pList.size() == 4) {
+            // 针对四个顶点排序
+            Map<Integer, Point> p = sortPoint(pList);
+            if(debug) {
+                Mat dst = grey.clone();
+                Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
+                Scalar scalar0 = new Scalar(0, 0, 255, 255); // 红色
+                Imgproc.line(dst, p.get(0), p.get(1), scalar0);
+                Imgproc.line(dst, p.get(0), p.get(3), scalar0);
+                Imgproc.line(dst, p.get(2), p.get(1), scalar0);
+                Imgproc.line(dst, p.get(2), p.get(3), scalar0);
+                ImageUtil.debugImg(debug, tempPath, "drawRect", dst);
+            }
+
+            Imgproc.line(m, p.get(0), p.get(1), scalar);
+            Imgproc.line(m, p.get(0), p.get(3), scalar);
+            Imgproc.line(m, p.get(2), p.get(1), scalar);
+            Imgproc.line(m, p.get(2), p.get(3), scalar);
+        }
+
+        // RETR_EXTERNAL只检测最外围轮廓， // RETR_LIST   检测所有的轮廓
+        // CHAIN_APPROX_NONE 保存物体边界上所有连续的轮廓点到contours向量内
+        List<MatOfPoint> contours = ImageUtil.contours(grey, m, false, tempPath);
+
+        Mat dst = new Mat();
+        getCardByContours(grey, dst, contours, debug, tempPath);
+
+        return contours;
     }
 
 
     /**
+     * 对四边形的四个顶点矩形排序
+     * 0123 左上角开始，顺时针旋转
+     * @param pList
+     * @return
+     */
+    public static Map<Integer, Point> sortPoint(List<Point> pList) {
+        if(null == pList || pList.size() != 4) {
+            return null;
+        }
+        Map<Integer, Point> p = Maps.newHashMap();
+        Point p0 = new Point(0,0);
+        double dis = Double.MAX_VALUE;
+        for (Point point : pList) {
+            double d = ImageUtil.getDistance(p0, point);
+            if(d < dis) {
+                p.put(0, point);    // 左上角的点
+                dis = d;
+            }
+        }
+        dis = 0;
+        for (Point point : pList) {
+            double d = ImageUtil.getDistance(p0, point);
+            if(d > dis) {
+                p.put(2, point); // 右下角的点
+                dis = d;
+            }
+        }
+        // 另外两个点随便
+        for (Point point : pList) {
+            if(!point.equals(p.get(0)) && !point.equals(p.get(2))) {
+                if(p.containsKey(1)) {
+                    p.put(3, point);
+                } else {
+                    p.put(1, point);
+                }
+            }
+        }
+        return p;
+    }
+
+
+    /**
+     * 提取到4条及以上有效线段
+     * 优先尝试寻找两组平行边；如果满足要求，直接提取交点即可; 如果有2条以上的平行边，按长度、距离优化保留2条即可
+     * 其次尝试寻找一组平行边
+     * 判断是否有垂直边；如果有按3计算，如果没有按2计算
+     * 尝试寻找一组垂直边
+     * 都没有，则提取最佳的一条直线
+     * @param threshold
+     * @param lines
+     * @param debug
+     * @param tempPath
+     * @return
+     */
+    public static List<Point> getRectByLine(Mat threshold, List<Line> lines, Boolean debug, String tempPath) {
+
+
+        return null;
+    }
+
+
+
+    /**
+     * 提取到3条有效线段
+     * @param threshold
+     * @param a
+     * @param b
+     * @param c
+     * @param debug
+     * @param tempPath
+     * @return
+     */
+    public static List<Point> getRectByLine(Mat threshold, Line a, Line b, Line c, Boolean debug, String tempPath) {
+        // 尝试提取一组平行线
+        
+        // 如果没有平行线，则说明有一条线是多余的 // 然后尝试提取一组垂直线
+
+        return null;
+    }
+
+    /**
+     * 提取到2条有效线段
+     * 判断是平行的，提取四个顶点
+     * 判断是垂直或者接近垂直的，交点为一个顶点，两条线段在分别提取一个顶点，按梯形计算第四个顶点
+     * @param threshold
+     * @param a
+     * @param b
+     * @param debug
+     * @param tempPath
+     * @return
+     */
+    public static List<Point> getRectByLine(Mat threshold, Line a, Line b, Boolean debug, String tempPath) {
+
+        double aK = a.getK();
+        double bK = b.getK();
+
+        // 两条线段的夹角； 取绝对值，不带方向
+        double angle = Math.abs(ImageUtil.getAngle(aK, bK));
+
+        List<Point> result = Lists.newArrayList();
+
+        if(angle <=5) { // 判定为平行
+            // 判断两条线段的垂直距离跟直线的比例是否在允许的范围内
+            double distance = ImageUtil.getDistance(a.getStart(), b.getStart(), b.getEnd());
+            if(distance > (a.getLength() / 2)  && distance > (b.getLength() /2)) {
+                // 这种方案有点缺陷，可能提取到的线段，只是边线的一部分，会导致后续的错切校正异常 ; 还有优化的空间，未完成
+                result.add(a.getStart());
+                result.add(a.getEnd());
+                result.add(b.getStart());
+                result.add(b.getEnd());
+            }
+        } else if(angle >= 80) { // 判定为垂直; 计算卡片的顶点
+            Point crossPoint = ImageUtil.getCrossPoint(a, b); // 交点
+            result.add(crossPoint);
+
+            // 即 X轴旋转多少角度能与给定的线重合；小于0则逆时针旋转 大于0这顺时针 [-90,90]
+            Double aAngle = Math.toDegrees(Math.atan(aK));
+            Double bAngle = Math.toDegrees(Math.atan(bK));
+
+            // 取跟x轴角度较小的线段为底边； 其他情况不予考虑
+            Double baseAngle = (Math.abs(aAngle) < Math.abs(bAngle)) ? aAngle : bAngle;
+
+            Line baseLine = (Math.abs(aAngle) < Math.abs(bAngle)) ? a : b;
+            Line otherLine = (Math.abs(aAngle) < Math.abs(bAngle)) ? b : a;
+
+            Point p = null;
+
+            if(ImageUtil.getDistance(crossPoint, otherLine.getStart()) > ImageUtil.getDistance(crossPoint, otherLine.getEnd())) {
+                result.add(otherLine.getStart());
+            } else {
+                result.add(otherLine.getEnd());
+            }
+
+            if(ImageUtil.getDistance(crossPoint, baseLine.getStart()) > ImageUtil.getDistance(crossPoint, baseLine.getEnd())) {
+                result.add(baseLine.getStart());
+                p = baseLine.getStart();
+            } else {
+                result.add(baseLine.getEnd());
+                p = baseLine.getEnd();
+            }
+
+            // 10-85
+            // -(180-85-10)
+            Double angleX = baseAngle - angle; // 逆时针旋转，角度减小
+            if(angleX.intValue() == aAngle.intValue() || angleX.intValue() == bAngle.intValue()) {
+                angleX = - (180 - angle - baseAngle);
+            }
+            if(angleX < -90) { // 角度转换
+                angleX = 180 + angleX;
+            }
+
+            double xK = Math.tan(Math.toRadians(angleX)); // 角度转弧度  然后计算正切值
+
+            // 计算第四个点的位置  ab两条线段的角度!=90°，则卡片在图中的形状可能为梯形
+            // 根据线段的端点、斜率、高度，计算第四个点的位置
+            Point dest = ImageUtil.getDestPoint(p, otherLine.getLength(), xK);
+            result.add(dest);
+
+        } else { // 取最长的一条线段为卡片边框线
+            result = getRectByLine(threshold, a.getLength() > b.getLength() ? a : b, debug, tempPath);
+        }
+
+        return result;
+    }
+
+
+    /**
+     * 提取到1条有效线段; 默认就是边框线
      * 根据斜率判断线段是卡片的底边还是侧边; 从而计算出卡片的宽度跟高度
      * 以线段的任一点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是卡片的中心点
      * 如果有人脸位置信息，还可以继续确定具体是卡片的哪条边
      * @param line
      */
-    public static RotatedRect getRectPoint(Mat threshold, Line line, Boolean debug, String tempPath) {
+    public static List<Point> getRectByLine(Mat threshold, Line line, Boolean debug, String tempPath) {
         double width = 0;
         double height = 0;
         double k = line.getK();
@@ -210,47 +399,31 @@ public class IdCardUtil {
             size = new Size(height, width);
         }
 
-        // 计算边相对X轴的角度
-        double angle = Math.atan(k) / Math.PI * 180;
-        /*System.out.println("width===>" + width);
-        System.out.println("height===>" + height);
-        System.out.println("k===>" + k);
-        System.out.println("angle===>" + angle);*/
+        // 计算边相对X轴(图片的上边线)的角度；
+        // 即 X轴旋转多少角度能与给定的线重合；小于0则逆时针旋转 大于0这顺时针
+        // double angle = Math.atan(k) / Math.PI * 180;
+        double angle = Math.toDegrees(Math.atan(k)); // atan反正切得到弧度，toDegrees 弧度转角度
 
         // 以线段的任一点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是卡片的中心点
         RotatedRect r0 = new RotatedRect(line.getStart(), size, angle);
-        /*if(debug) { // 将检测到的线段描绘出来
-            Mat dst = threshold.clone();
-            Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
-            ImageUtil.drawRectangle(dst, r0);
-            ImageUtil.debugImg(debug, tempPath, "drawRect", dst);
-        }*/
         Point[] pt = new Point[4];
-        r0.points(pt); // 获取到四个顶点
+        r0.points(pt); // 获取到这四个顶点
 
         Point center = null;
         double min = Double.MAX_VALUE;
+        // 直接计算距离图片中心点最近的顶点，即为卡片矩形中心点
         Point picCenter = new Point(threshold.width()/2, threshold.height()/2);
         for (Point p : pt) {
-            // 直接计算距离图片中心点最近的顶点，即为卡片矩形中心点
             double d = ImageUtil.getDistance(p, picCenter);
             if(d < min) {
                 min = d;
                 center = p;
             }
         }
+        // 获取矩形的四个顶点
         RotatedRect r = new RotatedRect(center, size, angle);
-
-        if(debug) {
-            Mat dst = threshold.clone();
-            Imgproc.cvtColor(threshold, dst, Imgproc.COLOR_GRAY2BGR);
-            ImageUtil.drawRectangle(dst, r);
-            Scalar scalar = new Scalar(0, 0, 255, 255); // 红色
-            Imgproc.line(dst, line.getStart(), line.getEnd(), scalar);
-            ImageUtil.debugImg(debug, tempPath, "drawRect", dst);
-        }
-
-        return r;
+        r.points(pt);
+        return Arrays.asList(pt);
     }
 
 
@@ -306,7 +479,7 @@ public class IdCardUtil {
      * @param debug
      * @param tempPath
      */
-    public static void getCard(Mat inMat, Mat dst, List<MatOfPoint> contours, Boolean debug, String tempPath) {
+    public static void getCardByContours(Mat inMat, Mat dst, List<MatOfPoint> contours, Boolean debug, String tempPath) {
         // 根据人脸，预估证件的大小 // 非必须
         Double maxArea = inMat.width() * inMat.height() * 1.0;
         Double minArea =  inMat.width() * inMat.height() * 0.3; // 证件图像，至少占页面大小的1/3
@@ -533,21 +706,23 @@ public class IdCardUtil {
         // 边缘腐蚀
         threshold = ImageUtil.erode(threshold, debug, tempPath, 2, 2);
 
-        // 提取卡片Mat，方法一：
+        // 提取卡片轮廓，方法一：
         // 提取二值图像的所有轮廓
         // List<MatOfPoint> contours = ImageUtil.contours(src, threshold, false, tempPath);
-        //轮廓筛选, 获取最大的类矩形的轮廓;  即证件边框
-        // Mat card = new Mat();
-        // getCard(gsMat, card, contours, debug, tempPath);
 
-        // 提取卡片Mat，方法二：
+        // 提取卡片轮廓，方法二：
         // 霍夫线方法，提取线段轮廓，计算卡片位置，提取卡片图块并校正到指定大小
-        Mat card = getCard(grey, threshold, debug, tempPath);
+        List<MatOfPoint> contours = getCardContours(grey, threshold, debug, tempPath);
+        
+        Mat card = new Mat();
+        getCardByContours(gsMat, card, contours, debug, tempPath);
 
         // 将卡片切图，由起点到中轴线(忽略人像的影响)，计算水平方向投影，从而确定文字所在的行
 
+        
         // 再次提取轮廓，主要提取文字所在位置的轮廓
         Rect rect = null;
+        
 
         // 定向识别文字  // 身份证的文字，可以直接按黑色提取
         //        recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
@@ -565,6 +740,7 @@ public class IdCardUtil {
 
         new IdCardUtil(); // 调用构造方法，加载模型文件
         cardDetect(src, debug, tempPath); // 检测并识别卡片文字
+
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());

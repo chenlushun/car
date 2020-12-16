@@ -19,6 +19,7 @@ import org.opencv.imgproc.Imgproc;
 
 import com.google.common.collect.Lists;
 import com.yuxue.constant.Constant;
+import com.yuxue.entity.Line;
 
 /**
  * 图片处理工具类
@@ -583,6 +584,54 @@ public class ImageUtil {
         // 代入点到直线距离公式
         distance = (Math.abs(A * p.x + B * p.y + C)) / (Math.sqrt(A * A + B * B));
         return distance;
+    }
+    
+    
+    /**
+     * 计算两条线段的角度
+     * 返回值包含正负数
+     * @param k1 斜率
+     * @param k2 斜率
+     * @return
+     */
+    public static double getAngle(double k1, double k2) {
+        double k = (k2 - k1) / (1 + k1*k2);
+        return Math.toDegrees(Math.atan(k));
+    }
+    
+    
+    /**
+     * 计算两条线的交点
+     * @param a
+     * @param b
+     * @return
+     */
+    public static Point getCrossPoint(Line a, Line b) {
+        double ka = a.getK();
+        double kb = b.getK();
+        double x = (ka*a.getStart().x - a.getStart().y - kb*b.getStart().x + b.getStart().y) / (ka - kb);
+        double y = (ka*kb*(a.getStart().x - b.getStart().x) + ka*b.getStart().y - kb*a.getStart().y) / (ka - kb);
+        return new Point(x, y);
+    }
+    
+    
+    /**
+     * 根据一个点、直线的斜率、距离，计算另外一个点的坐标
+     * @param p 已知点
+     * @param distance 目标点跟已知点的距离
+     * @param a 目标点跟已知点所在直线的斜率
+     * @return
+     */
+    public static Point getDestPoint(Point p, Double distance, Double a) {
+        // y = ax + b 表示直线； 计算b的值
+        double b = p.y - a * p.x;
+        // 计算直线跟x轴的交点 0 = ax +b
+        Point c = new Point(- b / a, 0);
+        // 计算p点跟c点的距离
+        double dis = getDistance(p, c);
+        // 根据三个点之间的距离比例，计算目标点的坐标
+        Point dest = new Point((p.x - c.x) * (dis-distance) / dis, p.y * (dis-distance) / dis);
+        return dest;
     }
 
 
