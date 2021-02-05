@@ -170,7 +170,7 @@ public class IdCardUtil {
             break;
 
         case 3: // 如果只有3条线段
-            pList = getRectByLine(threshold, ls.get(0), ls.get(1), ls.get(2), debug, tempPath);
+            pList = getRectByThreeLines(threshold, ls, debug, tempPath);
             break;
 
         default: 
@@ -266,7 +266,7 @@ public class IdCardUtil {
      * @return
      */
     public static List<Point> getRectByLine(Mat threshold, List<Line> lines, Boolean debug, String tempPath) {
-
+        
 
         return null;
     }
@@ -283,10 +283,57 @@ public class IdCardUtil {
      * @param tempPath
      * @return
      */
-    public static List<Point> getRectByLine(Mat threshold, Line a, Line b, Line c, Boolean debug, String tempPath) {
-        // 尝试提取一组平行线
+    public static List<Point> getRectByThreeLines(Mat threshold, List<Line> lines, Boolean debug, String tempPath) {
+        if(null == lines || lines.size() != 3) {
+            return null;
+        }
         
-        // 如果没有平行线，则说明有一条线是多余的 // 然后尝试提取一组垂直线
+        Line a = null; Line b  = null;  // 一组平行线
+        Line c = null; // 垂直于另外两条线的 垂直线
+        
+        // 提取一组平行线
+        for (int i = 0; i < lines.size(); i++) {
+            for (int j = 1; j < lines.size(); j++) {
+                double ki = lines.get(i).getK();
+                double kj = lines.get(j).getK();
+                double angle = Math.abs(ImageUtil.getAngle(ki, kj));
+                if(angle <= 5) {
+                    a = lines.get(i);
+                    b = lines.get(j);
+                    break;
+                }
+            } 
+        }
+        // 提取一组垂直线
+        for (int i = 0; i < lines.size(); i++) {
+            for (int j = 1; j < lines.size(); j++) {
+                double ki = lines.get(i).getK();
+                double kj = lines.get(j).getK();
+                double angle = Math.abs(ImageUtil.getAngle(ki, kj));
+                if(angle >= 80) {
+                    if(null == a) {
+                        a = lines.get(i);
+                    }
+                    c = lines.get(i);
+                    if(c.equals(a) || c.equals(b)) {
+                        c = lines.get(j);
+                    }
+                    break;
+                }
+            } 
+        }
+        
+        // 同时有平行线跟垂直线, 按三条线来取顶点
+        if(null != b && null != c) {
+            
+        }
+        
+        // 没有提取到平行线，也没有提取到垂直线
+        if(null == b && null == c) {
+            // 取最长的一条线段为卡片边框线
+            
+        }
+         
 
         return null;
     }
@@ -711,7 +758,7 @@ public class IdCardUtil {
         // List<MatOfPoint> contours = ImageUtil.contours(src, threshold, false, tempPath);
 
         // 提取卡片轮廓，方法二：
-        // 霍夫线方法，提取线段轮廓，计算卡片位置，提取卡片图块并校正到指定大小
+        // 霍夫线方法，提取线段，计算卡片位置，提取卡片图块并校正到指定大小
         List<MatOfPoint> contours = getCardContours(grey, threshold, debug, tempPath);
         
         Mat card = new Mat();

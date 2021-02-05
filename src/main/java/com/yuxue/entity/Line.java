@@ -3,6 +3,7 @@ package com.yuxue.entity;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
+import com.yuxue.util.GenerateIdUtil;
 import com.yuxue.util.ImageUtil;
 
 import lombok.Data;
@@ -18,6 +19,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class Line {
+    
+    private Long id;
 
     private Point start;
 
@@ -25,8 +28,16 @@ public class Line {
 
     
     public Line(Point start, Point end) {
+        setId(GenerateIdUtil.getId());
         setStart(start);
         setEnd(end);
+    }
+    
+    public boolean equals(Line l) {
+        if(l.getId().equals(getId())) {
+            return true;
+        }
+        return false;
     }
     
 
