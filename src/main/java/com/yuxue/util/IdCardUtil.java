@@ -53,11 +53,15 @@ public class IdCardUtil {
 
     private static final String TEMP_PATH = "D:/CardDetect/temp/";
 
+    private static final double verticalAngle = 80;
+    private static final double horizontalAngle = 5;
+
     // 人脸识别库
     private static CascadeClassifier faceDetector;
 
     // Tess文字识别库
     private static Tesseract instance = new Tesseract();
+
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -152,7 +156,7 @@ public class IdCardUtil {
 
         // 用剩下的线段，提取矩形框
         // 如果是包含人脸的证件，可以使用人脸中心点的位置辅助计算
-        
+
         Mat m = Mat.zeros(threshold.size(), threshold.type());
         Scalar scalar = new Scalar(255, 255, 255, 255); // 白色
         List<Point> pList = null;   // 针对四个顶点，提取轮廓
@@ -267,7 +271,8 @@ public class IdCardUtil {
      */
     public static List<Point> getRectByLine(Mat threshold, List<Line> lines, Boolean debug, String tempPath) {
         
-
+        
+        
         return null;
     }
 
@@ -276,9 +281,6 @@ public class IdCardUtil {
     /**
      * 提取到3条有效线段
      * @param threshold
-     * @param a
-     * @param b
-     * @param c
      * @param debug
      * @param tempPath
      * @return
@@ -287,22 +289,22 @@ public class IdCardUtil {
         if(null == lines || lines.size() != 3) {
             return null;
         }
-        
+
         Line a = null; Line b  = null;  // 一组平行线
         Line c = null; // 垂直于另外两条线的 垂直线
-        
+
         // 提取一组平行线
         for (int i = 0; i < lines.size(); i++) {
             for (int j = 1; j < lines.size(); j++) {
                 double ki = lines.get(i).getK();
                 double kj = lines.get(j).getK();
                 double angle = Math.abs(ImageUtil.getAngle(ki, kj));
-                if(angle <= 5) {
+                if(angle <= horizontalAngle) {
                     a = lines.get(i);
                     b = lines.get(j);
                     break;
                 }
-            } 
+            }
         }
         // 提取一组垂直线
         for (int i = 0; i < lines.size(); i++) {
@@ -310,7 +312,7 @@ public class IdCardUtil {
                 double ki = lines.get(i).getK();
                 double kj = lines.get(j).getK();
                 double angle = Math.abs(ImageUtil.getAngle(ki, kj));
-                if(angle >= 80) {
+                if(angle >= verticalAngle ) {
                     if(null == a) {
                         a = lines.get(i);
                     }
@@ -322,21 +324,52 @@ public class IdCardUtil {
                 }
             } 
         }
-        
-        // 同时有平行线跟垂直线, 按三条线来取顶点
+        List<Point> result = Lists.newArrayList();;
+        // 有平行线，有垂直线
         if(null != b && null != c) {
-            
-        }
-        
-        // 没有提取到平行线，也没有提取到垂直线
-        if(null == b && null == c) {
-            // 取最长的一条线段为卡片边框线
-            
-        }
-         
+            // 取两个交点
+            Point p1 = ImageUtil.getCrossPoint(a, c);
+            result.add(p1);
+            Point p2 = ImageUtil.getCrossPoint(b, c);
+            result.add(p2);
 
-        return null;
+            // 取两个端点
+            if(ImageUtil.getDistance(a.getStart(), p1) > ImageUtil.getDistance(a.getEnd(), p1)  ) {
+                result.add(a.getStart());
+            } else {
+                result.add(a.getEnd());
+            }
+            if(ImageUtil.getDistance(b.getStart(), p2) > ImageUtil.getDistance(b.getEnd(), p2)  ) {
+                result.add(b.getStart());
+            } else {
+                result.add(b.getEnd());
+            }
+        }
+
+        // 有平行线，没有垂直线  // 按水平线提取
+        if(null != b && null == c) {
+            result = getRectByLine(threshold, a, b, debug, tempPath);
+        }
+
+        // 没有平行线，有垂直线  // 按垂直线提取
+        if(null == b && null != c) {
+            result = getRectByLine(threshold, a, c, debug, tempPath);
+        }
+
+        // 没有平行线，没有垂直线 // 取最长的一条线段为卡片边框线
+        if(null == b && null == c) {
+            Line longest = lines.get(0);
+            for (int i = 1; i < lines.size(); i++) {
+                if(lines.get(i).getLength() > longest.getLength()) {
+                    longest = lines.get(i);
+                }
+            }
+            result = getRectByLine(threshold, longest, debug, tempPath);
+        }
+        return result;
     }
+    
+
 
     /**
      * 提取到2条有效线段
@@ -359,7 +392,7 @@ public class IdCardUtil {
 
         List<Point> result = Lists.newArrayList();
 
-        if(angle <=5) { // 判定为平行
+        if(angle <= horizontalAngle) { // 判定为平行
             // 判断两条线段的垂直距离跟直线的比例是否在允许的范围内
             double distance = ImageUtil.getDistance(a.getStart(), b.getStart(), b.getEnd());
             if(distance > (a.getLength() / 2)  && distance > (b.getLength() /2)) {
@@ -369,7 +402,7 @@ public class IdCardUtil {
                 result.add(b.getStart());
                 result.add(b.getEnd());
             }
-        } else if(angle >= 80) { // 判定为垂直; 计算卡片的顶点
+        } else if(angle >= horizontalAngle) { // 判定为垂直; 计算卡片的顶点
             Point crossPoint = ImageUtil.getCrossPoint(a, b); // 交点
             result.add(crossPoint);
 
@@ -760,16 +793,16 @@ public class IdCardUtil {
         // 提取卡片轮廓，方法二：
         // 霍夫线方法，提取线段，计算卡片位置，提取卡片图块并校正到指定大小
         List<MatOfPoint> contours = getCardContours(grey, threshold, debug, tempPath);
-        
+
         Mat card = new Mat();
         getCardByContours(gsMat, card, contours, debug, tempPath);
 
         // 将卡片切图，由起点到中轴线(忽略人像的影响)，计算水平方向投影，从而确定文字所在的行
 
-        
+
         // 再次提取轮廓，主要提取文字所在位置的轮廓
         Rect rect = null;
-        
+
 
         // 定向识别文字  // 身份证的文字，可以直接按黑色提取
         //        recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
