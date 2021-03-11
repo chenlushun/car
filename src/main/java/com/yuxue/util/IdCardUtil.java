@@ -270,10 +270,62 @@ public class IdCardUtil {
      * @return
      */
     public static List<Point> getRectByLine(Mat threshold, List<Line> lines, Boolean debug, String tempPath) {
-        
-        
-        
-        return null;
+        Map<Long, Line> map0 = Maps.newHashMap(); // 记录一组平行线
+        Map<Long, Line> map1 = Maps.newHashMap(); // 记录另外一组平行线
+
+        for (int i = 0; i < lines.size() - 1; i++) {
+            for (int j = i + 1; j < lines.size(); j++) {
+                double ki = lines.get(i).getK();
+                double kj = lines.get(j).getK();
+                double angle = Math.abs(ImageUtil.getAngle(ki, kj));
+                if(angle <= horizontalAngle ) { // 互相平行
+                    map0.put(lines.get(i).getId(), lines.get(i));
+                    map0.put(lines.get(j).getId(), lines.get(j));
+                }
+            } 
+        }
+
+        for (int i = 0; i < lines.size() - 1; i++) {
+            for (int j = i + 1; j < lines.size(); j++) {
+                double ki = lines.get(i).getK();
+                double kj = lines.get(j).getK();
+                double angle = Math.abs(ImageUtil.getAngle(ki, kj));
+                if(angle <= horizontalAngle ) { // 互相平行
+                    if(!map0.containsKey(lines.get(i).getId())) {
+                        map1.put(lines.get(i).getId(), lines.get(i));
+                        map1.put(lines.get(j).getId(), lines.get(j));
+                    }
+                }
+            } 
+        }
+
+        // 两个map，谁的size更大，以谁为基准来计算
+        if(map0.size() > 2) {
+
+        }
+        if(map1.size() > 2) {
+
+        }
+
+        List<Point> result = Lists.newArrayList();
+
+        // 如果有两组平行线，尝试判断是否能组成个四边形，如果能，按四边形计算，如果不能，清空map1
+        if (map0.size() >= 2 && map1.size() >= 2) {
+
+        }
+
+        // 只有一组平行线，尝试寻找一条垂直线，如果有按三线计算，如果没有，按两线计算
+        if (map0.size() >= 2 && map1.size() < 2) {
+
+        }
+
+        // 没有平行线线，尝试寻找两天互相垂直的线，如果有按两线计算，如果没有，取最长线
+        if (map0.size() < 2 && map1.size() < 2) {
+
+        }
+
+
+        return result;
     }
 
 
@@ -294,8 +346,8 @@ public class IdCardUtil {
         Line c = null; // 垂直于另外两条线的 垂直线
 
         // 提取一组平行线
-        for (int i = 0; i < lines.size(); i++) {
-            for (int j = 1; j < lines.size(); j++) {
+        for (int i = 0; i < lines.size() - 1; i++) {
+            for (int j = i + 1; j < lines.size(); j++) {
                 double ki = lines.get(i).getK();
                 double kj = lines.get(j).getK();
                 double angle = Math.abs(ImageUtil.getAngle(ki, kj));
@@ -307,8 +359,8 @@ public class IdCardUtil {
             }
         }
         // 提取一组垂直线
-        for (int i = 0; i < lines.size(); i++) {
-            for (int j = 1; j < lines.size(); j++) {
+        for (int i = 0; i < lines.size() - 1; i++) {
+            for (int j = i + 1; j < lines.size(); j++) {
                 double ki = lines.get(i).getK();
                 double kj = lines.get(j).getK();
                 double angle = Math.abs(ImageUtil.getAngle(ki, kj));
@@ -324,7 +376,7 @@ public class IdCardUtil {
                 }
             } 
         }
-        List<Point> result = Lists.newArrayList();;
+        List<Point> result = Lists.newArrayList();
         // 有平行线，有垂直线
         if(null != b && null != c) {
             // 取两个交点
@@ -368,7 +420,7 @@ public class IdCardUtil {
         }
         return result;
     }
-    
+
 
 
     /**
