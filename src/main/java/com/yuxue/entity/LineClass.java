@@ -37,7 +37,7 @@ public class LineClass {
     
     public boolean addLine(Line line) {
         boolean bl = true;
-        if(Math.abs(distance - line.getDistanceToOrigin()) > 15) { // 判断距离是否满足条件
+        if(Math.abs(distance - line.getDistanceToOrigin()) > 5) { // 判断距离是否满足条件
             bl = false;
         }
         if(Math.abs(k - line.getK()) > 5) { // 判断斜率是否满足条件

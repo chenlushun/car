@@ -299,14 +299,6 @@ public class IdCardUtil {
             } 
         }
 
-        // 两个map，谁的size更大，以谁为基准来计算
-        if(map0.size() > 2) {
-
-        }
-        if(map1.size() > 2) {
-
-        }
-
         List<Point> result = Lists.newArrayList();
 
         // 如果有两组平行线，尝试判断是否能组成个四边形，如果能，按四边形计算，如果不能，清空map1
@@ -814,6 +806,7 @@ public class IdCardUtil {
      * @param tempPath
      */
     public static void cardDetect(Mat src, Boolean debug, String tempPath) {
+
         ImageUtil.debugImg(debug, tempPath, "src", src);
         Mat gsMat = new Mat();
 
@@ -824,7 +817,7 @@ public class IdCardUtil {
         ImageUtil.gray(gsMat, grey, debug, tempPath);
 
         // 检测到人脸位置 // 要求人脸检测算法比较精确 // 包含人脸的证件图片，可以用于提高定位的精确度
-        Rect face = getFace(grey, debug, tempPath);
+        // Rect face = getFace(grey, debug, tempPath);
         // System.out.println("人脸中心点坐标===>" + face.x + "," + face.y);
 
         // 使用轮廓提取的方式获取证件位置，这里起决定性作用
@@ -866,7 +859,7 @@ public class IdCardUtil {
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        Mat src = Imgcodecs.imread("D:/CardDetect/4.jpg");
+        Mat src = Imgcodecs.imread("D:/CardDetect/3.jpg");
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
 
