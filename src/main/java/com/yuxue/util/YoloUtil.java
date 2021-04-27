@@ -16,8 +16,11 @@ import com.yuxue.constant.Constant;
 
 
 /**
- * https://blog.csdn.net/w112112_/article/details/103933259
- * https://blog.csdn.net/yapifeitu/article/details/105706340
+ * windows环境下的yolo模型使用
+ * 1、安装Cygwin
+ * 2、安装darknet
+ * 3、准备模型、需要识别的样本文件
+ * 4、执行main方法，加载模型，物体识别
  * @author yuxue
  * @date 2021-03-14 17:16
  */
@@ -27,14 +30,16 @@ public class YoloUtil {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
-    private static final String TEMP_PATH = "D:/PlateDetect/yolo/";
+    private static final String TEMP_PATH = "D:/yolo/";
+    
+    // 通用模型
+    private static String commonModel = TEMP_PATH + "/darknet/model/tiny-yolo-voc.weights";
+    private static String commonCfg = TEMP_PATH + "/darknet/model/tiny-yolo-voc.cfg";
 
-    // private static String bufferModel = "D:/PlateDetect/yolo/Model/Plate3/tiny-yolo-plate_final.weights";
-    // private static String bufferCfg = "D:/PlateDetect/yolo/ConfigFile/Plate3/tiny-yolo-plate_second.cfg";
-    private static String bufferModel = "./model/yolo/tiny-yolo-voc.weights";
-    private static String bufferCfg = "./model/yolo/tiny-yolo-voc.cfg";
-
-
+    // 车牌识别模型
+    // private static String plateModel = TEMP_PATH + "Model/Plate3/tiny-yolo-plate_final.weights";
+    // private static String plateCfg = TEMP_PATH + "ConfigFile/Plate3/tiny-yolo-plate_second.cfg";
+    
     static String[] names = new String[]{
             "aeroplane","bicycle","bird","boat","bottle",
             "bus","car","cat","chair","cow",
@@ -44,7 +49,7 @@ public class YoloUtil {
 
     public static void main(String[] args) {
 
-        Net model = Dnn.readNet(bufferCfg, bufferModel);
+        Net model = Dnn.readNet(commonCfg, commonModel);
 
         /*model.setPreferableBackend(Dnn.DNN_BACKEND_OPENCV);
         model.setPreferableTarget(Dnn.DNN_TARGET_OPENCL);*/
@@ -65,8 +70,6 @@ public class YoloUtil {
          *  crop:图像裁剪,默认为False.当值为True时，先按比例缩放，然后从中心裁剪成size尺寸 
          *  ddepth:输出的图像深度，可选CV_32F 或者 CV_8U. 这个函数就是用来处理图片的，将图片的维度转化为神经网络需要的维度
          */
-        
-        
         Mat frame = new Mat();
         Size sz1 = new Size(im.cols(),im.rows());
         Imgproc.resize(im, frame, sz1);
