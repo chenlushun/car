@@ -26,7 +26,7 @@ public class OpencvTest {
      * @param args
      */
     public static void main(String[] args) {
-        Mat inMat = Imgcodecs.imread(testImg);
+        Mat inMat = ImageUtil.imread(testImg, CvType.CV_8UC3);
         Mat dst = new Mat();
 
         // translateImg(inMat, dst, 100, 200);  // 右下平移
@@ -39,9 +39,9 @@ public class OpencvTest {
         rotateImg(inMat, dst, angle, center, true, tempPath);*/
 
         // warpPerspective(inMat, dst, true, tempPath);
-        
-        
-        
+
+
+
     }
 
 
@@ -56,7 +56,7 @@ public class OpencvTest {
         Mat trans_mat  = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
         Imgproc.warpPerspective(inMat, dst, trans_mat, inMat.size());
         ImageUtil.debugImg(debug, tempPath, "warpPerspective", dst);
-    }    
+    }
 
 
     public static void rotateImg(Mat inMat, Mat dst, double angle, Point center, Boolean debug, String tempPath){

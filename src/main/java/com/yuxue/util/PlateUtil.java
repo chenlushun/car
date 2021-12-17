@@ -83,7 +83,7 @@ public class PlateUtil {
 
     /**
      * 根据正则表达式判断字符串是否是车牌
-     * 
+     *
      * @param str
      * @return
      */
@@ -99,7 +99,7 @@ public class PlateUtil {
     }
 
     /**
-     * 
+     *
      * @param imagePath
      * @param dst
      * @param debug
@@ -114,7 +114,7 @@ public class PlateUtil {
 
     /**
      * 根据图片，获取可能是车牌的图块集合
-     * 
+     *
      * @param src 输入原图
      * @param inMat 调整尺寸后的图
      * @param dst 可能是车牌的图块集合
@@ -161,7 +161,7 @@ public class PlateUtil {
     }
 
     /**
-     * 
+     *
      * @param imagePath
      * @param dst
      * @param plateHSV
@@ -176,7 +176,7 @@ public class PlateUtil {
     }
 
     /**
-     * 
+     *
      * @param src 输入原图
      * @param inMat 调整尺寸后的图
      * @param dst 可能是车牌的图块集合
@@ -215,7 +215,7 @@ public class PlateUtil {
 
     /**
      * 输入车牌切图集合，判断是否包含车牌
-     * 
+     *
      * @param inMat
      * @param dst
      *            包含车牌的图块
@@ -236,7 +236,7 @@ public class PlateUtil {
 
     /**
      * 判断车牌切图颜色
-     * 
+     *
      * @param inMat
      * @return
      */
@@ -260,7 +260,7 @@ public class PlateUtil {
 
     /**
      * 颜色匹配计算
-     * 
+     *
      * @param inMat
      * @param r
      * @param adaptive_minsv
@@ -412,7 +412,7 @@ public class PlateUtil {
 
         for (int i = posi; i < sorted.size() && charCount > 0; i++, charCount--) { // 预测中文之外的字符
             Mat img_crop = new Mat(threshold, sorted.get(i));
-            img_crop = preprocessChar(img_crop);    
+            img_crop = preprocessChar(img_crop);
             PlateRecoResult chars = new PlateRecoResult();
             chars.setSort(i+1);
             chars.setRect(chineseRect);
@@ -431,7 +431,7 @@ public class PlateUtil {
     }
 
     /**
-     * 
+     *
      * @param threshold
      * @param dst
      * @param px
@@ -510,7 +510,7 @@ public class PlateUtil {
 
     /**
      * 基于字符垂直方向投影，计算错切值，用于错切校正 上下均去掉6个像素；
-     * 去掉上下边框的干扰 最大处理25px的错切校； 
+     * 去掉上下边框的干扰 最大处理25px的错切校；
      * 左右去掉25像素，保证每列都能取到完整的数据 相当于实现任意角度的投影计算；
      * @param threshold 二值图像， 0黑色 255白色； 136 * 36
      * @return sep 可以用于字符分割的列
@@ -592,7 +592,7 @@ public class PlateUtil {
 
     /**
      * 预测数字、字母 字符
-     * 
+     *
      * @param img
      * @return
      */
@@ -621,7 +621,7 @@ public class PlateUtil {
 
     /**
      * 预测中文字符
-     * 
+     *
      * @param img
      * @return
      */
@@ -646,7 +646,7 @@ public class PlateUtil {
 
     /**
      * 找出指示城市的字符的Rect，
-     * 例如 苏A7003X，就是A的位置 
+     * 例如 苏A7003X，就是A的位置
      * 之所以选择城市的字符位置，是因为该位置不管什么字母，占用的宽度跟高度的差不多，而且字符笔画是连续的，能大大提高位置的准确性
      * @param vecRect
      * @return
@@ -686,7 +686,7 @@ public class PlateUtil {
 
     /**
      * 根据特殊车牌来构造猜测中文字符的位置和大小
-     * 
+     *
      * @param rectSpe
      * @return
      */
@@ -709,7 +709,7 @@ public class PlateUtil {
 
     /**
      * 字符预处理: 统一每个字符的大小
-     * 
+     *
      * @param in
      * @return
      */
@@ -748,7 +748,7 @@ public class PlateUtil {
 
     /**
      * 将Rect按位置从左到右进行排序 遍历轮廓，修正超高的字符，去掉铆钉的干扰, 并排序
-     * 
+     *
      * @param vecRect
      * @param out
      * @return
@@ -842,16 +842,16 @@ public class PlateUtil {
 
     /**
      * 根据图片，获取可能是车牌的图块集合 多种方法实现：
-     *   1、网上常见的轮廓提取车牌算法 
-     *   2、hsv色彩分割算法 
+     *   1、网上常见的轮廓提取车牌算法
+     *   2、hsv色彩分割算法
      *   3、 参考人脸识别算法，实现特征识别算法 --参考 PlateCascadeTrain
-     * @param src 输入原图
      * @param dst 可能是车牌的图块集合
      * @param debug 是否保留图片的处理过程
      * @param tempPath 图片处理过程的缓存目录
      */
     public static Vector<Mat> getPlateMat(String imagePath, Vector<Mat> dst, Boolean debug, String tempPath) {
-        Mat src = Imgcodecs.imread(imagePath);
+        Mat src = ImageUtil.imread(imagePath, CvType.CV_8UC3);
+
         final Mat resized = ImageUtil.narrow(src, 600, debug, tempPath); // 调整大小,加快后续步骤的计算效率
 
         CompletableFuture<Vector<Mat>> f1 = CompletableFuture.supplyAsync(() -> {

@@ -3,6 +3,7 @@ package com.yuxue.train;
 import java.io.File;
 import java.util.List;
 
+import com.yuxue.util.ImageUtil;
 import org.opencv.core.Core;
 import org.opencv.core.Core.MinMaxLocResult;
 import org.opencv.core.CvType;
@@ -22,7 +23,7 @@ import com.yuxue.util.GenerateIdUtil;
 
 /**
  * 基于org.opencv官方包实现的训练
- * 
+ *
  * 图片识别车牌训练
  * 训练出来的xml模型文件，用于判断切图是否是车牌
  * @author yuxue
@@ -42,13 +43,13 @@ public class SVMTrain {
 
     public static void main(String[] arg) {
         // 训练， 生成svm.xml库文件
-        train(); 
+        train();
 
         // 识别，判断样本文件是否是车牌
-        // predict(); 
+        // predict();
     }
 
-    
+
     /**
      * 加小编微信，可获取更多车牌样本文件，还可以获取更多帮助哟
      * 小编整理样本文件，差点没把眼睛看瞎了，整理相关算法整理更是不易，请小编喝杯18块咖啡提提神即可
@@ -64,14 +65,14 @@ public class SVMTrain {
 
         // 正样本  // 136 × 36 像素  训练的源图像文件要相同大小
         // List<File> imgList0 = FileUtil.listFile(new File(DEFAULT_PATH + "/learn/HasPlate"), Constant.DEFAULT_TYPE, false);
-        
+
         List<File> imgList0 = Lists.newArrayList();
         imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/blue_old"), Constant.DEFAULT_TYPE, false));
         imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/blue_new"), Constant.DEFAULT_TYPE, false));
         imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/green"), Constant.DEFAULT_TYPE, false));
         imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/white"), Constant.DEFAULT_TYPE, false));
         imgList0.addAll(FileUtil.listFile(new File(DEFAULT_PATH + "plate_sample/yellow_old"), Constant.DEFAULT_TYPE, false));
-        
+
         // 负样本   // 136 × 36 像素 训练的源图像文件要相同大小
         // List<File> imgList1 = FileUtil.listFile(new File(DEFAULT_PATH + "/learn/NoPlate"), Constant.DEFAULT_TYPE, false);
         List<File> imgList1 = Lists.newArrayList();
@@ -95,17 +96,17 @@ public class SVMTrain {
             if(i < imgList0.size()) {
                 path = imgList0.get(i).getAbsolutePath();
             } else {
-                path = imgList1.get(i - imgList0.size()).getAbsolutePath(); 
+                path = imgList1.get(i - imgList0.size()).getAbsolutePath();
             }
 
-            Mat inMat = Imgcodecs.imread(path);   // 读取样本文件
+            Mat inMat = ImageUtil.imread(path, CvType.CV_8UC3);   // 读取样本文件
             Mat dst = getFeature(inMat);    // 获取样本文件的特征
-            
+
             // 创建一个行数为sample_num, 列数为 rows*cols 的矩阵; 用于存放样本
             if (trainingDataMat == null) {
                 trainingDataMat = new Mat(sample_num, dst.rows() * dst.cols(), CvType.CV_32F);
             }
-            
+
             // 将样本矩阵转换成只有一行的矩阵，保存为float数组
             float[] arr = new float[dst.rows() * dst.cols()];
             int l = 0;
@@ -144,7 +145,7 @@ public class SVMTrain {
 
     public static void predict() {
         // 加载训练得到的 xml 模型文件
-        SVM svm = SVM.load(MODEL_PATH); 
+        SVM svm = SVM.load(MODEL_PATH);
 
         // 136 × 36 像素   需要跟训练的源图像文件保持相同大小
         doPredict(svm, DEFAULT_PATH + "test/A01_NMV802_0.jpg");
@@ -156,7 +157,7 @@ public class SVMTrain {
     }
 
     public static void doPredict(SVM svm, String imgPath) {
-        Mat src = Imgcodecs.imread(imgPath);
+        Mat src = ImageUtil.imread(imgPath, CvType.CV_8UC3);
         Mat dst = getFeature(src);
         // 如果训练时使用这个标识，那么符合的图像会返回9.0
         float flag = svm.predict(dst);
@@ -184,10 +185,10 @@ public class SVMTrain {
 
 
     public static Mat getFeature(Mat inMat) {
-        
+
         Mat histogram = getHistogramFeatures(inMat);
         Mat color = getColorFeatures(inMat);
-        
+
         List<Mat> list = Lists.newArrayList();
         list.add(histogram);
         list.add(color);
@@ -251,7 +252,7 @@ public class SVMTrain {
         }
         return nonZeroMat;
     }
-    
+
 
     public static Mat getColorFeatures(Mat src) {
         Mat src_hsv = new Mat();
@@ -268,13 +269,13 @@ public class SVMTrain {
                 }
                 if (H < 0) {
                     H = 0;
-                } 
+                }
                 h[H]++;
             }
         }
         // 创建黑色的图
         Mat features = Mat.zeros(1, sz, CvType.CV_32F);
-        
+
         for (int j = 0; j < sz; j++) {
             features.put(0, j, (float)h[j]);
         }

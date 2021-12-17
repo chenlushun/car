@@ -16,17 +16,7 @@ import java.util.Map;
 
 import javax.imageio.ImageIO;
 
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.MatOfRect;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-import org.opencv.core.RotatedRect;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
@@ -45,7 +35,7 @@ import net.sourceforge.tess4j.util.LoadLibs;
 
 /**
  * 证件识别工具类
- * 
+ *
  * @author yuxue
  * @date 2020-11-23 16:31
  */
@@ -134,7 +124,7 @@ public class IdCardUtil {
         // 统计概率霍夫线变换；输出线段两个点的坐标
         // rho:就是一个半径的分辨率；theta:角度分辨率； threshold:判断直线点数的阈值
         // minLineLength：线段长度阈值；minLineGap:线段上最近两点之间的阈值
-        Imgproc.HoughLinesP(threshold, lines, 1, Math.PI/180, 50, 100, 2); 
+        Imgproc.HoughLinesP(threshold, lines, 1, Math.PI/180, 50, 100, 2);
         if(lines.rows() <= 0) { // 没有扫描到直线
             return null;
         }
@@ -150,7 +140,7 @@ public class IdCardUtil {
             ImageUtil.debugImg(debug, tempPath, "drawLines", dst);
         }
 
-        // HoughLinesP可能会将一条边框，扫描出来很多线段，而且还可能中间是断开的 
+        // HoughLinesP可能会将一条边框，扫描出来很多线段，而且还可能中间是断开的
         // 将线段过滤并归归类合并；将重叠靠近的线段合并保留一条，并将中间断开的连接起来
         List<Line> ls = filterLines(threshold, lines, debug, tempPath);
 
@@ -177,7 +167,7 @@ public class IdCardUtil {
             pList = getRectByThreeLines(threshold, ls, debug, tempPath);
             break;
 
-        default: 
+        default:
             // 超过3条线段
             pList = getRectByLine(threshold, ls, debug, tempPath);
             break;
@@ -282,7 +272,7 @@ public class IdCardUtil {
                     map0.put(lines.get(i).getId(), lines.get(i));
                     map0.put(lines.get(j).getId(), lines.get(j));
                 }
-            } 
+            }
         }
 
         for (int i = 0; i < lines.size() - 1; i++) {
@@ -296,7 +286,7 @@ public class IdCardUtil {
                         map1.put(lines.get(j).getId(), lines.get(j));
                     }
                 }
-            } 
+            }
         }
 
         List<Point> result = Lists.newArrayList();
@@ -366,7 +356,7 @@ public class IdCardUtil {
                     }
                     break;
                 }
-            } 
+            }
         }
         List<Point> result = Lists.newArrayList();
         // 有平行线，有垂直线
@@ -552,7 +542,7 @@ public class IdCardUtil {
 
 
     /**
-     * 按照线段相对原点距离、斜率 进行分类 
+     * 按照线段相对原点距离、斜率 进行分类
      * 距离差值小于指定像素值，则判定为一类线段；即：这一类的线段，可能落在同一条直线线，可能都是是证件的边框线
      * 同类线段，按照最小起点，最大终点得到新的线段  //处理中间断开的线段
      * @param inMat
@@ -574,7 +564,7 @@ public class IdCardUtil {
                 }
             }
             if(!bl) { // 没有满足的类，自己创建一个类
-                lineClass.add(new LineClass(line)); 
+                lineClass.add(new LineClass(line));
             }
         }
         for (LineClass lc : lineClass) {
@@ -670,9 +660,9 @@ public class IdCardUtil {
         Point[] points = approxCurve.toArray();
         if(points.length < 4) {
             return;
-        } 
+        }
         // 提取轮廓四个顶点
-        Point cp0 = null, cp1= null, cp2= null, cp3= null; 
+        Point cp0 = null, cp1= null, cp2= null, cp3= null;
         double maxSum = 0;
         double minSum = 1000000;
         for (Point p : points) {
@@ -689,7 +679,7 @@ public class IdCardUtil {
         cp2 = getNearestPoint(points, new Point(cp0.x, cp3.y));
 
         // 将四个顶点，跟最小外接矩形的顶点矩形进行匹配
-        Mat vertex = new Mat(); 
+        Mat vertex = new Mat();
         Imgproc.boxPoints(rect, vertex);  // 最小外接矩形，四个顶点 Mat(4, 2)
         Point rp0 = getNearestPoint(vertex, cp0);
         Point rp1 = getNearestPoint(vertex, cp1);
@@ -712,7 +702,7 @@ public class IdCardUtil {
             double d = ImageUtil.getDistance(p, src);
             if(d <= minDistance) {
                 minDistance = d;
-                dst = p; 
+                dst = p;
             }
         }
         return dst;
@@ -727,7 +717,7 @@ public class IdCardUtil {
             double d = ImageUtil.getDistance(p, src);
             if(d <= minDistance) {
                 minDistance = d;
-                dst = p; 
+                dst = p;
             }
         }
         return dst;
@@ -785,7 +775,7 @@ public class IdCardUtil {
             BufferedImage image = ImageIO.read(file); // 识别图片上所有文字
 
             // 识别图片上的所有文字
-            result = instance.doOCR(image).replaceAll("%", "X").replaceAll(" ", "").replaceAll("\n", ""); 
+            result = instance.doOCR(image).replaceAll("%", "X").replaceAll(" ", "").replaceAll("\n", "");
             System.err.println("===>" + result);
         } catch (IOException | TesseractException e) {
             e.printStackTrace();
@@ -859,7 +849,7 @@ public class IdCardUtil {
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        Mat src = Imgcodecs.imread("D:/CardDetect/3.jpg");
+        Mat src = ImageUtil.imread("D:/CardDetect/反面.jpg", CvType.CV_8UC3);
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
 

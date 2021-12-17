@@ -1,6 +1,10 @@
 package com.yuxue.util;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -23,6 +27,8 @@ import com.google.common.collect.Lists;
 import com.yuxue.constant.Constant;
 import com.yuxue.entity.Line;
 
+import javax.imageio.ImageIO;
+
 /**
  * 图片处理工具类
  * 将原图，经过算法处理，得到车牌的图块
@@ -34,6 +40,60 @@ public class ImageUtil {
     static {
         // 加载本地安装的opencv库
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
+
+
+    /**
+     * 解决中文路径下读取图片异常的问题，不在需要先复制图片到temp目录下了
+     * 将图像转换为Mat
+     * 处理 Imgcodecs.imread(filename) 直接读取被编解码处理过的图片，提示的图片损坏问题：
+     * Corrupt JPEG data: 14 extraneous bytes before marker 0xdb
+     * 经过编解码、或者图片压缩的图片，直接用opencv读取可能会报错
+     * @param path
+     * @return
+     */
+    public static Mat imread(String path, Integer cvType) {
+        // 海康设备的图片, 可能做了压缩、编解码等
+        File f = new File(path);
+        FileInputStream fi = null;
+        try{
+            fi = new FileInputStream(f);
+            BufferedImage sourceImg = ImageIO.read(fi);//判断图片是否损坏
+            return matify(sourceImg, cvType);
+        }catch (Exception e) {
+            try {
+                fi.close();//关闭IO流才能操作图片
+            } catch (IOException ioException) {
+            }
+        } finally{
+            try {
+                fi.close();
+            } catch (IOException e) {
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * 将图像转换为Mat
+     * 处理 Imgcodecs.imread(filename) 直接读取被编解码处理过的图片，提示的图片损坏问题：
+     * Corrupt JPEG data: 14 extraneous bytes before marker 0xdb
+     * 经过编解码、或者图片压缩的图片，直接用opencv读取会报错
+     * @param im
+     * @return
+     */
+    public static Mat matify(BufferedImage im, Integer cvType){
+        //将bufferedimage转换为字节数组
+        byte [] pixels =((DataBufferByte)im.getRaster().getDataBuffer()).getData();
+        if(null == cvType){
+            cvType = CvType.CV_8UC3;
+        }
+        //创建一个与图像大小相同的矩阵
+        Mat image = new Mat(im.getHeight(), im.getWidth(), cvType);
+        //用图像值填充矩阵
+        image.put(0,0, pixels);
+        return image;
     }
 
 
@@ -124,7 +184,7 @@ public class ImageUtil {
         Mat abs_grad_y = new Mat();
 
         // Sobel滤波 计算水平方向灰度梯度的绝对值
-        Imgproc.Sobel(inMat, grad_x, CvType.CV_8U, 1, 0, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT); 
+        Imgproc.Sobel(inMat, grad_x, CvType.CV_8U, 1, 0, SOBEL_KERNEL, SOBEL_SCALE, SOBEL_DELTA, Core.BORDER_DEFAULT);
         Core.convertScaleAbs(grad_x, abs_grad_x, alpha, beta);   // 增强对比度
 
         // Sobel滤波 计算垂直方向灰度梯度的绝对值
@@ -174,7 +234,7 @@ public class ImageUtil {
 
 
     /**
-     * 
+     *
      * @param inMat
      * @param dst
      * @param debug
@@ -183,13 +243,13 @@ public class ImageUtil {
     public static void canny(Mat inMat, Mat dst, Boolean debug, String tempPath) {
         // 低于阈值1的像素点会被认为不是边缘；
         // 高于阈值2的像素点会被认为是边缘；
-        Imgproc.Canny(inMat, dst, 100, 150); 
+        Imgproc.Canny(inMat, dst, 100, 150);
         debugImg(debug, tempPath, "canny", dst);
     }
 
 
     /**
-     * 对图像进行二值化。将灰度图像（每个像素点有256个取值可能， 0代表黑色，255代表白色）  
+     * 对图像进行二值化。将灰度图像（每个像素点有256个取值可能， 0代表黑色，255代表白色）
      * 转化为二值图像（每个像素点仅有1和0两个取值可能）
      * @param inMat
      * @param debug
@@ -298,7 +358,7 @@ public class ImageUtil {
                     Mat result = src.clone();
                     // 将斜矩形轮廓描绘到原图
                     drawRectangle(result, mr);
-                    // 将轮廓描绘到原图   
+                    // 将轮廓描绘到原图
                     Imgproc.drawContours(result, Lists.newArrayList(m1), -1, new Scalar(0, 0, 255, 255));
                     // 输出带轮廓的原图
                     debugImg(debug, tempPath, "crop", result);
@@ -351,7 +411,7 @@ public class ImageUtil {
 
 
     /**
-     * 外接斜矩形 描绘到原图 
+     * 外接斜矩形 描绘到原图
      * @param inMat
      * @param dst
      */
@@ -380,7 +440,7 @@ public class ImageUtil {
 
 
     /**
-     * 
+     *
      * @param inMat
      * @param dst
      * @param rect 正矩形
@@ -393,8 +453,8 @@ public class ImageUtil {
     /**
      * 图块错切校正
      * 根据轮廓、以及最小斜矩形矩形错切校正，用于处理变形(不是倾斜)的车牌图片  即【平行四边形】的车牌校正为【长方形】
-     * 该算法，容易受到到轮廓的影响，要求轮廓定位得比较精确 
-     * 其他方案: 
+     * 该算法，容易受到到轮廓的影响，要求轮廓定位得比较精确
+     * 其他方案:
      *  1、在处理字符的时候，进行错切校正，
      *      a、根据字符的外接矩形倾斜角度来校正字符 --已经实现
      *      b、计算字符垂直方向投影，分别左右倾斜一定角度，获取最优错切校正像素值(推荐)--已经实现
@@ -410,7 +470,7 @@ public class ImageUtil {
      */
     @SuppressWarnings("unused")
     private static Size shearCorrection(MatOfPoint2f m2, RotatedRect mr, Mat inMat, Mat dst, Size rect_size, Boolean debug, String tempPath){
-        Mat vertex = new Mat(); 
+        Mat vertex = new Mat();
         Imgproc.boxPoints(mr, vertex);  // 最小外接矩形，四个顶点 Mat(4, 2)
         // 提取短边的两个顶点， 命名为上、下顶点
         Point p0 = new Point(vertex.get(0, 0)[0], vertex.get(0, 1)[0]);
@@ -501,8 +561,8 @@ public class ImageUtil {
         }
         // System.err.println("错切方向： " + shearPX);
         // 计算错切比例
-        double top = shearPX / height *  down.y; 
-        double bottom = shearPX / height * (inMat.height() - up.y); 
+        double top = shearPX / height *  down.y;
+        double bottom = shearPX / height * (inMat.height() - up.y);
 
         // 提取图片左上、左下、右上 三个顶点，根据角度，计算偏移量
         MatOfPoint2f srcPoints = new MatOfPoint2f();
@@ -531,7 +591,7 @@ public class ImageUtil {
         MatOfPoint2f dstPoints = new MatOfPoint2f();
         dstPoints.fromArray(new Point(0 + px/2.0, 0), new Point(0 - px/2.0, inMat.rows()), new Point(inMat.cols() + px/2.0, 0));
         Mat trans_mat = Imgproc.getAffineTransform(srcPoints, dstPoints);
-        Imgproc.warpAffine(inMat, dst, trans_mat, inMat.size()); 
+        Imgproc.warpAffine(inMat, dst, trans_mat, inMat.size());
         ImageUtil.debugImg(debug, tempPath, "shear", dst);
     }
 
@@ -553,7 +613,7 @@ public class ImageUtil {
         Mat trans_mat  = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
         Imgproc.warpPerspective(inMat, dst, trans_mat, inMat.size());
         ImageUtil.debugImg(debug, tempPath, "warpPerspective", dst);
-    }   
+    }
 
 
     /**
@@ -587,8 +647,8 @@ public class ImageUtil {
         distance = (Math.abs(A * p.x + B * p.y + C)) / (Math.sqrt(A * A + B * B));
         return distance;
     }
-    
-    
+
+
     /**
      * 计算两条线段的角度
      * 返回值包含正负数
@@ -600,8 +660,8 @@ public class ImageUtil {
         double k = (k2 - k1) / (1 + k1*k2);
         return Math.toDegrees(Math.atan(k));
     }
-    
-    
+
+
     /**
      * 计算两条线的交点
      * @param a
@@ -615,8 +675,8 @@ public class ImageUtil {
         double y = (ka*kb*(a.getStart().x - b.getStart().x) + ka*b.getStart().y - kb*a.getStart().y) / (ka - kb);
         return new Point(x, y);
     }
-    
-    
+
+
     /**
      * 根据一个点、直线的斜率、距离，计算另外一个点的坐标
      * @param p 已知点
@@ -714,7 +774,7 @@ public class ImageUtil {
         Mat dst = new Mat();
         // 灰度图均衡化
         // Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2GREY);
-        // Imgproc.equalizeHist(inMat, dst); 
+        // Imgproc.equalizeHist(inMat, dst);
 
         // 转到HSV空间进行均衡化     (H色相     S饱和度     V亮度)
         Imgproc.cvtColor(inMat, dst, Imgproc.COLOR_BGR2HSV);
@@ -873,7 +933,7 @@ public class ImageUtil {
         if(maxCols >= inMat.cols()) {   // 图片尺寸小于指定大小，则不处理
             return inMat;
         }
-        float r = inMat.rows() * 1.0f / inMat.cols(); 
+        float r = inMat.rows() * 1.0f / inMat.cols();
         Integer rows = Math.round(maxCols * r);
         Mat resized = new Mat(rows, maxCols, inMat.type());
 
@@ -983,7 +1043,7 @@ public class ImageUtil {
      */
     public static void rotateImg(Mat inMat, Mat dst, double angle, Point center, Boolean debug, String tempPath){
         Mat img_rotated = Imgproc.getRotationMatrix2D(center, angle, 1);
-        Imgproc.warpAffine(inMat, dst, img_rotated, inMat.size());    
+        Imgproc.warpAffine(inMat, dst, img_rotated, inMat.size());
         debugImg(debug, tempPath, "img_rotated", img_rotated);
     }
 
@@ -1024,7 +1084,7 @@ public class ImageUtil {
         Integer rows_new = (int) Math.ceil(grey.rows() * 1.0 / blockSize);
         Integer cols_new = (int) Math.ceil(grey.cols() * 1.0 / blockSize);
         Mat blockImage = Mat.zeros(rows_new, cols_new, CvType.CV_32FC1);
-        
+
         // 均值算法？？
         for (int i = 0; i < rows_new; i++) {
             for (int j = 0; j < cols_new; j++) {
@@ -1042,20 +1102,20 @@ public class ImageUtil {
 
                 Mat imageROI = grey.rowRange(rowmin, rowmax);
                 double temaver =  Core.mean(imageROI.colRange(colmin, colmax)).val[0];
-                
+
                 blockImage.put(i, j, temaver - average);
             }
         }
         Mat grey2 = new Mat();
         grey.convertTo(grey2, CvType.CV_32FC1);
-        
-        
+
+
         Mat blockImage2 = new Mat();
-        Imgproc.resize(blockImage, blockImage2, grey.size(), 0, 0, Imgproc.INTER_CUBIC); 
+        Imgproc.resize(blockImage, blockImage2, grey.size(), 0, 0, Imgproc.INTER_CUBIC);
         Core.subtract(grey2, blockImage2, dst);
         dst.convertTo(dst, CvType.CV_8UC1);
         debugImg(debug, tempPath, "unevenLightCompensate", dst);
-        
+
     }
 
 

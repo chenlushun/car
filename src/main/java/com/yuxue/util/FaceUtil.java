@@ -3,12 +3,7 @@ package com.yuxue.util;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
+import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
@@ -104,7 +99,7 @@ public class FaceUtil {
         Instant start = Instant.now();
 
         FaceUtil fu = new FaceUtil();
-        Mat inMat = Imgcodecs.imread("D:/FaceDetect/train/huge/huge.png");
+        Mat inMat = ImageUtil.imread("D:/FaceDetect/train/huge/huge.png", CvType.CV_8UC3);
         fu.detectFace(inMat, Constant.DEFAULT_FACE_TEMP_DIR + "result.jpg");
 
         Instant end = Instant.now();

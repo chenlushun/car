@@ -29,12 +29,12 @@ import com.yuxue.util.ImageUtil;
 
 /**
  * 人脸识别训练、检测 (级联分类器)
- * 
+ *
  * 训练自己的级联分类器 -- 调用opencv的exe应用程序
  * https://blog.csdn.net/dbzzcz/article/details/105517946
  *  官方教程地址：
  *  https://docs.opencv.org/master/dc/d88/tutorial_traincascade.html
- * 
+ *
  * 获取opencv_traincascade.exe应用程序，官方下载3.4.1版本的安装包，解压出来即可找到
  * 或者加入 1054836232 Q群, 在群共享文件中获取应用程序安装包
  * @author yuxue
@@ -54,7 +54,7 @@ public class CascadeTrain {
     private static final String EXE_TRAINCASCADE= EXE_BASE_PATH  + "opencv_traincascade.exe";
     private static final String EXE_CREATESAMPLES= EXE_BASE_PATH  + "opencv_createsamples.exe";
 
-    // 
+    //
     private static Integer width = 24;
     private static Integer height = 24;
 
@@ -166,7 +166,7 @@ public class CascadeTrain {
         // 训练结果文件路径
         String trainedModel = DEFAULT_PATH + "samples/data/cascade.xml";
         CascadeClassifier faceDetector = new CascadeClassifier(trainedModel);
-        Mat inMat = Imgcodecs.imread(DEFAULT_PATH+ "train/huge/huge.png");
+        Mat inMat = ImageUtil.imread(DEFAULT_PATH+ "train/huge/huge.png", CvType.CV_8UC3);
         String targetPath =  DEFAULT_PATH + "samples/result.jpg";
 
         Boolean debug = false;
