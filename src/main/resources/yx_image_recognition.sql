@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS `t_plate_area`;
 CREATE TABLE `t_plate_area` (
   `id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `province` VARCHAR(32) NOT NULL DEFAULT '',
-  `province_short` VARCHAR(2) NOT NULL DEFAULT '',
+  `province_short` VARCHAR(10) NOT NULL DEFAULT '',
   `city` VARCHAR(32) NOT NULL DEFAULT '',
   `city_code` VARCHAR(1) NOT NULL DEFAULT '',
   `remark` VARCHAR(200) NOT NULL DEFAULT '',
