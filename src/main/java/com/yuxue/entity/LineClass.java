@@ -21,23 +21,23 @@ import lombok.NoArgsConstructor;
 public class LineClass {
 
     private Double distance;
-    
+
     private Double k;
-    
+
     private List<Line> lines;
-    
-    
+
+
     public LineClass(Line line) {
         setDistance(line.getDistanceToOrigin());
         setK(line.getK());
         lines = Lists.newArrayList();
         lines.add(line);
     }
-    
-    
+
+
     public boolean addLine(Line line) {
         boolean bl = true;
-        if(Math.abs(distance - line.getDistanceToOrigin()) > 5) { // 判断距离是否满足条件
+        if(Math.abs(distance - line.getDistanceToOrigin()) > 10) { // 判断距离是否满足条件
             bl = false;
         }
         if(Math.abs(k - line.getK()) > 5) { // 判断斜率是否满足条件
@@ -48,7 +48,12 @@ public class LineClass {
         }
         return bl;
     }
-    
+
+
+    /**
+     * 根据被划分到同一个组的线，生成一条新的线
+     * @return
+     */
     public Line getNewLine() {
         if(null == lines || lines.size() <=0) {
             return null;

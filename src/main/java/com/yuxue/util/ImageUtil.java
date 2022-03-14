@@ -629,6 +629,33 @@ public class ImageUtil {
         return distance;
     }
 
+    /**
+     * 计算两条线段之间的距离; 两条线段近乎平行，夹角<=5°
+     * @param l1
+     * @param l2
+     * @return 线段的4个端点，到其近似平行线的垂直距离最小值
+     */
+    public static double getMinDistance(Line l1, Line l2) {
+        double distance0 = getDistance(l1.getStart(), l2.getStart(), l2.getEnd());
+        double distance1 = getDistance(l1.getEnd(), l2.getStart(), l2.getEnd());;
+        double distance2 = getDistance(l2.getEnd(), l1.getStart(), l1.getEnd());;
+        double distance3 = getDistance(l2.getEnd(), l1.getStart(), l1.getEnd());;
+        double distance = 10000;
+        if(distance > distance0){
+            distance = distance0;
+        }
+        if(distance > distance1){
+            distance = distance1;
+        }
+        if(distance > distance2){
+            distance = distance2;
+        }
+        if(distance > distance3){
+            distance = distance3;
+        }
+        return distance;
+    }
+
 
     /**
      * 计算点到AB点连线的距离
