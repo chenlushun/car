@@ -54,18 +54,23 @@ public class IdCardUtil {
 
 
     static {
+        // 加载opencv
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
         //设置tess4j配置的路径
         File testDataFolderFile = LoadLibs.extractTessResources("tessdata");
         // instance.setLanguage("eng");    // 加载语言模型 英文、数字；默认
+
         instance.setLanguage("chi_sim"); // 加载语言模型 中文、英文、数字
+
         // instance.setTessVariable("digits", "0123456789X");
+
         instance.setDatapath(testDataFolderFile.getAbsolutePath());
     }
 
     // 构造函数，加载默认模型文件
     IdCardUtil(){
+        // 人脸识别检测模型
         // faceDetector = new CascadeClassifier(Constant.DEFAULT_FACE_MODEL_PATH);
         faceDetector = new CascadeClassifier("D:\\CardDetect\\haarcascade_frontalface_default.xml");
     }
@@ -83,6 +88,7 @@ public class IdCardUtil {
      * @param grey 灰度图
      * @param debug
      * @param tempPath
+     * @return 矩形，左上角坐标(x,y) + width + height
      */
     public static Rect getFace(Mat grey, Boolean debug, String tempPath) {
         if(null == faceDetector || faceDetector.empty()) {
@@ -144,9 +150,7 @@ public class IdCardUtil {
         // 将线段过滤并归归类合并；将重叠靠近的线段合并保留一条，并将中间断开的连接起来
         List<Line> ls = filterLines(threshold, lines, debug, tempPath);
 
-        // 用剩下的线段，提取矩形框
-        // 如果是包含人脸的证件，可以使用人脸中心点的位置辅助计算
-
+        // 用剩下的线段，提取矩形框 // 如果是包含人脸的证件，可以使用人脸中心点的位置辅助计算
         Mat m = Mat.zeros(threshold.size(), threshold.type());
         Scalar scalar = new Scalar(255, 255, 255, 255); // 白色
         List<Point> pList = null;   // 针对四个顶点，提取轮廓
@@ -156,9 +160,11 @@ public class IdCardUtil {
         case 0: // 如果没有提取到有效的直线，则默认为整个图都是证件
             m = threshold.clone();
             break;
+
         case 1: // 如果只有1条线段
             pList = getRectByLine(threshold, ls.get(0), debug, tempPath);
             break;
+
         case 2: // 如果只有2条线段
             pList = getRectByLine(threshold, ls.get(0), ls.get(1), debug, tempPath);
             break;
@@ -301,11 +307,10 @@ public class IdCardUtil {
 
         }
 
-        // 没有平行线线，尝试寻找两天互相垂直的线，如果有按两线计算，如果没有，取最长线
+        // 没有平行线线，尝试寻找两条互相垂直的线，如果有按两线计算，如果没有，取最长线
         if (map0.size() < 2 && map1.size() < 2) {
 
         }
-
 
         return result;
     }
@@ -317,7 +322,7 @@ public class IdCardUtil {
      * @param threshold
      * @param debug
      * @param tempPath
-     * @return
+     * @return 矩形四个顶点
      */
     public static List<Point> getRectByThreeLines(Mat threshold, List<Line> lines, Boolean debug, String tempPath) {
         if(null == lines || lines.size() != 3) {
@@ -414,7 +419,7 @@ public class IdCardUtil {
      * @param b
      * @param debug
      * @param tempPath
-     * @return
+     * @return 矩形四个顶点
      */
     public static List<Point> getRectByLine(Mat threshold, Line a, Line b, Boolean debug, String tempPath) {
 
@@ -493,10 +498,9 @@ public class IdCardUtil {
 
     /**
      * 提取到1条有效线段; 默认就是边框线
-     * 根据斜率判断线段是卡片的底边还是侧边; 从而计算出卡片的宽度跟高度
-     * 以线段的任一点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是卡片的中心点
+     * 根据斜率判断线段是证件的底边还是侧边; 从而计算出卡片的宽度跟高度
      * 如果有人脸位置信息，还可以继续确定具体是卡片的哪条边
-     * @param line
+     * @param line 矩形四个顶点
      */
     public static List<Point> getRectByLine(Mat threshold, Line line, Boolean debug, String tempPath) {
         double width = 0;
@@ -518,7 +522,7 @@ public class IdCardUtil {
         // double angle = Math.atan(k) / Math.PI * 180;
         double angle = Math.toDegrees(Math.atan(k)); // atan反正切得到弧度，toDegrees 弧度转角度
 
-        // 以线段的任一点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是卡片的中心点
+        // 以线段的任一端点为中心、宽、高、斜率确定一个斜矩形，其四个顶点必有一个是证件的中心点
         RotatedRect r0 = new RotatedRect(line.getStart(), size, angle);
         Point[] pt = new Point[4];
         r0.points(pt); // 获取到这四个顶点
@@ -542,10 +546,10 @@ public class IdCardUtil {
 
 
     /**
-     * 按照线段相对原点距离、斜率 进行分类
+     * 按照线段相对原点(0,0)的距离、斜率 进行分类
      * 距离差值小于指定像素值，则判定为一类线段；即：这一类的线段，可能落在同一条直线线，可能都是是证件的边框线
      * 同类线段，按照最小起点，最大终点得到新的线段  //处理中间断开的线段
-     * @param inMat
+     * @param threshold
      * @param lines
      * @param debug
      * @param tempPath
@@ -588,7 +592,6 @@ public class IdCardUtil {
      * 筛选轮廓, 返回证件结果: 校正后的灰度图
      * 固定大小
      * @param inMat
-     * @param face
      * @param contours
      * @param debug
      * @param tempPath
@@ -694,7 +697,13 @@ public class IdCardUtil {
         ImageUtil.debugImg(debug, tempPath, "warpPerspective", dst);
     }
 
-
+    /**
+     * 获取点数据集到参照物最近的点
+     * 用于提取矩形的左下、右上两个顶点
+     * @param points 点数据集
+     * @param src 参照物
+     * @return
+     */
     public static Point getNearestPoint(Point[] points, Point src) {
         double minDistance = 1000000;
         Point dst = null;
@@ -708,7 +717,12 @@ public class IdCardUtil {
         return dst;
     }
 
-
+    /**
+     * 获取矩形四个顶点，到参照物最近的点
+     * @param vertex 矩形边框
+     * @param src 参照物
+     * @return
+     */
     public static Point getNearestPoint(Mat vertex, Point src) {
         double minDistance = 1000000;
         Point dst = null;
@@ -721,39 +735,6 @@ public class IdCardUtil {
             }
         }
         return dst;
-    }
-
-
-    public static BufferedImage Mat2BufImg(Mat matrix, String fileExtension) {
-        MatOfByte  mob = new MatOfByte();
-        Imgcodecs.imencode(fileExtension, matrix, mob);
-        byte[] byteArray = mob.toArray();
-        BufferedImage bufImage = null;
-        try{
-            InputStream in = new ByteArrayInputStream(byteArray);
-            bufImage = ImageIO.read(in);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return bufImage;
-    }
-
-
-    public static Mat BufImg2Mat (BufferedImage original, int imgType, int matType) {
-        if (original.getType() != imgType) {
-            BufferedImage image = new BufferedImage(original.getWidth(), original.getHeight(), imgType);
-            Graphics2D g = image.createGraphics();
-            try {
-                g.setComposite(AlphaComposite.Src);
-                g.drawImage(original, 0, 0, null);
-            } finally {
-                g.dispose();
-            }
-        }
-        byte[] pixels = ((DataBufferByte) original.getRaster().getDataBuffer()).getData();
-        Mat mat = Mat.eye(original.getHeight(), original.getWidth(), matType);
-        mat.put(0, 0, pixels);
-        return mat;
     }
 
 
@@ -835,6 +816,7 @@ public class IdCardUtil {
         // 将卡片切图，由起点到中轴线(忽略人像的影响)，计算水平方向投影，从而确定文字所在的行
 
 
+
         // 再次提取轮廓，主要提取文字所在位置的轮廓
         Rect rect = null;
 
@@ -849,7 +831,7 @@ public class IdCardUtil {
 
     public static void main(String[] args) {
         Instant start = Instant.now();
-        Mat src = ImageUtil.imread("D:/CardDetect/反面.jpg", CvType.CV_8UC3);
+        Mat src = ImageUtil.imread("D:/CardDetect/zm.jpg", CvType.CV_8UC3);
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
 
