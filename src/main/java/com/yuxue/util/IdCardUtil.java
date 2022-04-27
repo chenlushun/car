@@ -1,37 +1,28 @@
 package com.yuxue.util;
 
-import java.awt.AlphaComposite;
-import java.awt.Graphics2D;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.yuxue.constant.Constant;
+import com.yuxue.entity.Line;
+import com.yuxue.entity.LineClass;
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+import net.sourceforge.tess4j.util.LoadLibs;
+import org.opencv.core.*;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.objdetect.CascadeClassifier;
+import org.springframework.util.StringUtils;
+
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import javax.imageio.ImageIO;
-
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.objdetect.CascadeClassifier;
-import org.springframework.util.StringUtils;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.yuxue.constant.Constant;
-import com.yuxue.entity.Line;
-import com.yuxue.entity.LineClass;
-
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
-import net.sourceforge.tess4j.util.LoadLibs;
 
 
 /**

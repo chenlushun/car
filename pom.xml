@@ -132,7 +132,6 @@
 		</dependency>-->
 
 
-
 		<!-- 使用官方的方式调用opencv；加载lib目录下的opencv包，java调用dll的JNI包 -->
 		<dependency>
 			<groupId>org.opencv</groupId>
