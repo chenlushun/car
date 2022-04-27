@@ -796,6 +796,8 @@ public class IdCardUtil {
         Mat grey = new Mat();
         ImageUtil.gray(gsMat, grey, debug, tempPath);
 
+        // Rect face = getFace(grey, debug, tempPath); // 人脸轮廓外接矩形
+
         // 使用轮廓提取的方式获取身份证位置，这里起决定性作用
         Mat scharr = new Mat();
         ImageUtil.scharr(grey, scharr, debug, tempPath);
@@ -830,7 +832,6 @@ public class IdCardUtil {
      * @param tempPath
      */
     public static void txtDetect(Mat card, Boolean debug, String tempPath){
-
         ImageUtil.debugImg(debug, tempPath, "src", card);
         Mat gsMat = new Mat();
 
@@ -840,22 +841,48 @@ public class IdCardUtil {
         Mat grey = new Mat();
         ImageUtil.gray(gsMat, grey, debug, tempPath);
 
-        // 提取人脸轮廓的外接矩形，直接干掉，去掉人脸的影响
-        // 方法一：使用人脸检测模型
-        Rect face = getFace(grey, debug, tempPath); // 人脸轮廓外接矩形
+        // 使用轮廓提取的方式获取身份证位置，这里起决定性作用
+        Mat scharr = new Mat();
+        ImageUtil.scharr(grey, scharr, debug, tempPath);
 
-        // 方法二：使用水平&垂直投影，干掉人脸
+        // 图像进行二值化
+        Mat threshold = new Mat();
+        ImageUtil.threshold(scharr, threshold, debug, tempPath);
+
+        // 干掉人脸
+        // 水平方向
+        int minRow = 0;
+        int maxRow = threshold.rows();
+        for (int i = 20; i < threshold.rows(); i++) {
+            Mat row = threshold.row(i).colRange(threshold.cols() * 3 / 4, threshold.cols());
+            int count = Core.countNonZero(row);
+
+        }
+
+        // 垂直方向投影；获取人脸的垂直范围
+        int minCols = threshold.cols() / 2;
+        int maxCols = threshold.cols();
+        for (int i = threshold.cols(); i > threshold.cols() / 2; i--) {
+            Mat col = threshold.col(i).rowRange(0, threshold.rows() / 2);
+            int count = Core.countNonZero(col);
+            if(count >20){
+
+            }
+        }
+
+        //
 
         // 身份证，仅保留黑色文字即可
 
         // 再次提取轮廓，主要提取文字所在位置的轮廓
         Rect rect = null;
 
-        // 定向识别文字  // 身份证的文字，可以直接按黑色提取
-        //        recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
-        //        recoChars(new File("D:\\CardDetect\\test\\name.jpg"), rect);
-        //        recoChars(new File("D:\\CardDetect\\test\\gender.jpg"), rect);
-        //        recoChars(new File("D:\\CardDetect\\test\\address.jpg"), rect);
+        // 定向识别文字
+
+        /*recoChars(new File("D:\\CardDetect\\test\\num.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\name.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\gender.jpg"), rect);
+        recoChars(new File("D:\\CardDetect\\test\\address.jpg"), rect);*/
 
     }
 
@@ -863,17 +890,16 @@ public class IdCardUtil {
     public static void main(String[] args) {
 
         Instant start = Instant.now();
-        Mat src = ImageUtil.imread("D:/CardDetect/4.jpg", CvType.CV_8UC3);
         Boolean debug = true;
         String tempPath = TEMP_PATH + "";
-
         new IdCardUtil(); // 调用构造方法，加载模型文件
 
+        Mat src = ImageUtil.imread("D:/CardDetect/zm.jpg", CvType.CV_8UC3);
         Mat card = cardDetect(src, debug, tempPath); // 检测身份证
 
         // 识别身份证上的文字
-        // card = ImageUtil.imread("D:/CardDetect/3.jpg", CvType.CV_8UC3);
-        txtDetect(card, debug, tempPath);
+        // Mat card = ImageUtil.imread("D:/CardDetect/3.jpg", CvType.CV_8UC3);
+        // txtDetect(card, debug, tempPath);
 
         Instant end = Instant.now();
         System.err.println("总耗时：" + Duration.between(start, end).toMillis());
